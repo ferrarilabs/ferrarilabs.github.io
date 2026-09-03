@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-09-01T05:24:19Z",
-  "sourceUpdatedAt": "2026-09-01T05:24:19Z",
+  "generatedAt": "2026-09-03T17:11:01Z",
+  "sourceUpdatedAt": "2026-09-03T17:11:01Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "598bf0d47fabf6af386d2d4eaa8ca84eb9efc7d7edb419ca12f60cc9f287a7fb",
+  "payloadHash": "60dee0bee4476b675369483506a03d2f9c4c3ca88c01aa9214fd754f35124e7b",
   "matches": [
     {
       "name": "Palmeiras",
@@ -27,14 +27,14 @@
       "abbr": "FLA",
       "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/819.png",
       "rank": 2.0,
-      "points": 48.0,
-      "played": 24.0,
-      "wins": 14.0,
+      "points": 51.0,
+      "played": 25.0,
+      "wins": 15.0,
       "draws": 6.0,
       "losses": 4.0,
-      "gf": 48.0,
+      "gf": 50.0,
       "ga": 21.0,
-      "gd": 27.0
+      "gd": 29.0
     },
     {
       "name": "Athletico Paranaense",
@@ -224,13 +224,13 @@
       "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/9169.png",
       "rank": 16.0,
       "points": 25.0,
-      "played": 24.0,
+      "played": 25.0,
       "wins": 6.0,
       "draws": 7.0,
-      "losses": 11.0,
+      "losses": 12.0,
       "gf": 27.0,
-      "ga": 37.0,
-      "gd": -10.0
+      "ga": 39.0,
+      "gd": -12.0
     },
     {
       "name": "Vasco da Gama",

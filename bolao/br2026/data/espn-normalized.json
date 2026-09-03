@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-09-02T22:44:31Z",
-  "sourceUpdatedAt": "2026-09-02T22:44:31Z",
+  "generatedAt": "2026-09-03T17:11:01Z",
+  "sourceUpdatedAt": "2026-09-03T17:11:01Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "ec721e359902ed46f1b163db413855813b6dac73b2458e5de9eda96424f5ad66",
+  "payloadHash": "18efc4f24bb492306116bf356f6bb8e73759a7fe4d88ad2bbaa59588e9abfb3d",
   "matches": [
     {
       "id": "401840808",
@@ -9346,8 +9346,8 @@
           },
           "athletesInvolved": [
             {
-              "displayName": "Carlos Miguel",
-              "shortName": "Carlos Miguel"
+              "displayName": "Carlos Eduardo",
+              "shortName": "Carlos Eduardo"
             }
           ]
         },
@@ -12064,8 +12064,8 @@
           },
           "athletesInvolved": [
             {
-              "displayName": "Carlos Miguel",
-              "shortName": "Carlos Miguel"
+              "displayName": "Carlos Eduardo",
+              "shortName": "Carlos Eduardo"
             }
           ]
         },
@@ -16440,8 +16440,8 @@
           },
           "athletesInvolved": [
             {
-              "displayName": "João Victor Carroll",
-              "shortName": "J. Carroll"
+              "displayName": "João Victor",
+              "shortName": "João Victor"
             }
           ]
         },
@@ -25042,8 +25042,8 @@
           },
           "athletesInvolved": [
             {
-              "displayName": "João Victor Carroll",
-              "shortName": "J. Carroll"
+              "displayName": "João Victor",
+              "shortName": "João Victor"
             }
           ]
         },
@@ -28375,8 +28375,8 @@
           },
           "athletesInvolved": [
             {
-              "displayName": "Carlos Miguel",
-              "shortName": "Carlos Miguel"
+              "displayName": "Carlos Eduardo",
+              "shortName": "Carlos Eduardo"
             }
           ]
         },
@@ -34503,8 +34503,8 @@
           },
           "athletesInvolved": [
             {
-              "displayName": "Gabriel Knesowitsch",
-              "shortName": "G. Knesowitsch"
+              "displayName": "Gabriel",
+              "shortName": "Gabriel"
             }
           ]
         },
@@ -34560,8 +34560,8 @@
           },
           "athletesInvolved": [
             {
-              "displayName": "João Victor Carroll",
-              "shortName": "J. Carroll"
+              "displayName": "João Victor",
+              "shortName": "João Victor"
             }
           ]
         },
@@ -36002,8 +36002,8 @@
           },
           "athletesInvolved": [
             {
-              "displayName": "Elias Lira Nogueira Junior",
-              "shortName": "E. Lira Nogueira Junior"
+              "displayName": "Elias",
+              "shortName": "Elias"
             }
           ]
         },
@@ -37746,8 +37746,8 @@
           },
           "athletesInvolved": [
             {
-              "displayName": "João Victor Carroll",
-              "shortName": "J. Carroll"
+              "displayName": "João Victor",
+              "shortName": "João Victor"
             }
           ]
         },
@@ -39421,8 +39421,8 @@
           },
           "athletesInvolved": [
             {
-              "displayName": "Gabriel Knesowitsch",
-              "shortName": "G. Knesowitsch"
+              "displayName": "Gabriel",
+              "shortName": "Gabriel"
             }
           ]
         },
@@ -41670,26 +41670,116 @@
     {
       "id": "401913077",
       "date": "2026-09-02T22:30Z",
-      "state": "in",
-      "statusName": "STATUS_FIRST_HALF",
-      "statusDescription": "First Half",
-      "statusShortDetail": "14'",
-      "statusDetail": "14'",
-      "completed": false,
+      "state": "post",
+      "statusName": "STATUS_FULL_TIME",
+      "statusDescription": "Full Time",
+      "statusShortDetail": "FT",
+      "statusDetail": "FT",
+      "completed": true,
       "homeTeam": "Flamengo",
       "awayTeam": "Mirassol",
       "homeTeamId": "819",
       "awayTeamId": "9169",
-      "homeScore": 0,
+      "homeScore": 2,
       "awayScore": 0,
-      "homeWinner": false,
+      "homeWinner": true,
       "awayWinner": false,
       "venue": "Estadio do Maracana",
       "city": "Rio de Janeiro",
-      "clockSec": 840.0,
-      "clockStr": "14'",
-      "period": 1,
-      "details": []
+      "clockSec": 5400.0,
+      "clockStr": "90'+6'",
+      "period": 2,
+      "details": [
+        {
+          "type": {
+            "text": "Goal"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "819"
+          },
+          "clock": {
+            "value": 835.0,
+            "displayValue": "14'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Jorge Carrascal",
+              "shortName": "J. Carrascal"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Goal - Header"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "819"
+          },
+          "clock": {
+            "value": 2557.0,
+            "displayValue": "43'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Lucas Paquetá",
+              "shortName": "L. Paquetá"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "9169"
+          },
+          "clock": {
+            "value": 3690.0,
+            "displayValue": "62'"
+          }
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "9169"
+          },
+          "clock": {
+            "value": 3935.0,
+            "displayValue": "66'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "João Victor",
+              "shortName": "João Victor"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "9169"
+          },
+          "clock": {
+            "value": 4839.0,
+            "displayValue": "81'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Denilson",
+              "shortName": "Denilson"
+            }
+          ]
+        }
+      ]
     },
     {
       "id": "401841224",
