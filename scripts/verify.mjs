@@ -227,6 +227,8 @@ const CHECKS = [
     why: "ciclo de vida do sorteio e rotulo do seletor — nunca esteve no runner, por isso ficou 9/2 sem ninguem ver" },
 
   // ── scheduling ───────────────────────────────────────────────────────────────
+  { id: "live-evidence-expiry", group: "app", cmd: ["node", "bolao/shared/scripts/test_live_evidence_expiry.mjs"],
+    why: "incidente 2026-09-02/03: com o produtor parado, o snapshot congelado era re-servido como observacao NOVA e a pagina afirmou AO VIVO por 829 min sobre um 0x0 do 14' de um jogo encerrado 2x0. Este gate prova que a evidencia ao vivo tem prazo, que o limiar e o MESMO do contrato de frescor, que idade NUNCA vira FINAL e que POSTPONED/SUSPENDED/FINAL declarados pela fonte mandam" },
   { id: "pipeline-monitor", group: "scheduling", cmd: ["node", "bolao/scripts/test_pipeline_monitor.mjs"],
     why: "todos os incidentes do pipeline ao vivo em 2026-08 foram descobertos por alguem abrir o site e ver que estava errado; a CI de browser chegou a tropecar em alguns por acidente, o que e pior que nao detectar. Este gate prova que o vigia classifica certo, NAO repete alarme enquanto o mesmo incidente persiste (uma indisponibilidade de 3h e UM incidente, nao um por ciclo), reconhece recuperacao sozinho, usa os limiares do contrato compartilhado em vez de numeros proprios, e nao le nada de participante" },
   { id: "cron-coverage", group: "scheduling", cmd: ["node", "bolao/scripts/cron_coverage.test.mjs"],

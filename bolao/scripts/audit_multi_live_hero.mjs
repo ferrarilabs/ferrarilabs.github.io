@@ -59,6 +59,18 @@ if (MUTAR && !APP_SRC.includes(ALVO_MUTACAO)) {
 const APP = MUTAR ? APP_SRC.replace(ALVO_MUTACAO, MUTACAO) : APP_SRC;
 
 // ─── Fixtures ────────────────────────────────────────────────────────────────────────────────
+// Apitos RELATIVOS ao agora, nao uma data fixa de agosto/2026.
+//
+// Motivo (incidente 2026-09-02/03): `KICKOFF_LIVE_HORIZON_MS` passou a recusar a afirmacao "ao
+// vivo" quando o apito ficou para tras alem de 4 h -- defesa contra produtor preso em "in". Com
+// data fixa, estas fixtures descreviam um jogo que comecou HA DIAS e seguia ao vivo com
+// observacao fresca: exatamente o cenario implausivel que o guard existe para recusar. O gate
+// reprovava por fixture irreal, nao por defeito de produto.
+//
+// As ASSERCOES nao mudaram; so o apito virou plausivel (~1 h atras, jogo em andamento).
+const AGORA_FIXTURE = Date.now();
+const apitoHa = (min) => new Date(AGORA_FIXTURE - min * 60_000).toISOString();
+
 const CLUBES = [
   ["Palmeiras", "Santos"], ["Grêmio", "Internacional"],
   ["Vasco", "Flamengo"], ["Cruzeiro", "Atlético-MG"],
@@ -80,7 +92,7 @@ function snapshot(nLive, { extraFinal = true, jaVistos = 0 } = {}) {
       id: `live-${i + 1}`,
       // Cronologia DECRESCENTE em relação ao índice: o primeiro do array é o que começou por
       // ÚLTIMO. Se a ordem do hero seguisse a resposta da fonte, o teste de ordem falharia.
-      date: new Date(Date.UTC(2026, 7, 16, 22 - i, 0, 0)).toISOString(),
+      date: apitoHa(60 + i * 10),
       state: "in", statusName: "STATUS_IN_PROGRESS", statusDescription: "In Progress",
       statusShortDetail: `${20 + i}'`, statusDetail: `${20 + i}'`, completed: false,
       clockSec: (20 + i) * 60, period: 1, clockStr: `${20 + i}'`,
@@ -92,7 +104,7 @@ function snapshot(nLive, { extraFinal = true, jaVistos = 0 } = {}) {
     const [home, away] = CLUBES[i];
     matches.push({
       id: `live-${i + 1}`,
-      date: new Date(Date.UTC(2026, 7, 16, 22 - i, 0, 0)).toISOString(),
+      date: apitoHa(60 + i * 10),
       state: "post", statusName: "STATUS_FINAL", statusDescription: "Final",
       statusShortDetail: "FT", statusDetail: "FT", completed: true,
       clockSec: 5400, period: 2, clockStr: "90'",
@@ -104,7 +116,7 @@ function snapshot(nLive, { extraFinal = true, jaVistos = 0 } = {}) {
     // Um jogo ENCERRADO no mesmo payload: o hero não pode mostrá-lo, e um teste que só conta
     // cards não perceberia se ele entrasse.
     matches.push({
-      id: "final-1", date: new Date(Date.UTC(2026, 7, 16, 18, 0, 0)).toISOString(),
+      id: "final-1", date: apitoHa(200),
       state: "post", statusName: "STATUS_FINAL", statusDescription: "Final",
       statusShortDetail: "FT", statusDetail: "FT", completed: true,
       clockSec: 5400, period: 2, clockStr: "90'",

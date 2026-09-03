@@ -35,13 +35,20 @@ const test = (n, ok, extra = "") => {
 const APP = readFileSync(join(RAIZ, "bolao/br2026/js/app.js"), "utf8");
 const CLUBES = [["Palmeiras", "Santos"], ["Grêmio", "Internacional"], ["Vasco", "Flamengo"]];
 
+// Apito RELATIVO ao agora, nao uma data fixa de agosto/2026 (incidente 2026-09-02/03).
+// `KICKOFF_LIVE_HORIZON_MS` (bolao/shared/js/live_clock.js) passou a recusar a afirmacao "ao
+// vivo" quando o apito ficou para tras alem de 4h -- defesa contra produtor preso em "in". Com
+// data fixa, este fixture descrevia um jogo que comecou ha DIAS e seguia ao vivo com observacao
+// fresca: o proprio cenario implausivel que o guard existe para recusar. As asserções de
+// geometria não mudaram; só o apito virou plausível.
 function snapshot(nLive) {
   const agora = new Date().toISOString();
+  const apitoHa = (min) => new Date(Date.now() - min * 60_000).toISOString();
   const matches = [];
   for (let i = 0; i < nLive; i++) {
     const [home, away] = CLUBES[i];
     matches.push({
-      id: `live-${i + 1}`, date: new Date(Date.UTC(2026, 7, 16, 20 + i, 0, 0)).toISOString(),
+      id: `live-${i + 1}`, date: apitoHa(30 + i),
       state: "in", statusName: "STATUS_IN_PROGRESS", statusDescription: "In Progress",
       statusShortDetail: `${30 + i}'`, statusDetail: `${30 + i}'`, completed: false,
       clockSec: (30 + i) * 60, period: 1, clockStr: `${30 + i}'`,

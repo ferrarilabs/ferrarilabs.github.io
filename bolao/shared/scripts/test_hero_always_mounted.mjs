@@ -59,8 +59,15 @@ const MATRIZ = [
    { liveState: "SOURCE_UNAVAILABLE", liveMatches: [], nextMatch: proxima, sourceOk: false }, HERO.UPCOMING],
   ["payload inválido do gateway",
    { liveState: "SOURCE_UNAVAILABLE", liveMatches: [], nextMatch: proxima, sourceOk: false }, HERO.UPCOMING],
-  ["cache além do limiar crítico, com jogo ao vivo",
-   { liveState: "LIVE_CRITICAL_STALE", liveMatches: [jogoAoVivo], sourceOk: true }, HERO.LIVE_DELAYED],
+  // Incidente 2026-09-02/03: esta linha exigia HERO.LIVE_DELAYED, isto e, exigia que o produto
+  // continuasse afirmando AO VIVO com evidencia vencida -- por 829 minutos, na producao real.
+  // Enquanto ela existisse, o defeito era OBRIGATORIO. Alem do limiar critico a afirmacao ao vivo
+  // e retirada e a decisao cai para o ramo autoritativo (aqui, sem proxima partida conhecida,
+  // SOURCE_UNAVAILABLE). O hero continua montado -- e o invariante do #246 -- so nao mente.
+  ["cache além do limiar crítico, com jogo ao vivo (evidência vencida)",
+   { liveState: "LIVE_CRITICAL_STALE", liveMatches: [jogoAoVivo], sourceOk: true }, HERO.SOURCE_UNAVAILABLE],
+  ["evidência vencida, mas com próxima partida conhecida ⇒ cai no calendário local",
+   { liveState: "LIVE_CRITICAL_STALE", liveMatches: [jogoAoVivo], nextMatch: proxima, sourceOk: true }, HERO.UPCOMING],
   ["offline / sem rede",
    { liveState: "SOURCE_UNAVAILABLE", liveMatches: [], nextMatch: proxima, sourceOk: false }, HERO.UPCOMING],
   ["snapshot disponível, gateway fora",
@@ -81,15 +88,28 @@ for (const [rotulo, entrada, esperado] of MATRIZ) {
 
 console.log("\nB. Transições — o hero NUNCA pisca entre estados:");
 
-test("LIVE_FRESH → LIVE_STALE → LIVE_CRITICAL_STALE: sempre visível, mesma partida", () => {
+test("LIVE_FRESH → LIVE_STALE: sempre visível, MESMA partida (degradação não pisca)", () => {
   const ids = [];
-  for (const s of ["LIVE_FRESH", "LIVE_STALE", "LIVE_CRITICAL_STALE"]) {
+  for (const s of ["LIVE_FRESH", "LIVE_STALE"]) {
     const r = H.deriveFootballHeroState({ liveState: s, liveMatches: [jogoAoVivo], sourceOk: true, now: AGORA });
     invariante(r, s);
     assert(r.matches.length === 1, `${s}: perdeu a partida`);
     ids.push(r.matches[0].id);
   }
   assert(new Set(ids).size === 1, "a identidade da partida mudou durante a degradação de frescor");
+});
+
+test("… → LIVE_CRITICAL_STALE: hero CONTINUA montado, mas sem afirmar ao vivo", () => {
+  const r = H.deriveFootballHeroState({
+    liveState: "LIVE_CRITICAL_STALE", liveMatches: [jogoAoVivo], nextMatch: proxima, sourceOk: true, now: AGORA });
+  invariante(r, "LIVE_CRITICAL_STALE");
+  assert(r.state !== HERO.LIVE_FRESH && r.state !== HERO.LIVE_DELAYED,
+    `evidência vencida não pode render estado ao vivo: ${r.state}`);
+  assert(r.state !== "FINAL" && r.state !== HERO.RECENT_FINAL,
+    "UNKNOWN != FINAL: idade não pode concluir que a partida acabou");
+  assert(r.matches.length === 0,
+    "o placar velho não pode seguir sendo apresentado como partida ao ar");
+  assert(r.degraded === true, "a degradação tem de continuar declarada para quem diagnostica");
 });
 
 test("LIVE → FINAL → UPCOMING: nenhum estado intermediário sem hero", () => {
