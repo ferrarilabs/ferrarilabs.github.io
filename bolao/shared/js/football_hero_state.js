@@ -111,13 +111,30 @@
     // 1. Ao vivo confirmado ganha de tudo — inclusive de fonte degradada. Uma observação atrasada
     //    de um jogo que ESTÁ acontecendo continua sendo a informação mais relevante da página; o
     //    que muda é dizer que está atrasada, não esconder a partida.
-    if (aoVivo.length) {
-      var atrasado = e.liveState === "LIVE_STALE" ||
-                     e.liveState === "LIVE_CRITICAL_STALE" ||
-                     !fonteOk;
+    //
+    //    O LIMITE disso, aprendido em produção (incidente 2026-09-02/03): `LIVE_CRITICAL_STALE`
+    //    NÃO é "atrasado", é "sem evidência suficiente". O contrato de frescor já dizia isso em
+    //    football_live_store.js — `> 30 min = UNAVAILABLE  não passa por verdade ao vivo` — e
+    //    esta função o contradizia, devolvendo LIVE_DELAYED para QUALQUER idade. Resultado: 829
+    //    minutos depois do último dado, a página ainda estampava AO VIVO sobre um 0×0 do 14' de
+    //    um jogo que terminara 2×0. Duas camadas, dois contratos, e o de baixo ignorado.
+    //
+    //    Retirar a AFIRMAÇÃO ao vivo não é esconder o hero: o invariante do #246 continua
+    //    valendo, e a decisão cai para os ramos autoritativos abaixo (final recente / próxima
+    //    partida / fonte indisponível), que são LOCAIS e honestos. UNKNOWN != LIVE, UNKNOWN != FINAL:
+    //    em nenhum momento se conclui que a partida acabou.
+    var evidenciaVencida = e.liveState === "LIVE_CRITICAL_STALE";
+    if (aoVivo.length && !evidenciaVencida) {
+      var atrasado = e.liveState === "LIVE_STALE" || !fonteOk;
       return atrasado
         ? saida(HERO.LIVE_DELAYED, "live confirmado com observacao atrasada", true)
         : saida(HERO.LIVE_FRESH, "live confirmado e recente", false);
+    }
+    if (aoVivo.length && evidenciaVencida) {
+      // A partida sai da APRESENTAÇÃO ao vivo. `matches` esvazia para que nenhum consumidor
+      // desenhe placar/relógio como se fossem atuais — o dado velho não vira dado corrente.
+      base.matches = [];
+      aoVivo = [];
     }
 
     // 2. Sem jogo ao vivo. A partir daqui a fonte ao vivo não tem mais nada a dizer, e quem
@@ -131,18 +148,20 @@
     if (recente && recenteAindaVale) {
       var maisPertoQueAProxima = tProxima == null || (agora - tRecente) < (tProxima - agora);
       if (maisPertoQueAProxima) {
-        return saida(HERO.RECENT_FINAL, "final recente e nada mais proximo", !fonteOk);
+        return saida(HERO.RECENT_FINAL, "final recente e nada mais proximo", !fonteOk || evidenciaVencida);
       }
     }
 
     if (proxima) {
-      return saida(HERO.UPCOMING, "proxima partida autoritativa conhecida", !fonteOk);
+      return saida(HERO.UPCOMING, "proxima partida autoritativa conhecida", !fonteOk || evidenciaVencida);
     }
 
     // 3. Não há ao vivo, não há final recente, não há próxima conhecida. Ainda assim o hero fica:
     //    a diferença entre os dois estados abaixo é DIZER A VERDADE sobre por que está vazio.
-    if (!fonteOk) {
-      return saida(HERO.SOURCE_UNAVAILABLE, "fonte ao vivo indisponivel", true);
+    if (!fonteOk || evidenciaVencida) {
+      return saida(HERO.SOURCE_UNAVAILABLE,
+        evidenciaVencida ? "evidencia ao vivo vencida: nao da para afirmar que segue ao vivo"
+                         : "fonte ao vivo indisponivel", true);
     }
     return saida(HERO.SCHEDULE_UNKNOWN, "sem partida ao vivo, final recente ou proxima conhecida", false);
   }

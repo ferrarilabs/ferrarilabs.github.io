@@ -207,6 +207,79 @@
   // continua sendo a autoridade.
   var RETENTION_TTL_MS = 15 * 60 * 1000;
 
+  // ─── EVIDÊNCIA AO VIVO TEM PRAZO (incidente 2026-09-02/03) ─────────────────────────────────
+  //
+  // Em produção, `bolao_provider_snapshot.yml` parou às 22:44:17Z com Flamengo × Mirassol no 14'.
+  // O snapshot commitado congelou com `state:"in"` e passou a ser re-servido como observação NOVA
+  // a cada carregamento. Como o caminho `observed` abaixo assumia `ageMs: 0` — uma observação é,
+  // por definição, atual —, a idade nunca era consultada: 829 minutos depois a página ainda dizia
+  // AO VIVO, 0×0, 14'. O jogo terminara 2×0 na véspera. Um navegador LIMPO reproduzia; não era
+  // retenção de cliente, era a fonte afirmando "in" para sempre.
+  //
+  // O teto de retenção (15 min) não protegia nada aqui: ele só existe no ramo `retained`, e a
+  // observação congelada nunca chegava lá.
+  //
+  // MESMO NÚMERO do contrato de frescor compartilhado (`CRITICAL_STALE_AFTER_MS`, 30 min, em
+  // football_live_store.js), que já declara `> 30 min = UNAVAILABLE  não passa por verdade ao
+  // vivo`. Aqui isso deixa de ser prosa e passa a valer. Não é um limiar novo — é o mesmo, agora
+  // honrado; `test_live_clock.test.mjs` prova que os dois não podem divergir.
+  var LIVE_EVIDENCE_MAX_AGE_MS = 30 * 60 * 1000;
+
+  // ─── HORIZONTE DE PLAUSIBILIDADE A PARTIR DO APITO INICIAL ─────────────────────────────────
+  //
+  // Defesa em profundidade para o modo de falha OPOSTO: um produtor que continua publicando
+  // timestamps frescos mas deixa o evento preso em "in". Aí a idade não denuncia nada.
+  //
+  // 4 HORAS, não 3. O orçamento de uma partida que vai até o limite, em competição de mata-mata
+  // (a Copa do Brasil é exatamente isso):
+  //
+  //     2 × 45 min regulamentares            90 min
+  //     intervalo                            15 min
+  //     acréscimos (os dois tempos)       ~  10 min
+  //     prorrogação 2 × 15 + intervalo       35 min
+  //     preparação e disputa de pênaltis  ~  15 min
+  //                                       ─────────
+  //                                        ~165 min  (2h45)
+  //
+  // Sobram ~75 min para atraso de apito inicial e interrupção longa (chuva, falta de luz, VAR
+  // prolongado). 3 h deixaria margem de apenas ~15 min e poderia apagar da tela uma partida
+  // legítima com prorrogação + pênaltis + atraso — exatamente o jogo que mais importa. Este
+  // horizonte NUNCA conclui que a partida acabou; ele só retira a afirmação de que segue ao vivo.
+  var KICKOFF_LIVE_HORIZON_MS = 4 * 60 * 60 * 1000;
+
+  /** Instante da observação, em ms. `null` quando a observação não carimba a própria idade. */
+  function observationInstant(m) {
+    if (!m) return null;
+    var v = m.observedAt != null ? m.observedAt : m.pollTime;
+    if (v == null) return null;
+    if (typeof v === "number") return isFinite(v) ? v : null;
+    var t = Date.parse(v);
+    return isNaN(t) ? null : t;
+  }
+
+  /**
+   * A evidência ainda sustenta a AFIRMAÇÃO "esta partida está ao vivo AGORA"?
+   *
+   * Responde só isso. Não decide que a partida acabou, não inventa placar e não substitui um
+   * estado terminal declarado pela fonte — quem chama consulta `terminalState()` ANTES.
+   *
+   * @returns {{ok: true}|{ok: false, reason: string, ageMs: ?number}}
+   */
+  function liveClaimSupported(m, now) {
+    now = now != null ? now : Date.now();
+    var obs = observationInstant(m);
+    // Sem carimbo não se INVENTA idade: uma observação sem `observedAt` é tratada como atual,
+    // que é o comportamento de antes deste patch. Quem carimba, é cobrado.
+    if (obs != null && now - obs > LIVE_EVIDENCE_MAX_AGE_MS) {
+      return { ok: false, reason: "LIVE_EVIDENCE_EXPIRED", ageMs: now - obs };
+    }
+    var kick = m && (m.kickoff || m.date) ? Date.parse(m.kickoff || m.date) : NaN;
+    if (!isNaN(kick) && now - kick > KICKOFF_LIVE_HORIZON_MS) {
+      return { ok: false, reason: "KICKOFF_HORIZON_EXCEEDED", ageMs: obs != null ? now - obs : null };
+    }
+    return { ok: true };
+  }
+
   var FEATURED = {
     LIVE_CONFIRMED: "LIVE_CONFIRMED",
     LIVE_RETAINED: "LIVE_RETAINED",
@@ -252,7 +325,17 @@
     // 1. Observação atual válida e ao vivo: autoridade máxima. Substitui o retido sempre.
     if (sourceOk && observed) {
       var term = terminalState(observed);
+      // Terminal declarado pela FONTE vem primeiro e nunca é sobrescrito pelos guards abaixo:
+      // POSTPONED/SUSPENDED/FINAL têm semântica própria e continuam valendo com qualquer idade.
       if (term) return { state: term, match: observed, retained: false, reason: "OBSERVED_TERMINAL", ageMs: 0 };
+      // A observação diz "ao vivo" — mas ela própria ainda sustenta essa afirmação AGORA?
+      // Sem esta checagem, um snapshot congelado é re-servido como observação nova para sempre.
+      var evid = liveClaimSupported(observed, now);
+      if (!evid.ok) {
+        // UNKNOWN, jamais FINAL: não sabemos o que aconteceu, e dizer que acabou seria inventar.
+        return { state: FEATURED.UNKNOWN, match: null, retained: false,
+                 reason: evid.reason, ageMs: evid.ageMs != null ? evid.ageMs : 0 };
+      }
       return { state: FEATURED.LIVE_CONFIRMED, match: observed, retained: false, reason: "OBSERVED_LIVE", ageMs: 0 };
     }
 
@@ -267,6 +350,12 @@
       // 2b. Dentro do TTL: mantém no ar com o último confirmado. `<=` é deliberado — no instante
       //     exato do TTL ainda vale; a expiração é ESTRITAMENTE depois.
       if (age <= RETENTION_TTL_MS) {
+        // O TTL sozinho não basta: uma partida cujo apito inicial ficou para trás além do
+        // horizonte não pode ser retida como ao vivo nem dentro dos 15 min.
+        var evidR = liveClaimSupported(retained.match, now);
+        if (!evidR.ok) {
+          return { state: FEATURED.UNKNOWN, match: null, retained: false, reason: evidR.reason, ageMs: age };
+        }
         return { state: FEATURED.LIVE_RETAINED, match: retained.match, retained: true,
                  reason: sourceOk ? "OMITTED_FROM_SNAPSHOT" : "SOURCE_UNAVAILABLE", ageMs: age };
       }
@@ -285,6 +374,9 @@
     MAX_INTERPOLATION_MS: MAX_INTERPOLATION_MS,
     FEATURED: FEATURED,
     RETENTION_TTL_MS: RETENTION_TTL_MS,
+    LIVE_EVIDENCE_MAX_AGE_MS: LIVE_EVIDENCE_MAX_AGE_MS,
+    KICKOFF_LIVE_HORIZON_MS: KICKOFF_LIVE_HORIZON_MS,
+    liveClaimSupported: liveClaimSupported,
     resolveFeaturedMatchState: resolveFeaturedMatchState,
     terminalState: terminalState,
     STATE: STATE,
