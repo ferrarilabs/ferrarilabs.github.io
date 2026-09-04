@@ -81,15 +81,24 @@ jobs:
           TIE_ID: ${{ inputs.tie_id }}
           LEG: ${{ inputs.leg }}
           EXPECT_RESULT: ${{ inputs.expect_result }}
+          MISSING_REFS: ${{ inputs.missing_refs }}
+          CONFIRM_NOT_DELIVERED: ${{ inputs.confirm_not_delivered }}
         working-directory: bolao/cdb2026/scripts
         run: |
           set -euo pipefail
-          python3 recover_result_email.py \
-            --phase "$PHASE_ID" \
-            --tie "$TIE_ID" \
-            --leg "$LEG" \
-            --expect "$EXPECT_RESULT" \
-            --preflight
+          # O preflight avalia O MESMO alvo que o envio avaliaria — incluindo a autorização
+          # parcial. Sem isso ele julgava um alvo diferente do que seria enviado: com
+          # `missing_refs` preenchido, decidia UNCERTAIN (correto para um alvo SEM autorização),
+          # saía 3, e matava o job antes do passo de envio. O preflight tem de responder sobre o
+          # alvo real, senão ele não é o preflight daquele envio.
+          ARGS=(--phase "$PHASE_ID" --tie "$TIE_ID" --leg "$LEG" --expect "$EXPECT_RESULT")
+          if [ -n "${MISSING_REFS//[[:space:]]/}" ]; then
+            mapfile -t REFS < <(bash build_missing_ref_args.sh)
+            [ "${#REFS[@]}" -gt 0 ] || { echo "nenhum ref valido apos validacao"; exit 2; }
+            for r in "${REFS[@]}"; do ARGS+=(--missing-ref "$r"); done
+            ARGS+=(--confirm-not-delivered "$CONFIRM_NOT_DELIVERED")
+          fi
+          python3 recover_result_email.py "${ARGS[@]}" --preflight
 
       # ── ENVIO REAL ───────────────────────────────────────────────────────────────────────────
       # Só roda com `acao: send` escolhido à mão. O script REFAZ o preflight e recusa se o alvo não
