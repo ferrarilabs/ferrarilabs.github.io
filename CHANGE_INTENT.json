@@ -1,0 +1,17 @@
+{
+  "declarations": [
+    {
+      "surface_id": "NOTIFICATION_WORKFLOWS",
+      "reason": "Issue #400: o caminho de recuperacao PARCIAL existia no script mas nao tinha superficie de operador — `workflow_dispatch` nao expressa argumento repetivel, entao `--missing-ref` so era alcancavel por linha de comando local. Sem isso, os seis participantes que ficaram sem o resultado de Palmeiras x Santos (2026-09-03, envio interrompido no meio do lote) nao tinham como ser atendidos por um caminho auditavel.",
+      "expected_behavior_change": "ADITIVO ao `cdb2026_result_email_recovery.yml`. Dois inputs OPCIONAIS novos (`missing_refs`, `confirm_not_delivered`); vazios, o workflow faz exatamente o que fazia antes (recuperacao TOTAL, mesmo comando). Preenchidos, monta `--missing-ref` repetido via `build_missing_ref_args.sh`, que valida cada token contra lista branca e recusa vazio/duplicata/teto/metacaractere/quebra-de-linha. O passo de envio passou a receber TODA entrada do operador por `env:` em vez de interpolar `${{ inputs... }}` no corpo do `run:` — isso ENDURECE a superficie (a interpolacao injeta o valor no texto do shell antes de ele rodar). Nenhum guard existente foi afrouxado: `BOLAO_ALLOW_REAL_SEND` continua so no passo de envio, o preflight continua read-only e o `acao: send` continua exigindo status aceito. O passo `Vigia` e o de preflight nao foram tocados.",
+      "tests_required": [
+        "cron-coverage",
+        "email-send-safety",
+        "powerball-workflow-arming",
+        "cdb-missing-refs-parsing",
+        "cdb-partial-recover",
+        "cdb-result-email-recovery"
+      ]
+    }
+  ]
+}
