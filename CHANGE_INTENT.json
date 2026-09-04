@@ -1,0 +1,16 @@
+{
+  "declarations": [
+    {
+      "surface_id": "REAL_SEND_GUARDS",
+      "reason": "Issue #397: `send_result_email.py` imprimia o endereco de e-mail cru do participante no stdout do job a cada envio. Este repositorio e PUBLICO, entao log de Actions e legivel por qualquer pessoa sem autenticacao — 12 participantes reais em texto claro, permanentemente, a cada envio (runs 33875590935 e 33579099222 confirmados). A convencao correta ja existia no MESMO arquivo (`_entry_ref_for()`: \"NUNCA o e-mail\") e o ledger a respeitava; so o log a ignorava. O gate de seguranca de envio e o dono natural dessa propriedade e ja carrega o inventario de senders, entao ele ganhou a checagem em vez de nascer uma suite paralela.",
+      "expected_behavior_change": "ADITIVO — nenhuma trava existente foi afrouxada. `audit_email_send_safety.mjs` ganha a secao '4b. PII NO LOG': para cada sender Python inventariado, reprova se a variavel de endereco (addr/email/to_email/recipient/destinatario) for interpolada num print/append; mais um controle positivo no sender do CDB2026 e duas mutacoes (uma provando que o vazamento original SERIA reprovado, outra provando que citar `{addr}` em comentario/docstring NAO reprova). As 33 assercoes anteriores continuam identicas e passando. O gate ja encontrou o mesmo defeito no sender do copa2026, corrigido no mesmo patch pela regra de propagacao.",
+      "tests_required": [
+        "email-send-safety",
+        "python-sender-failclosed",
+        "powerball-email-safety",
+        "powerball-email-gates",
+        "no-real-email-in-verification"
+      ]
+    }
+  ]
+}

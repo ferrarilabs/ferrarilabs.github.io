@@ -38,6 +38,7 @@ import os
 import sys
 import urllib.error
 import json
+import hashlib
 import os, re, sys, time, urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
@@ -767,6 +768,28 @@ def _entry_ref_for(state, addr):
     return None
 
 
+def _log_ref(state, addr):
+    """Como um destinatário aparece NO LOG. Nunca o endereço.
+
+    Este job roda num repositório PÚBLICO, e log de Actions de repo público é legível por qualquer
+    pessoa, sem autenticação. A linha de sucesso imprimia `→ {addr}` cru — os 12 participantes reais
+    em texto claro, permanentemente, a cada envio (Issue #397).
+
+    A convenção correta já existia dez linhas acima, em `_entry_ref_for()`: o id da entrada
+    identifica de forma única e NÃO é PII, e é exatamente o que o ledger grava. O log passa a usar a
+    mesma referência.
+
+    Fallback para endereço sem entrada correspondente (participante removido, digitação divergente):
+    digest no MESMO formato de `mask()` em `scripts/pii_detectors.mjs` — o formato que o detector de
+    PII deste repositório já reconhece —, nunca o endereço.
+    """
+    ref = _entry_ref_for(state, addr)
+    if ref:
+        return f"entry:{ref}"
+    digest = hashlib.sha256(str(addr or "").encode()).hexdigest()[:8]
+    return f"<redacted sha256:{digest} len:{len(str(addr or ''))}>"
+
+
 def _send_to_all(state, html, subject, ledger_ref=None, ledger=None):
     """Envia para todos os participantes e, quando `ledger_ref` é dado, REGISTRA a entrega.
 
@@ -799,7 +822,7 @@ def _send_to_all(state, html, subject, ledger_ref=None, ledger=None):
     for _, addr in recipients.items():
         try:
             status = send_email(addr, subject, html)
-            print(f"  OK {status} → {addr}  [{subject}]")
+            print(f"  OK {status} → {_log_ref(state, addr)}  [{subject}]")
             sent += 1
             if reg is not None and ledger_ref is not None:
                 ref = _entry_ref_for(state, addr)
@@ -810,8 +833,8 @@ def _send_to_all(state, html, subject, ledger_ref=None, ledger=None):
                         print(f"  LEDGER_DEGRADED mark_sent: {ex}")
             time.sleep(3)
         except Exception as ex:
-            errors.append(f"{addr}: {ex}")
-            print(f"  ERR → {addr}: {ex}")
+            errors.append(f"{_log_ref(state, addr)}: {ex}")
+            print(f"  ERR → {_log_ref(state, addr)}: {ex}")
             # Falha de provedor tem de virar `FAILED` no ledger (#352). Sem isto a linha ficava em
             # `pending`, indistinguivel de uma reserva que nunca chegou a tentar -- e o ambiguo e
             # justamente o que trava uma recuperacao depois.
