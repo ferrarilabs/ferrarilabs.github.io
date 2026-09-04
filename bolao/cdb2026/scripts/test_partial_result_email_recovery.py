@@ -298,6 +298,26 @@ def _reassercao_antes_de_reservar():
 test("há reasserção de interseção imediatamente antes de reservar", _reassercao_antes_de_reservar)
 
 
+def _workflow_preflight_avalia_o_mesmo_alvo():
+    """O passo `Preflight` do workflow roda SEMPRE (não tem `if:`) e sai != 0 quando o alvo não
+    está pronto — matando o job antes do envio. Se ele não receber a autorização parcial, julga um
+    alvo DIFERENTE do que seria enviado: decide UNCERTAIN (correto para um alvo sem autorização),
+    sai 3, e o envio autorizado nunca acontece. Aconteceu na primeira tentativa real de
+    recuperação (run 33905518234) — nada foi enviado, mas nada podia ser."""
+    from pathlib import Path
+    wf = (Path(__file__).resolve().parents[3] / ".github" / "workflows"
+          / "cdb2026_result_email_recovery.yml").read_text()
+    pre = wf[wf.index("- name: Preflight (read-only)"):wf.index("- name: Enviar")]
+    for exigido in ["MISSING_REFS:", "CONFIRM_NOT_DELIVERED:", "build_missing_ref_args.sh",
+                    "--missing-ref", "--confirm-not-delivered"]:
+        _assert(exigido in pre,
+                f"o passo Preflight nao repassa `{exigido}` — ele julgaria um alvo diferente do que o envio manda")
+
+
+test("o passo Preflight do workflow avalia o MESMO alvo que o envio",
+     _workflow_preflight_avalia_o_mesmo_alvo)
+
+
 print("\nD. Nada além de e-mail")
 
 
