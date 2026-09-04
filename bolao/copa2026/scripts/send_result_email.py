@@ -21,6 +21,7 @@ Usage:
 """
 
 import json
+import hashlib
 import os, re, sys, time, urllib.request
 from pathlib import Path as _Path
 sys.path.insert(0, str(_Path(__file__).resolve().parents[2] / "shared" / "scripts"))
@@ -1042,6 +1043,25 @@ def _build_recipients(state):
     return recipients
 
 
+def _log_ref(state, addr):
+    """Como um destinatário aparece NO LOG. Nunca o endereço.
+
+    Mesma correção aplicada ao CDB2026 na Issue #397, propagada aqui pela regra de propagação da
+    plataforma: este job roda num repositório PÚBLICO, e log de Actions de repo público é legível
+    por qualquer pessoa. A Copa está arquivada e não envia mais, mas o código continua no repo e o
+    gate `audit_email_send_safety.mjs` cobre todos os senders inventariados — inclusive este.
+
+    Referência estável e não-PII: o id da entrada. Fallback (endereço sem entrada correspondente)
+    no MESMO formato de `mask()` em `scripts/pii_detectors.mjs`.
+    """
+    alvo = (addr or "").strip().lower()
+    for e in state.get("entries", []):
+        if (e.get("participantEmail") or "").strip().rstrip(",").strip().lower() == alvo:
+            return f"entry:{e.get('id')}"
+    digest = hashlib.sha256(str(addr or "").encode()).hexdigest()[:8]
+    return f"<redacted sha256:{digest} len:{len(str(addr or ''))}>"
+
+
 def _send_to_all(state, html, subject):
     """Send to all valid recipients. Returns (sent_count, error_list)."""
     recipients = _build_recipients(state)
@@ -1050,12 +1070,12 @@ def _send_to_all(state, html, subject):
     for _, addr in recipients.items():
         try:
             status = send_email(addr, subject, html)
-            print(f"  OK {status} → {addr}  [{subject}]")
+            print(f"  OK {status} → {_log_ref(state, addr)}  [{subject}]")
             sent += 1
             time.sleep(3)
         except Exception as ex:
-            errors.append(f"{addr}: {ex}")
-            print(f"  ERR → {addr}: {ex}")
+            errors.append(f"{_log_ref(state, addr)}: {ex}")
+            print(f"  ERR → {_log_ref(state, addr)}: {ex}")
     return sent, errors
 
 

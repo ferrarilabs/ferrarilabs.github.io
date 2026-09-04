@@ -218,6 +218,58 @@ test("nenhum envio de e-mail tem a falha engolida por `.catch(() => {})`", () =>
     `falha de envio engolida (AUD-03): ${ofensores.join(", ")}`);
 });
 
+// ─── 4b. PII NO LOG ─────────────────────────────────────────────────────────────────────────
+// Issue #397: `send_result_email.py` imprimia `→ {addr}` cru a cada envio. Este repositório é
+// PÚBLICO, e log de Actions de repo público é legível por qualquer um — 12 participantes reais em
+// texto claro, permanentemente, a cada envio. A convenção correta já existia no MESMO arquivo
+// (`_entry_ref_for()`: "NUNCA o e-mail"); só o log a ignorava.
+//
+// Este gate mora aqui de propósito, e não numa suíte nova: "destinatário não vaza para o log" é uma
+// propriedade de segurança de ENVIO, e o inventário de senders já vive neste arquivo. Uma segunda
+// suíte de PII de e-mail seria um segundo lugar para esquecer de registrar um sender.
+console.log("\nPII no log:");
+
+const LOG_ADDR_RE = /(?:print|append)\s*\(\s*f?["'][^"']*\{\s*(addr|email|to_email|recipient|destinatario)\b[^}]*\}/g;
+
+function soCodigoPy(src) {
+  // Docstrings e comentários deste repositório citam `{addr}` justamente para explicar que NÃO se
+  // deve imprimi-lo. Um gate que lesse prosa reprovaria a documentação correta.
+  return src
+    .replace(/"""[\s\S]*?"""/g, " ")
+    .replace(/'''[\s\S]*?'''/g, " ")
+    .split("\n").map(l => l.split("#")[0]).join("\n");
+}
+
+for (const f of PYTHON_SENDERS) {
+  test(`[${f}] nenhum log imprime a variável de endereço crua`, () => {
+    const ofensores = [];
+    for (const m of soCodigoPy(readFileSync(f, "utf8")).matchAll(LOG_ADDR_RE)) ofensores.push(m[1]);
+    assert(ofensores.length === 0,
+      `endereço cru em log (#397): ${[...new Set(ofensores)].join(", ")} interpolada(s) num print/append. ` +
+      "Use a referência não-PII do participante (entry id), como _entry_ref_for() já faz para o ledger.");
+  });
+}
+
+test("o sender do CDB2026 usa a referência não-PII no log (controle positivo)", () => {
+  const src = readFileSync("bolao/cdb2026/scripts/send_result_email.py", "utf8");
+  assert(/def _log_ref\(/.test(src), "sumiu o helper de referência não-PII do log");
+  assert(/_log_ref\(state, addr\)/.test(src), "o log deixou de passar pelo helper");
+  assert(/redacted sha256:/.test(src),
+    "o fallback deixou de usar o formato de mask() que o detector de PII deste repo reconhece");
+});
+
+test("MUTAÇÃO: um print com endereço cru é REPROVADO", () => {
+  const mutante = 'print(f"  OK {status} -> {addr}  [{subject}]")\n';
+  const ofensores = [...soCodigoPy(mutante).matchAll(LOG_ADDR_RE)];
+  assert(ofensores.length === 1, "o detector NÃO pegaria o vazamento original — gate inútil");
+});
+
+test("MUTAÇÃO: comentário citando {addr} NÃO reprova (sem falso positivo)", () => {
+  const prosa = '# nunca imprimir print(f"{addr}") aqui\n"""idem: print(f"{addr}")"""\n';
+  assert([...soCodigoPy(prosa).matchAll(LOG_ADDR_RE)].length === 0,
+    "o gate reprovaria a própria documentação correta");
+});
+
 // ─── 5. FIXTURES ────────────────────────────────────────────────────────────────────────────
 console.log("\nFixtures:");
 
