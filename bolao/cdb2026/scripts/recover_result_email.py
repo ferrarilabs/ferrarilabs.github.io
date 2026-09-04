@@ -59,6 +59,7 @@ def _carregar_sender():
 # ── Estados do alvo ──────────────────────────────────────────────────────────────────────────
 READY = "READY_FOR_EXPLICIT_RECOVERY"
 ALREADY = "ALREADY_DELIVERED"
+READY_PARTIAL = "READY_PARTIAL_RECOVERY"
 UNCERTAIN = "UNCERTAIN"
 NOT_READY = "NOT_READY"
 
@@ -122,12 +123,12 @@ def montar_assunto(S, tie, leg, gh, ga):
     return f"Resultado Parcial — {tie['teamA']} × {tie['teamB']}: {home} {gh}–{ga} {away}"
 
 
-def preflight(S, phase_id, tie_id, leg, esperado, ledger=None, state=None):
+def preflight(S, phase_id, tie_id, leg, esperado, ledger=None, state=None, autorizados=None):
     """Só LEITURA. Devolve um dicionário de evidência agregada — nunca endereços."""
     ev = {"TARGET_PHASE": phase_id, "TARGET_TIE": tie_id, "TARGET_LEG": leg,
           "RESULT": None, "EXPECTED_RECIPIENT_COUNT": 0, "RESOLVED_RECIPIENT_COUNT": 0,
           "LEDGER_SENT_COUNT": 0, "LEDGER_PENDING_COUNT": 0, "LEDGER_UNCERTAIN_COUNT": 0,
-          "WOULD_SEND_COUNT": 0, "TARGET_STATUS": NOT_READY, "MOTIVO": ""}
+          "WOULD_SEND_COUNT": 0, "WOULD_SEND_REFS": "", "TARGET_STATUS": NOT_READY, "MOTIVO": ""}
 
     if phase_id not in S.PHASE_BY_ID:
         ev["MOTIVO"] = f"fase inexistente: {phase_id}"
@@ -185,6 +186,57 @@ def preflight(S, phase_id, tie_id, leg, esperado, ledger=None, state=None):
 
     faltando = [r for r in refs if r not in sent]
     ev["WOULD_SEND_COUNT"] = len(faltando)
+    ev["WOULD_SEND_REFS"] = " ".join(sorted(faltando)) or "(nenhum)"
+
+    # ─── RECUPERACAO PARCIAL (#400) ─────────────────────────────────────────────────────────
+    #
+    # Envio interrompido no MEIO do lote: parte recebeu, parte nao. O caminho total nao serve --
+    # ele so age quando NINGUEM recebeu, e entao manda para TODOS. Aqui o alvo e um subconjunto.
+    #
+    # O que torna "ja enviado" INALCANCAVEL por este caminho nao e um filtro no laco de envio: e o
+    # fato de `refs` -- o unico conjunto que `main()` reserva e percorre -- ser ESTREITADO aqui
+    # para os refs autorizados. Um ref ja enviado nunca entra no dicionario, entao nao ha o que
+    # filtrar depois. Um refactor futuro no laco de envio nao consegue reintroduzi-lo.
+    #
+    # Cada checagem ABORTA; nenhuma "corrige" a entrada em silencio. Autorizar um ref que o ledger
+    # diz entregue e um erro do operador sobre QUEM ficou sem e-mail -- e um erro desses, filtrado
+    # sem aviso, viraria "recuperei" com gente ainda sem o resultado.
+    if autorizados is not None:
+        alvo = set(autorizados)
+        if not alvo:
+            ev["MOTIVO"] = "recuperacao parcial exige ao menos um ref"
+            return ev, tie, None
+        nao_resolviveis = sorted(alvo - set(refs))
+        if nao_resolviveis:
+            ev["MOTIVO"] = f"ref(s) sem destinatario resolvivel: {', '.join(nao_resolviveis)}"
+            return ev, tie, None
+        # A GUARDA. Interseccao com o conjunto entregue aborta -- nunca filtra.
+        ja_entregues = sorted(alvo & sent)
+        if ja_entregues:
+            ev["TARGET_STATUS"] = NOT_READY
+            ev["MOTIVO"] = ("ref(s) JA entregues no ledger foram autorizados: "
+                            f"{', '.join(ja_entregues)} — recuperacao parcial nunca reenvia")
+            return ev, tie, None
+        fora_do_faltando = sorted(alvo - set(faltando))
+        if fora_do_faltando:
+            ev["MOTIVO"] = ("ref(s) autorizados que o ledger nao aponta como faltantes: "
+                            f"{', '.join(fora_do_faltando)}")
+            return ev, tie, None
+        # IGUALDADE DE CONJUNTO, nao inclusao. Autorizar 5 dos 6 nao e "conservador": e uma
+        # recuperacao que deixa uma pessoa sem o resultado e reporta sucesso — e, pior, a partir
+        # dali o ledger passa a dizer que o alvo foi entregue por completo. O conjunto autorizado
+        # tem de ser EXATAMENTE o faltante que o ledger conhece; divergiu, aborta.
+        nao_cobertos = sorted(set(faltando) - alvo)
+        if nao_cobertos:
+            ev["MOTIVO"] = ("o conjunto autorizado nao cobre todos os faltantes do ledger: "
+                            f"faltou {', '.join(nao_cobertos)}")
+            return ev, tie, None
+        refs = {r: refs[r] for r in sorted(alvo)}
+        ev["WOULD_SEND_COUNT"] = len(refs)
+        ev["WOULD_SEND_REFS"] = " ".join(sorted(refs))
+        ev["TARGET_STATUS"] = READY_PARTIAL
+        ev["_SENT_REFS"] = sent          # nao impresso; `main()` reassere antes de reservar
+        return ev, tie, refs
 
     if incerto or pend:
         ev["TARGET_STATUS"] = UNCERTAIN
@@ -225,7 +277,7 @@ def imprimir(ev):
     for k in ("TARGET_PHASE", "TARGET_TIE", "TARGET_LEG", "RESULT",
               "EXPECTED_RECIPIENT_COUNT", "RESOLVED_RECIPIENT_COUNT",
               "LEDGER_SENT_COUNT", "LEDGER_PENDING_COUNT", "LEDGER_UNCERTAIN_COUNT",
-              "WOULD_SEND_COUNT", "TARGET_STATUS"):
+              "WOULD_SEND_COUNT", "WOULD_SEND_REFS", "TARGET_STATUS"):
         print(f"  {k} = {ev[k]}")
     if ev.get("MOTIVO"):
         print(f"  MOTIVO = {ev['MOTIVO']}")
@@ -238,20 +290,49 @@ def main(argv=None):
     ap.add_argument("--tie", required=True)
     ap.add_argument("--leg", required=True, choices=["first", "second"])
     ap.add_argument("--expect", required=True, help="placar gravado esperado, ex.: 1-1")
+    ap.add_argument("--missing-ref", action="append", metavar="ENTRY_REF",
+                    help="RECUPERACAO PARCIAL (#400): entry_ref comprovadamente NAO entregue. "
+                         "Repetir uma vez por ref. Nunca endereco de e-mail. "
+                         "Exige --confirm-not-delivered.")
+    ap.add_argument("--confirm-not-delivered", metavar="EVIDENCIA",
+                    help="Afirmacao explicita do operador de que evidencia EXTERNA prova que os "
+                         "refs de --missing-ref nao receberam (ex.: 'gmail-sent 2026-09-03: 6/12'). "
+                         "Sem isto o caminho parcial nao abre: pendencia no ledger nunca prova "
+                         "ausencia de entrega por si so.")
     g = ap.add_mutually_exclusive_group(required=True)
     g.add_argument("--preflight", action="store_true")
     g.add_argument("--send", action="store_true")
     a = ap.parse_args(argv)
 
+    # As duas metades da autorizacao parcial andam juntas: refs sem afirmacao de evidencia seria
+    # "o ledger esta pendente, entao mande" -- exatamente o que a #400 proibe; afirmacao sem refs
+    # nao tem alvo. Falta uma das duas, nada abre.
+    if bool(a.missing_ref) != bool(a.confirm_not_delivered):
+        print("  🛑 RECUSADO — --missing-ref e --confirm-not-delivered andam juntos.")
+        return 3
+
     S = _carregar_sender()
-    ev, tie, refs = preflight(S, a.phase, a.tie, a.leg, a.expect)
+    ev, tie, refs = preflight(S, a.phase, a.tie, a.leg, a.expect,
+                              autorizados=set(a.missing_ref) if a.missing_ref else None)
     imprimir(ev)
+    if a.missing_ref:
+        print(f"  MODO = RECUPERACAO PARCIAL ({len(a.missing_ref)} ref autorizado(s))")
+        print(f"  EVIDENCIA_EXTERNA = {a.confirm_not_delivered}")
+
+    aceitos = (READY_PARTIAL,) if a.missing_ref else (READY,)
 
     if a.preflight:
-        return 0 if ev["TARGET_STATUS"] == READY else 3
+        return 0 if ev["TARGET_STATUS"] in aceitos else 3
 
-    if ev["TARGET_STATUS"] != READY:
+    if ev["TARGET_STATUS"] not in aceitos:
         print(f"\n  🛑 RECUSADO — alvo em {ev['TARGET_STATUS']}. Nenhuma mensagem enviada.")
+        return 3
+
+    # Cinto E suspensorio: `refs` ja foi estreitado no preflight, mas o laco abaixo e o unico
+    # caminho que alcanca o provedor. Reasserir aqui custa nada e transforma um refactor futuro
+    # errado em falha ruidosa em vez de e-mail duplicado.
+    if ev.get("_SENT_REFS") and (set(refs) & ev["_SENT_REFS"]):
+        print("  🛑 RECUSADO — alvo de envio intersecta refs ja entregues. Nenhuma mensagem enviada.")
         return 3
 
     state = S.sb_fetch()
