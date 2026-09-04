@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.copa_do_brazil",
   "provider": "espn",
-  "generatedAt": "2026-09-04T11:53:26Z",
-  "sourceUpdatedAt": "2026-09-04T11:53:26Z",
+  "generatedAt": "2026-09-04T20:58:39Z",
+  "sourceUpdatedAt": "2026-09-04T20:58:39Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "8ad07737b7f56e31ce5bfc14328d7d44a17ff52ebdc19397bbb4efc0a62c226e",
+  "payloadHash": "b9f9f2238f13c9d7d377425c48b6b039ae873afb8f9d7c374b30bc23ea25cc67",
   "matches": [
     {
       "id": "401858546",
@@ -3551,8 +3551,8 @@
           },
           "athletesInvolved": [
             {
-              "displayName": "Lucas Cunha",
-              "shortName": "L. Cunha"
+              "displayName": "Cunha",
+              "shortName": "Cunha"
             }
           ]
         },
