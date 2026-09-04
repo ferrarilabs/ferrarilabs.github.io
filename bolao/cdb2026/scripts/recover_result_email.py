@@ -222,6 +222,15 @@ def preflight(S, phase_id, tie_id, leg, esperado, ledger=None, state=None, autor
             ev["MOTIVO"] = ("ref(s) autorizados que o ledger nao aponta como faltantes: "
                             f"{', '.join(fora_do_faltando)}")
             return ev, tie, None
+        # IGUALDADE DE CONJUNTO, nao inclusao. Autorizar 5 dos 6 nao e "conservador": e uma
+        # recuperacao que deixa uma pessoa sem o resultado e reporta sucesso — e, pior, a partir
+        # dali o ledger passa a dizer que o alvo foi entregue por completo. O conjunto autorizado
+        # tem de ser EXATAMENTE o faltante que o ledger conhece; divergiu, aborta.
+        nao_cobertos = sorted(set(faltando) - alvo)
+        if nao_cobertos:
+            ev["MOTIVO"] = ("o conjunto autorizado nao cobre todos os faltantes do ledger: "
+                            f"faltou {', '.join(nao_cobertos)}")
+            return ev, tie, None
         refs = {r: refs[r] for r in sorted(alvo)}
         ev["WOULD_SEND_COUNT"] = len(refs)
         ev["WOULD_SEND_REFS"] = " ".join(sorted(refs))
