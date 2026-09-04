@@ -143,6 +143,9 @@
     "bolao/cdb2026/scripts/test_reconcile_result_email_ledger.py": {
       "classification": "REGISTERED_AND_EXECUTED"
     },
+    "bolao/cdb2026/scripts/test_missing_refs_parsing.py": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
     "bolao/cdb2026/scripts/test_partial_result_email_recovery.py": {
       "classification": "REGISTERED_AND_EXECUTED"
     },

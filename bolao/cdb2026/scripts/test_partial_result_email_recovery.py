@@ -186,14 +186,42 @@ def _entregues_fora_do_alvo():
 test("nenhum dos 6 já entregues aparece no alvo de envio", _entregues_fora_do_alvo)
 
 
-def _subconjunto_menor_permitido():
+def _subconjunto_menor_recusado():
+    """IGUALDADE de conjunto, não inclusão. Autorizar 5 dos 6 não é "conservador": é uma
+    recuperação que deixa uma pessoa sem o resultado e reporta sucesso — e a partir dali o ledger
+    passa a dizer que o alvo foi entregue por completo, fechando a porta para consertar."""
     ev, _, refs = pre(autorizados={"e7", "e8"})
+    _assert(ev["TARGET_STATUS"] != R.READY_PARTIAL,
+            f"cobertura parcial do faltante foi aceita: {ev['TARGET_STATUS']}")
+    _assert("nao cobre" in ev["MOTIVO"], ev["MOTIVO"])
+    _assert(refs is None, refs)
+
+
+test("autorizar MENOS que o faltante recusa (exige o conjunto exato)",
+     _subconjunto_menor_recusado)
+
+
+def _ordem_nao_importa():
+    """A ordem é transporte; a autoridade é o CONJUNTO. Invertida, o alvo é o mesmo."""
+    ev, _, refs = pre(autorizados=set(reversed(FALTANTES)))
     _assert(ev["TARGET_STATUS"] == R.READY_PARTIAL, ev["TARGET_STATUS"])
-    _assert(sorted(refs) == ["e7", "e8"], sorted(refs))
+    _assert(sorted(refs) == sorted(FALTANTES), sorted(refs))
 
 
-test("autorizar menos que o faltante é permitido (conservador), e mira só esses",
-     _subconjunto_menor_permitido)
+test("ordem trocada não enfraquece a validação de conjunto", _ordem_nao_importa)
+
+
+def _setimo_ref_recusa():
+    """Um sétimo ref é ou já-entregue, ou inexistente — as duas coisas abortam."""
+    ev, _, refs = pre(autorizados=set(FALTANTES) | {"e1"})
+    _assert(ev["TARGET_STATUS"] != R.READY_PARTIAL, ev["TARGET_STATUS"])
+    _assert(refs is None, refs)
+    ev2, _, refs2 = pre(autorizados=set(FALTANTES) | {"e99"})
+    _assert(ev2["TARGET_STATUS"] != R.READY_PARTIAL, ev2["TARGET_STATUS"])
+    _assert(refs2 is None, refs2)
+
+
+test("um SÉTIMO ref (entregue ou inexistente) recusa", _setimo_ref_recusa)
 
 
 def _refs_expostos_no_preflight():
