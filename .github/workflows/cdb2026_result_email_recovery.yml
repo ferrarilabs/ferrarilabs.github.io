@@ -73,13 +73,22 @@ jobs:
       - name: Preflight (read-only)
         env:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          # Mesmo motivo do passo de envio: interpolar `${{ inputs... }}` DENTRO do `run:` injeta o
+          # valor no texto do shell antes de ele rodar. Este passo é read-only quanto a e-mail, mas
+          # carrega `SUPABASE_SERVICE_ROLE_KEY` no ambiente — injeção aqui é exfiltração da chave de
+          # operador, não um preflight barulhento. Por env, o valor é dado, nunca código.
+          PHASE_ID: ${{ inputs.phase_id }}
+          TIE_ID: ${{ inputs.tie_id }}
+          LEG: ${{ inputs.leg }}
+          EXPECT_RESULT: ${{ inputs.expect_result }}
         working-directory: bolao/cdb2026/scripts
         run: |
+          set -euo pipefail
           python3 recover_result_email.py \
-            --phase "${{ inputs.phase_id }}" \
-            --tie "${{ inputs.tie_id }}" \
-            --leg "${{ inputs.leg }}" \
-            --expect "${{ inputs.expect_result }}" \
+            --phase "$PHASE_ID" \
+            --tie "$TIE_ID" \
+            --leg "$LEG" \
+            --expect "$EXPECT_RESULT" \
             --preflight
 
       # ── ENVIO REAL ───────────────────────────────────────────────────────────────────────────
@@ -106,7 +115,7 @@ jobs:
           ARGS=(--phase "$PHASE_ID" --tie "$TIE_ID" --leg "$LEG" --expect "$EXPECT_RESULT")
 
           if [ -n "${MISSING_REFS//[[:space:]]/}" ]; then
-            # Validação léxica isolada e testável (test_missing_refs_parsing.sh). Um ref por linha;
+            # Validação léxica isolada e testável (test_missing_refs_parsing.py). Um ref por linha;
             # `mapfile` monta o array sem word-splitting. Sem `eval`, sem reconstruir a linha de
             # comando por string.
             mapfile -t REFS < <(bash build_missing_ref_args.sh)
