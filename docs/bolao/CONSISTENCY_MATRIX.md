@@ -2462,11 +2462,11 @@ atrasada" durante ~2 de cada 5 minutos, com o pipeline saudável. Agora os dois 
 `BOLAO_LIVE_CLOCK.MAX_INTERPOLATION_MS` (cadência + folga), e o gate `observation-cadence` reprova
 se qualquer um voltar a calcular o teto localmente.
 
-**`INTENTIONALLY_DIFFERENT`** — a lista "jogos de hoje" (`renderNextGameCard`) e a dedupe da
-partida primária (`_ehPrimaria`) existem apenas no BR2026: é um campeonato de pontos corridos com
-vários jogos simultâneos no mesmo dia. O CDB2026 é mata-mata, tem um confronto por vez na fase
-corrente e não possui componente equivalente. A correção do #379 nessa lista não foi propagada, e
-não há divergência a corrigir.
+**~~`INTENTIONALLY_DIFFERENT`~~ — CORRIGIDO EM 2026-09-03, ver a nota logo abaixo.** O texto original
+dizia que a lista "jogos de hoje" e a dedupe da partida primária existiam *apenas* no BR2026, e que
+o CDB2026 "não possui componente equivalente". **Isso era falso já no dia em que foi escrito** — o
+CDB2026 tem os dois. A afirmação foi mantida aqui riscada, em vez de apagada, porque foi ela que
+suprimiu a propagação; apagá-la esconderia a causa.
 
 ## Nota manual — linha de local (📍) e chave do "Onde assistir" (2026-09-03; CDB2026 v3.141, BR2026 v1.135)
 
@@ -2524,6 +2524,48 @@ broadcast no pipeline, porque um estágio que só produz `[]` é peso morto. O c
 deve carregá-lo. É essa assimetria que o `APP_SHARED_FILES` do `cachebust.mjs` passou a modelar (ver
 o incidente 2026-09-03, run 33786641021).
 
+## Correção de registro — a lista "jogos de hoje" NÃO é exclusiva do BR2026 (2026-09-03)
+
+**O que o registro dizia, e por que estava errado.** A nota do #379 (2026-08-30) classificou a lista
+"jogos de hoje" e a dedupe da partida primária como `INTENTIONALLY_DIFFERENT`, exclusivas do BR2026,
+com a justificativa de que "o CDB2026 é mata-mata, tem um confronto por vez na fase corrente". As
+duas premissas são falsas, e eram falsas antes da nota existir:
+
+| componente | BR2026 | CDB2026 | desde |
+|---|---|---|---|
+| lista "jogos de hoje" | `renderNextGameCard` | `renderNextTieCard` + `findAllUpcomingMatchesOnNextDay` | **2026-07-16** (`c84a87b4`) |
+| dedupe da partida primária | `_ehPrimaria` | `mesma` / `primaria` em `renderNextTieCard` | **2026-08-27** (`a2c4aa67`, #246) |
+
+A lista existia no CDB2026 havia **seis semanas** quando a nota foi escrita, e a dedupe havia três
+dias. A premissa "um confronto por vez" também não se sustenta: as quartas de final tiveram quatro
+confrontos, com pernas em horários coincidentes — Santos × Palmeiras e Vitória × Vasco começaram no
+**mesmo minuto** (2026-09-02).
+
+**O custo real do registro errado.** Um `INTENTIONALLY_DIFFERENT` não é anotação passiva: ele
+DISPENSA a propagação. Ao declarar que não havia componente equivalente, a nota fez com que a
+correção do #379 não fosse avaliada no CDB2026 — e o mesmo *tipo* de defeito (uma guarda defeituosa
+em volta da dedupe da primária fazendo sumir um jogo simultâneo real) teve de ser redescoberto em
+produção três dias depois:
+
+- **BR2026 #379** (2026-08-30): a dedupe era incondicional; passou a só remover a primária quando o
+  hero de fato a apresenta (`_heroApresentaPrimaria`).
+- **CDB2026 #390** (2026-09-03): `if (group.length > 1)` era um off-by-one; com a primária saindo
+  para o hero sobrava 1, `1 > 1` é falso e o card inteiro sumia — apagando Vitória × Vasco da tela.
+
+Dois apps, o mesmo defeito de classe, achados de forma independente com três dias de intervalo. É
+exatamente o que esta matriz existe para evitar.
+
+**Classificação correta.** A lista "jogos de hoje" e a dedupe da primária são `PLATFORM_SHARED` em
+conceito — os dois apps têm o componente e ele resolve o mesmo problema (vários jogos no mesmo dia,
+um deles já ocupando o hero). A implementação continua separada por tratar-se de estruturas de
+torneio distintas (o BR2026 itera partidas do snapshot; o CDB2026 itera pernas de confronto), e isso
+é legítimo — mas **uma correção de comportamento em um deve ser avaliada no outro**, que é
+precisamente o que a classificação anterior dispensava.
+
+**Lição de processo.** `INTENTIONALLY_DIFFERENT` exige verificar que o componente realmente não
+existe no outro app, não que ele *pareça* não fazer sentido lá a partir do formato do torneio. A
+premissa "mata-mata não tem jogos simultâneos" foi deduzida, não verificada — e um `grep` por
+`findAllUpcomingMatchesOnNextDay` teria bastado para derrubá-la.
 ## Próximo jogo conhecido sem data — `TOURNAMENT_SPECIFIC` ao CDB2026 (2026-09-05, #395)
 
 Quando não há nenhuma partida datada no futuro mas a próxima vaga já é autoritativa, o CDB2026
