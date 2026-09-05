@@ -615,7 +615,11 @@ def main():
     m.add_argument("--dry-run", action="store_true"); m.add_argument("--apply", action="store_true")
 
     a = p.parse_args()
-    if a.cmd in ("apply-draw", "open-picks") and not (a.dry_run or a.apply):
+    # `materialize-derived-phase` entra nesta lista, e a entrada e a parte que importa: sem ela,
+    # rodar o comando sem bandeira nenhuma cai em `dry_run=False` e GRAVA em silencio. Um default
+    # que escreve e o oposto de um default seguro -- e este comando grava chaveamento de torneio.
+    # Nao ha default: ou se diz `--dry-run` ou se diz `--apply`.
+    if a.cmd in ("apply-draw", "open-picks", "materialize-derived-phase") and not (a.dry_run or a.apply):
         p.error("escolha --dry-run ou --apply")
     return {"snapshot": cmd_snapshot, "apply-draw": cmd_apply_draw,
             "open-picks": cmd_open_picks,

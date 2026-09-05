@@ -37,6 +37,13 @@ grava chaveamento erra caro:
 | fase alvo já tem confronto | no-op, sai 0 (idempotente) |
 | fase não derivada (`quartas`) | recusa — não é criador genérico de confronto |
 | servidor aplicou a escrita mas não registrou trilha | **aborta** |
+| invocado sem `--dry-run` nem `--apply` | recusa no parser, antes de ler o estado |
+
+**Não há default que escreve.** A guarda de exclusão mútua do `main()` listava só `apply-draw` e
+`open-picks`; com o comando novo fora dela, rodar sem bandeira nenhuma cairia em `dry_run=False` e
+gravaria em silêncio. O defeito não estava na função — estava no despacho, e um teste que chamasse
+`cmd_materialize_derived_phase` direto passaria sem ver nada. O gate exercita `main()` por
+subprocesso.
 
 **`kickoff`, `venue` e `city` saem nulos, e isso é a feature.** A CBF ainda não publicou a tabela da
 semifinal. Confronto conhecido sem data é o estado normal e saudável do produto — é exatamente o que
@@ -54,7 +61,7 @@ auditoria. A trilha real é a que `cdb_apply_operator_mutation` grava a partir d
 `clientRef` que enviou. (`cmd_apply_draw` ainda faz o append morto; é defeito pré-existente,
 reportado à parte, não corrigido em silêncio dentro deste diff.)
 
-**Gate.** `test_materialize_derived_phase.py` — 16 asserções: 1 caminho feliz, 11 recusas, e os
+**Gate.** `test_materialize_derived_phase.py` — 17 asserções: 1 caminho feliz, 12 recusas, e os
 efeitos colaterais checados por fingerprint (`entries`, `paid`, fase anterior, `final`,
 `activePhaseId`). Mutação: 12 mutações mortas individualmente; `erros` e a contagem de vagas são par
 redundante e morrem quando removidas juntas. O teste é hermético — sem rede, sem Supabase; `le_estado`

@@ -340,6 +340,28 @@ def _dry_run_nao_grava():
 test("dry-run mostra os confrontos exatos e não grava nada", _dry_run_nao_grava)
 
 
+def _sem_bandeira_nao_grava():
+    """Sem `--dry-run` nem `--apply`, o comando tem de RECUSAR — não cair em gravar.
+
+    Isto exercita `main()` de verdade, por subprocesso, porque o defeito não estava na função e sim
+    no despacho: `argparse` dá `dry_run=False` por omissão, e a guarda de exclusão mútua listava só
+    `apply-draw` e `open-picks`. O comando ficava alcançável com um default que ESCREVE. Um teste
+    que chamasse `cmd_materialize_derived_phase` direto passaria e não veria nada disso.
+    """
+    import subprocess
+    r = subprocess.run([sys.executable, str(AQUI / "operator_cli.py"),
+                        "materialize-derived-phase", "--phase", "semifinal"],
+                       capture_output=True, text=True, env={**os.environ})
+    A(r.returncode != 0, f"aceitou rodar sem bandeira (rc={r.returncode})\n{r.stdout}{r.stderr}")
+    A("--dry-run ou --apply" in (r.stderr + r.stdout), r.stderr + r.stdout)
+    # E a recusa vem do parser, ANTES de qualquer leitura de estado — nao chega a tocar o servidor.
+    A("MATERIALIZAR FASE DERIVADA" not in r.stdout, "o comando comecou a executar antes de recusar")
+
+
+test("sem --dry-run nem --apply => recusa no parser, antes de ler ou gravar qualquer coisa",
+     _sem_bandeira_nao_grava)
+
+
 def _trilha_ausente_aborta():
     rc, out, rpcs, _ = rodar(Args("semifinal"), estado(), trilha=False)
     A(len(rpcs) == 2, "o teste precisa que a escrita ocorra para exercer a verificação")
