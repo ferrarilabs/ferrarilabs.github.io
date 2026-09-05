@@ -22,7 +22,29 @@ on:
           - snapshot
           - apply-draw
           - open-picks
+          - materialize-derived-phase
           - secure-access-canary
+      derived_phase:
+        # CHOICE, nao string livre, e por dois motivos independentes.
+        #
+        # 1. Sao literalmente as unicas fases derivaveis (`FASES_DERIVADAS` no operator_cli.py).
+        #    Qualquer outro valor o comando recusa -- oferecer campo livre so cria a chance de
+        #    digitar errado uma operacao que grava chaveamento.
+        # 2. O valor entra num `run:`. Um choice nao pode carregar `;`, `$(...)` nem quebra de
+        #    linha; uma string livre pode. Ainda assim ele vai por `env:` abaixo, nunca
+        #    interpolado direto no shell.
+        description: "Fase derivada a materializar (para materialize-derived-phase)"
+        required: false
+        default: "semifinal"
+        type: choice
+        options:
+          - semifinal
+          - final
+      actor:
+        description: "Operador responsavel (vai para a trilha de auditoria)"
+        required: false
+        default: "eduardo"
+        type: string
       phase:
         description: "Fase (para open-picks)"
         required: false
@@ -66,6 +88,8 @@ jobs:
         working-directory: bolao/cdb2026/scripts
         env:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          FASE: ${{ inputs.derived_phase }}
+          ATOR: ${{ inputs.actor }}
         run: |
           set -euo pipefail
           MODO="--dry-run"
@@ -84,6 +108,18 @@ jobs:
             open-picks)
               python3 operator_cli.py open-picks --phase "${{ inputs.phase }}" \
                 --actor "gha-${{ github.run_id }}" $MODO
+              ;;
+            materialize-derived-phase)
+              # Materializa a fase sucessora a partir da topologia autoritativa da CBF e dos
+              # `qualifiedTeamId` ja persistidos (#410). NAO inventa time, data, local nem
+              # transmissao; NAO manda e-mail; NAO mexe em scoring, entradas ou pagamentos; e NAO
+              # avanca `activePhaseId` -- isso continua sendo `open-picks`, decisao separada.
+              #
+              # `$FASE` e `$ATOR` vem por `env:` e entram ASPADOS. Interpolar `${{ inputs.* }}`
+              # dentro do `run:` cola o valor no texto do shell antes de ele existir; foi por isso
+              # que o workflow de recuperacao passou a receber input por env em vez de inline.
+              python3 operator_cli.py materialize-derived-phase \
+                --phase "$FASE" --actor "$ATOR" $MODO
               ;;
             secure-access-canary)
               # Emite um token, usa, verifica e REVOGA na mesma execucao. O valor bruto nunca sai
