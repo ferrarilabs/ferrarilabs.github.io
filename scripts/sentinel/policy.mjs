@@ -82,6 +82,37 @@ const RULE_DEFAULTS = {
     // POSITIVAMENTE observado basta. UNKNOWN nunca conta como ciclo limpo.
     clean_cycles_to_resolve: 1,
   },
+  scheduler_stale: {
+    severity: "High",
+    priority: "P1 - High",
+    work_type: "Infrastructure / CI",
+    area: "Infrastructure / CI",
+    // `Production` de proposito: o sintoma e que a producao deixou de ser observada e notificada,
+    // nao que o repositorio esta errado.
+    environment: "Production",
+    domain: "Shared Platform",
+    data_impact: "No",
+    scoring_ranking_impact: "No",
+    investigation_level: "I1",
+    mutation_level: "M1",
+    // Uma unica execucao agendada recente PROVA que a entrega voltou — o sinal e binario e nao
+    // depende de acumular ciclos. Nunca inferido de ausencia.
+    clean_cycles_to_resolve: 1,
+  },
+  cdb2026_phase_advance: {
+    severity: "High",
+    priority: "P1 - High",
+    work_type: "Infrastructure / Deploy",
+    area: "Infrastructure / CI",
+    environment: "Production",
+    domain: "CDB2026",
+    data_impact: "No",
+    scoring_ranking_impact: "No",
+    investigation_level: "I1",
+    mutation_level: "M1",
+    // A transicao acontecer (sucessora materializada) e prova positiva e imediata.
+    clean_cycles_to_resolve: 1,
+  },
   main_ci_red: {
     severity: "High",
     priority: "P1 - High",
