@@ -22,8 +22,42 @@ import { createRunLogger } from "./audit_log.mjs";
  * made) — never throws on a single Issue's problem; one bad Issue doesn't stop the sweep for the
  * rest.
  */
+/**
+ * Projects v2 esta INDISPONIVEL por precondicao conhecida — nao e um erro de reconciliacao (#404).
+ *
+ * `sentinel.yml` documenta desde sempre: escrever campos do Project (v2, org-scoped) NAO funciona
+ * com o GITHUB_TOKEN embutido, porque Projects v2 exige o escopo `project`, "which the built-in
+ * GITHUB_TOKEN cannot be granted regardless of this file's `permissions:` block". Enquanto nao
+ * existir o segredo `SENTINEL_PROJECT_TOKEN`, essa escrita falha — e o proprio arquivo classifica
+ * isso como "exactly the [...] repair path reconcile.mjs is designed for, NOT A CRASH".
+ *
+ * `writer.mjs` ja implementa esse limite no caminho de deteccao (ver o bloco "Projects v2
+ * ENRICHMENT — isolated from everything above it on purpose", com teste dedicado em
+ * test_project_enrichment_isolation.mjs). O unico lugar que ficou de fora foi justamente ESTE — o
+ * lugar para onde a falha e "deixada". Resultado medido: o sweep tentava reparar algo
+ * estruturalmente irreparavel (a credencial nao existe e nao pode existir), contava como erro, e o
+ * Sentinel ficou VERMELHO em todo run desde 2026-08-29. Status permanentemente vermelho nao e
+ * alarme: e ruido que se aprende a ignorar — e foi nesse estado que ele atravessou o incidente
+ * #396 sem avisar ninguem.
+ *
+ * ISTO NAO SILENCIA O CHECK. O predicado e ESTREITO de proposito: so a indisponibilidade conhecida
+ * do Projects v2. Qualquer outro erro — read-back mismatch, Issue ilegivel, duplicata que nao
+ * resolve, falha de rede — continua contando em `errors` e continua saindo 1. Um `catch` abrangente
+ * aqui seria exatamente o que o repositorio proibe.
+ */
+const PROJECTS_V2_UNAVAILABLE = [
+  /no project titled/i,          // github_client.mjs:82 — o Project nao existe/nao e visivel ao token
+  /project.*scope/i,             // token sem o escopo `project`
+  /projects?[_ ]?v2/i,           // erro de GraphQL da API Projects v2 (ProjectV2, projects_v2, ...)
+];
+
+export function isProjectsV2Unavailable(err) {
+  const msg = String(err?.message || err || "");
+  return PROJECTS_V2_UNAVAILABLE.some((re) => re.test(msg));
+}
+
 export function reconcile(client, { dryRun = false, logger } = {}) {
-  const summary = { rebuilt_state: [], project_item_created: [], fields_repaired: [], duplicates_resolved: [], errors: [] };
+  const summary = { rebuilt_state: [], project_item_created: [], fields_repaired: [], duplicates_resolved: [], errors: [], projects_v2_unavailable: [] };
   const issues = client.listSentinelIssues({ state: "open" });
 
   // ── duplicate detection across the WHOLE open sentinel-managed set, not just this run's finding ──
@@ -46,8 +80,17 @@ export function reconcile(client, { dryRun = false, logger } = {}) {
     try {
       repairOne(issue, client, { dryRun, logger, summary });
     } catch (e) {
-      summary.errors.push({ issue_number: issue.number, error: String(e?.message || e) });
-      logger?.log({ action: "reconcile_error", issue_number: issue.number, error: String(e?.message || e) });
+      const detalhe = String(e?.message || e);
+      // Indisponibilidade conhecida do Projects v2 nao e drift: nao ha o que reparar quando o
+      // sistema alvo e inalcancavel por desenho. Fica REGISTRADA e visivel, nunca escondida — so
+      // nao conta como erro de reconciliacao. Ver isProjectsV2Unavailable() acima.
+      if (isProjectsV2Unavailable(e)) {
+        summary.projects_v2_unavailable.push({ issue_number: issue.number, detail: detalhe });
+        logger?.log({ action: "reconcile_projects_v2_unavailable", issue_number: issue.number, detail: detalhe });
+        continue;
+      }
+      summary.errors.push({ issue_number: issue.number, error: detalhe });
+      logger?.log({ action: "reconcile_error", issue_number: issue.number, error: detalhe });
     }
   }
   return summary;
@@ -113,7 +156,14 @@ if (process.argv[1] && process.argv[1].endsWith("reconcile.mjs")) {
     logger.log({ action: "reconcile_summary", dry_run: dryRun, ...summary });
     console.error(`\nReconciliation complete (dry_run=${dryRun}). ` +
       `rebuilt_state=${summary.rebuilt_state.length} fields_repaired=${summary.fields_repaired.length} ` +
-      `duplicates_resolved=${summary.duplicates_resolved.length} errors=${summary.errors.length}`);
+      `duplicates_resolved=${summary.duplicates_resolved.length} errors=${summary.errors.length} ` +
+      `projects_v2_unavailable=${summary.projects_v2_unavailable.length}`);
+    if (summary.projects_v2_unavailable.length) {
+      // Visivel, sempre — a condicao continua sendo um DEBITO conhecido (falta o segredo
+      // SENTINEL_PROJECT_TOKEN), e um debito silencioso vira um debito esquecido.
+      console.error(`  NOTA: Projects v2 indisponivel em ${summary.projects_v2_unavailable.length} Issue(s) — ` +
+        `enriquecimento pulado, nao e erro. Some quando SENTINEL_PROJECT_TOKEN existir (ver sentinel.yml).`);
+    }
     process.exit(summary.errors.length > 0 ? 1 : 0);
   } catch (e) {
     console.error(`Reconciliation failed: ${e?.stack || e}`);

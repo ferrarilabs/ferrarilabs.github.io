@@ -22,6 +22,8 @@ import { detectChangeIntentStale, DETECTOR_ID as CHANGE_INTENT_STALE_ID } from "
 import { detectMainCiRed, DETECTOR_ID as MAIN_CI_RED_ID } from "./detectors/main_ci_red.mjs";
 import { detectLiveDeployDrift, DETECTOR_ID as LIVE_DEPLOY_DRIFT_ID } from "./detectors/live_deploy_drift.mjs";
 import { detectMigrationDrift, DETECTOR_ID as MIGRATION_DRIFT_ID, NOME_DE_MIGRACAO } from "./detectors/migration_drift.mjs";
+import { detectSchedulerStale, DETECTOR_ID as SCHEDULER_STALE_ID } from "./detectors/scheduler_stale.mjs";
+import { detectCdb2026PhaseAdvance, DETECTOR_ID as PHASE_ADVANCE_ID } from "./detectors/cdb2026_phase_advance.mjs";
 import { lerVersoesAplicadas } from "./supabase_migrations_api.mjs";
 import { readdirSync, statSync } from "node:fs";
 import { join, dirname as _dirname } from "node:path";
@@ -53,6 +55,18 @@ const DETECTORS = [
   { id: MIGRATION_DRIFT_ID, run: (_client, ctx) => detectMigrationDrift({
       lerMigracoesDoRepo: lerMigracoesDoRepo,
       lerAplicadas: () => ctx.migracoesAplicadas,
+    }) },
+  // Issue #405. A parada de entrega de eventos `schedule` do proprio GitHub (incidente #396) e
+  // invisivel: nao ha run vermelho, nao ha nada. Somente `event=schedule` conta — dispatch externo
+  // nao pode produzir verde falso. Limiar medido, ver o cabecalho do detector.
+  { id: SCHEDULER_STALE_ID, run: (client) => detectSchedulerStale({
+      fetchRecentRuns: () => client.fetchRecentRuns(),
+    }) },
+  // Issue #406. Fase ativa inteiramente decidida + sucessora com topologia autoritativa e nenhum
+  // confronto materializado => o proximo resultado nao seria descoberto, com o cron saudavel.
+  // NAO alerta por partida sem data (o caso legitimo da #395).
+  { id: PHASE_ADVANCE_ID, run: (_client, ctx) => detectCdb2026PhaseAdvance({
+      fetchState: () => ctx.cdb2026State,
     }) },
 ];
 
@@ -156,12 +170,16 @@ export function runOnce({
   // `null` = nao foi possivel ler -> UNKNOWN. O default NAO e lista vazia: lista vazia significaria
   // "producao nao aplicou nada", que e uma afirmacao, e nao medimos nada.
   migracoesAplicadas = null,
+  // `null` = nao foi possivel ler -> o detector devolve UNKNOWN e NAO emite finding. O default nao
+  // e `{}`: objeto vazio significaria "li o estado e ele nao tem fase ativa", que e uma afirmacao
+  // sobre producao que nao medimos. Quem nao mediu nao acusa (#406).
+  cdb2026State = null,
 } = {}) {
   const results = { findings: [], upserts: [], cleanCycles: [] };
 
   for (const detector of DETECTORS) {
     const { findings, confirmedRecoveries, estado, detalhe } =
-      normalizeDetectorResult(detector.run(client, { liveDeployObservation, migracoesAplicadas }));
+      normalizeDetectorResult(detector.run(client, { liveDeployObservation, migracoesAplicadas, cdb2026State }));
     logger.log({
       action: "detector_ran", detector: detector.id, finding_count: findings.length,
       // `estado` distingue MEDIDO de NAO-MEDIDO; `confirmed_recoveries` mostra se a saude foi
@@ -204,6 +222,28 @@ export function runOnce({
   return results;
 }
 
+/**
+ * Estado do CDB2026 pela superficie de leitura PUBLICA e sanitizada — a mesma que o proprio app
+ * consome (`bolao_state_normalized_public`). Sem credencial de operador e sem PII: essa projecao
+ * nao publica `participantEmail`, `auditLog` nem `diagnostics`.
+ *
+ * Falha de leitura devolve `null`, nunca `{}`: o detector precisa distinguir "nao medi" de "medi e
+ * esta vazio". Ver o comentario de `cdb2026State` em runOnce().
+ */
+async function lerEstadoCdb2026() {
+  const url = "https://cmhqkkfczotdnssupkni.supabase.co/rest/v1/bolao_state_normalized_public"
+    + "?select=state&id=eq.cdb2026";
+  const key = process.env.SUPABASE_ANON_KEY || "sb_publishable_9eJsJzMcROuj9SFOMVUTvA_mWVz0fG5";
+  try {
+    const r = await fetch(url, { headers: { apikey: key, Authorization: `Bearer ${key}` } });
+    if (!r.ok) return null;
+    const rows = await r.json();
+    return Array.isArray(rows) && rows[0] && rows[0].state ? rows[0].state : null;
+  } catch {
+    return null;   // nao medir nunca vira acusacao
+  }
+}
+
 if (process.argv[1] && process.argv[1].endsWith("run.mjs")) {
   const dryRun = process.argv.includes("--dry-run");
   try {
@@ -212,6 +252,7 @@ if (process.argv[1] && process.argv[1].endsWith("run.mjs")) {
       dryRun,
       liveDeployObservation: await lerShaVivoDeProducao(),
       migracoesAplicadas: await lerMigracoesAplicadas(),
+      cdb2026State: await lerEstadoCdb2026(),
     });
     console.error(`\nSentinel run complete. findings=${results.findings.length} upserts=${results.upserts.length} clean_cycles=${results.cleanCycles.length}`);
     process.exit(0);

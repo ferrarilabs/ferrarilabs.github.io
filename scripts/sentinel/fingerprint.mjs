@@ -69,4 +69,23 @@ export function resultEmailGapFingerprint(findingId) {
   return hash([REPO, "cdb2026_result_email_gap", findingId]);
 }
 
+/**
+ * Scheduler Stale (#405): identidade e o REPOSITORIO, e so. Nao inclui idade nem timestamp — se
+ * incluisse, cada execucao do detector durante a mesma parada abriria uma Issue nova para o mesmo
+ * incidente. Uma parada de agendamento que dura horas e UM incidente: uma Issue, occurrence_count
+ * subindo, ate o cron voltar.
+ */
+export function schedulerStaleFingerprint() {
+  return hash([REPO, "scheduler_stale"]);
+}
+
+/**
+ * Phase Advance (#406): identidade e o PAR fase-ativa + sucessora. Quartas->Semifinal e um
+ * incidente distinto de Semifinal->Final, e cada um se resolve por conta propria quando aquela
+ * transicao acontece.
+ */
+export function phaseAdvanceFingerprint(activePhaseId, successorPhaseId) {
+  return hash([REPO, "cdb2026_phase_advance", activePhaseId, successorPhaseId]);
+}
+
 export const REPOSITORY = REPO;
