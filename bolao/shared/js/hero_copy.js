@@ -59,18 +59,22 @@
    * NÃO dependem: vieram do calendário/estado local do torneio, e continuam igualmente corretos
    * com o provedor fora do ar.
    *
-   * `SOURCE_UNAVAILABLE` também depende, por um motivo diferente: ali não há conteúdo nenhum, e a
-   * queda da fonte é justamente a explicação de por que não há.
+   * `SOURCE_UNAVAILABLE` e `SCHEDULE_UNKNOWN` dependem **condicionalmente**, e é aí que mora o
+   * #419. A premissa dos dois era "ali não há conteúdo nenhum, e a queda da fonte é justamente a
+   * explicação de por que não há". O #395 tornou isso falso: os dois estados passaram a poder
+   * exibir o confronto conhecido derivado da topologia.
    *
-   * `SCHEDULE_UNKNOWN` depende **condicionalmente**, e é aí que mora o #419: ele era sempre vazio,
-   * mas desde o #395 pode exibir o confronto conhecido derivado da topologia. Vazio, a queda da
-   * fonte explica o vazio e o aviso é honesto; com confronto derivado na tela, o conteúdo é
-   * autoritativo, não veio da fonte, e o aviso passaria a desmentir o que está escrito logo acima.
+   * Vazios, a queda da fonte explica o vazio e o aviso é honesto. Com confronto derivado na tela, o
+   * conteúdo é autoritativo, não veio da fonte, e o aviso desmente o que está escrito logo acima.
    */
   function freshnessAffectsDisplayed(heroState, hasAuthoritativeContent) {
     if (heroState === HERO.LIVE_FRESH || heroState === HERO.LIVE_DELAYED) return true;
-    if (heroState === HERO.SOURCE_UNAVAILABLE) return true;
-    if (heroState === HERO.SCHEDULE_UNKNOWN) {
+    // `SOURCE_UNAVAILABLE` e `SCHEDULE_UNKNOWN` compartilham a MESMA premissa e agora a mesma
+    // condicao. O #419 corrigiu so o segundo, e producao mostrou o custo disso: o hero do CDB2026
+    // estava em `SOURCE_UNAVAILABLE` (nao em `SCHEDULE_UNKNOWN`, como eu havia deduzido), entao o
+    // aviso continuou aparecendo embaixo de "Gremio x Atletico-MG / Vasco x Palmeiras" mesmo depois
+    // da correcao. Deduzir em qual estado o hero estaria, em vez de medir, foi o erro.
+    if (heroState === HERO.SOURCE_UNAVAILABLE || heroState === HERO.SCHEDULE_UNKNOWN) {
       // A premissa acima ("ali nao ha conteudo nenhum") era verdadeira quando foi escrita e o #395
       // a tornou FALSA: `SCHEDULE_UNKNOWN` passou a poder exibir o confronto conhecido derivado de
       // `topology` + `qualifiedTeamId` persistido. Esse conteudo e autoritativo e NAO vem da fonte

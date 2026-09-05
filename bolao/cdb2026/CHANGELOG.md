@@ -1,5 +1,40 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.144 — a mesma correção, agora no estado em que o hero realmente estava (2026-09-05, #419)
+
+`PLATFORM_SHARED` (texto do hero) — mesma classe da v3.143, que **não bastou**.
+
+**O que a verificação de produção mostrou.** Depois de a v3.143 ir ao ar, o hero continuava assim:
+
+```
+Grêmio × Atlético-MG
+Vasco × Palmeiras
+Aguardando datas e horários
+Dados ao vivo temporariamente indisponíveis     <- ainda aqui
+```
+
+Medido no navegador: `data-hero-presentation="SOURCE_UNAVAILABLE"`.
+
+**A falha era minha, e é de raciocínio, não de código.** Eu deduzi que o hero sem partida datada
+estaria em `SCHEDULE_UNKNOWN` e corrigi só esse estado. Pior: escrevi um teste que **afirmava a
+expectativa errada** — exigia que `SOURCE_UNAVAILABLE` continuasse avisando mesmo com confronto
+derivado na tela. O gate ficou verde protegendo o defeito.
+
+Os dois estados sempre partilharam a mesma premissa, escrita no próprio arquivo: *"ali não há
+conteúdo nenhum, e a queda da fonte é justamente a explicação de por que não há"*. O #395 tornou a
+premissa falsa para **os dois**. Corrigir um só foi corrigir metade de uma condição.
+
+**Correção.** `SOURCE_UNAVAILABLE` e `SCHEDULE_UNKNOWN` passam a compartilhar a mesma regra
+condicional: vazios, avisam; com conteúdo autoritativo derivado, não avisam. Sem conteúdo, nada muda
+— inclusive para o BR2026, que nunca passa o campo.
+
+**Lição registrada.** Um teste escrito a partir de uma dedução sobre o estado do sistema protege a
+dedução, não o produto. Aqui só a medição em produção desfez o engano; por isso as asserções novas
+cobrem os dois estados em par, e a mutação inclui exatamente o bug que a v3.143 deixou passar.
+
+**Provas.** 47 asserções no contrato (3 novas), mutação 3/3 mortas — incluindo a que restaura o
+comportamento da v3.143.
+
 ## v3.143 — o aviso parou de desmentir a própria tela (2026-09-05, #419)
 
 `PLATFORM_SHARED` (texto do hero) — não toca scoring, bracket, sorteio, prazo, ranking nem
