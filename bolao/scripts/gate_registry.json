@@ -971,6 +971,10 @@
     },
     "workers/live-producer/test_live_producer.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/cdb2026/scripts/test_materialize_derived_phase.py": {
+      "classification": "REGISTERED_AND_EXECUTED",
+      "coverage": "Materializacao de fase DERIVADA no operator_cli do CDB2026 (#410). Um caso feliz e onze recusas: fase anterior parcialmente decidida, vencedor gravado com perna sem placar, topologia ausente ou sem proveniencia CBF validada, predecessor inexistente, vaga de topologia incompleta (recusa a fase inteira, nao materializa so a metade boa), fase ja materializada, fase nao-derivada, e escrita sem trilha de auditoria no servidor. Prova tambem que kickoff/venue/city ficam NULOS -- confronto conhecido sem tabela publicada e estado normal (#395), e inventar calendario seria pior do que nao materializar. Mutacao: 12 mutacoes mortas individualmente; `erros` e a contagem de vagas sao par redundante e morrem quando removidas juntas."
     }
   }
 }

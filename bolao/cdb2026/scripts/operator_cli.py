@@ -354,6 +354,183 @@ def cmd_apply_draw(a):
     return 0
 
 
+# ── materialize-derived-phase ──────────────────────────────────────────────────────────────────
+#
+# Materializa uma fase DERIVADA (semifinal, final) a partir da topologia oficial ja registrada e
+# dos vencedores ja persistidos. Issue #410; detectado pela #406 e aberto como #409.
+#
+# POR QUE UM COMANDO NOVO. Nenhum caminho existente serve, e os dois que chegam perto recusam pelos
+# motivos certos: `open-picks` tem guarda `if not ties` e nao materializa nada; `apply-draw` exige
+# arquivo de sorteio com procedencia obrigatoria, e a semifinal NAO foi sorteada -- ela vem do
+# caminho de chaveamento definido no sorteio das quartas. Usar `apply-draw` aqui exigiria fabricar
+# procedencia de um sorteio que nunca existiu.
+#
+# O QUE ELE NAO FAZ, E ISSO E O PONTO. Nao inventa time (vem de `qualifiedTeamId` persistido), nao
+# inventa data (grava `kickoff: null` -- e o caso legitimo da #395), nao inventa local nem
+# transmissao, nao manda e-mail, nao recalcula scoring/ranking, nao toca entradas nem pagamentos, e
+# NAO avanca `activePhaseId` (isso continua sendo `open-picks`, decisao separada e posterior).
+#
+# Nao ha gatilho automatico. Automacao e a #411, avaliacao separada, e pode legitimamente terminar
+# em "nao automatizar".
+FASES_DERIVADAS = {"semifinal": "quartas", "final": "semifinal"}
+
+
+def _vencedor(tie):
+    """O clube que avancou, do `qualifiedTeamId` PERSISTIDO. Nunca inferido de placar."""
+    q = tie.get("qualifiedTeamId")
+    if q == "A":
+        return tie.get("teamA")
+    if q == "B":
+        return tie.get("teamB")
+    return None
+
+
+def cmd_materialize_derived_phase(a):
+    estado = le_estado()
+    fases = estado.get("phases") or {}
+    fase = a.phase
+
+    print("=" * 70)
+    print("  CDB2026 — MATERIALIZAR FASE DERIVADA")
+    print("=" * 70)
+    print(f"  fase alvo           {fase}")
+
+    if fase not in FASES_DERIVADAS:
+        print(f"  🛑 '{fase}' nao e fase derivada. Derivadas: {sorted(FASES_DERIVADAS)}")
+        return 2
+    anterior = FASES_DERIVADAS[fase]
+    if fase not in fases or anterior not in fases:
+        print(f"  🛑 fase '{fase}' ou anterior '{anterior}' inexistente no estado.")
+        return 2
+
+    # ── GUARDA 1: a fase anterior tem de estar INTEIRAMENTE decidida ─────────────────────────
+    ties_ant = (fases[anterior].get("ties") or {})
+    if not ties_ant:
+        print(f"  🛑 fase anterior '{anterior}' sem confrontos.")
+        return 2
+    indecisos, sem_placar = [], []
+    for tid, t in ties_ant.items():
+        if not _vencedor(t):
+            indecisos.append(tid)
+        for leg, m in (t.get("matches") or {}).items():
+            if (m or {}).get("goalsHome") is None:
+                sem_placar.append(f"{tid}:{leg}")
+    print(f"  fase anterior       {anterior}: {len(ties_ant)} confrontos, "
+          f"{len(indecisos)} sem vencedor, {len(sem_placar)} perna(s) sem placar")
+    if indecisos or sem_placar:
+        print(f"  🛑 fase anterior nao esta inteiramente decidida "
+              f"(sem vencedor: {indecisos}; sem placar: {sem_placar})")
+        return 2
+
+    # ── GUARDA 2: topologia AUTORITATIVA na fase alvo ────────────────────────────────────────
+    topo = fases[fase].get("topology") or {}
+    prov = topo.get("provenance") or {}
+    slots = topo.get("slots") or {}
+    autoritativa = bool(slots) and prov.get("authority") == "CBF" and prov.get("validatedAt")
+    print(f"  topologia           {'AUTORITATIVA' if autoritativa else 'AUSENTE/NAO VALIDADA'}"
+          f"  (authority={prov.get('authority')}, validatedAt={prov.get('validatedAt')}, slots={len(slots)})")
+    if not autoritativa:
+        print("  🛑 sem topologia autoritativa nao ha o que materializar — exigi-la seria inventar "
+              "chaveamento.")
+        return 2
+
+    # ── GUARDA 3: idempotencia ──────────────────────────────────────────────────────────────
+    ja = fases[fase].get("ties") or {}
+    if ja:
+        print(f"  🛑 fase '{fase}' ja tem {len(ja)} confronto(s) materializado(s): "
+              f"{sorted(ja)} — nada a fazer (idempotente).")
+        return 0
+
+    # ── DERIVACAO: topologia + vencedores persistidos. Nada mais. ───────────────────────────
+    novos, erros = {}, []
+    for slot_id in sorted(slots):
+        slot = slots[slot_id]
+        ref_a = (slot.get("sideA") or {}).get("winnerOf")
+        ref_b = (slot.get("sideB") or {}).get("winnerOf")
+        if not ref_a or not ref_b:
+            erros.append(f"{slot_id}: slot sem winnerOf nos dois lados")
+            continue
+        if ref_a not in ties_ant or ref_b not in ties_ant:
+            erros.append(f"{slot_id}: predecessor fora de '{anterior}' ({ref_a} / {ref_b})")
+            continue
+        a_nome, b_nome = _vencedor(ties_ant[ref_a]), _vencedor(ties_ant[ref_b])
+        if not a_nome or not b_nome:
+            erros.append(f"{slot_id}: vencedor ausente ({ref_a}->{a_nome} / {ref_b}->{b_nome})")
+            continue
+        if a_nome == b_nome:
+            erros.append(f"{slot_id}: mesmo clube dos dois lados ({a_nome})")
+            continue
+        tid = _espn_tie_id(a_nome, b_nome)
+        if tid in novos:
+            erros.append(f"{slot_id}: id de confronto duplicado ({tid})")
+            continue
+        novos[tid] = {"slotId": slot_id, "teamA": a_nome, "teamB": b_nome}
+
+    print(f"\n  CONFRONTOS DERIVADOS ({len(novos)}):")
+    for tid, t in novos.items():
+        print(f"    {t['slotId']}  {tid}")
+        print(f"        teamA={t['teamA']}  teamB={t['teamB']}")
+        print("        kickoff=null  venue=null  city=null   <- sem agenda autoritativa; NAO inventado")
+    if erros:
+        print(f"\n  🛑 DERIVACAO INCONSISTENTE: {erros}")
+        return 2
+    if len(novos) != len(slots):
+        print(f"\n  🛑 {len(novos)} confrontos para {len(slots)} vagas de topologia.")
+        return 2
+
+    inv_antes = invariantes(estado)
+    imprime_invariantes("\n  invariantes antes", inv_antes)
+
+    if a.dry_run:
+        print(f"\n  DRY RUN — gravaria {len(novos)} confronto(s) em '{fase}'. "
+              "Nenhum e-mail, nenhum scoring, nenhuma entrada/pagamento, activePhaseId INTACTO.")
+        print("=" * 70)
+        return 0
+
+    for tid, t in novos.items():
+        # `kickoffFirst`/`kickoffSecond` explicitamente None: a CBF ainda nao publicou a tabela, e
+        # materializar nao pode fabricar calendario (#395).
+        _rpc("create-tie", {
+            "phaseId": fase, "tieId": tid, "teamA": t["teamA"], "teamB": t["teamB"],
+            "kickoffFirst": None, "kickoffSecond": None,
+        }, f"materialize:{fase}:{tid}", a.actor)
+    # NAO ha `estado["auditLog"].append(...)` aqui, e a ausencia e deliberada. Desde que
+    # `grava_estado()` saiu, o documento lido nunca volta ao servidor: um append local morre na
+    # memoria do processo e produz a ILUSAO de trilha de auditoria. A trilha real e a que o
+    # `cdb_apply_operator_mutation` grava a partir de `p_actor`/`p_client_ref` — e ela e VERIFICADA
+    # abaixo, contra o estado relido, em vez de assumida.
+    # (`cmd_apply_draw` ainda faz o append morto; e defeito pre-existente, fora do escopo do #410 —
+    # reportado em separado, nao corrigido em silencio aqui.)
+    depois = le_estado()
+    inv_depois = invariantes(depois)
+    imprime_invariantes("\n  invariantes depois", inv_depois)
+    problemas = compara(inv_antes, inv_depois, permitido={"ties"})
+    gravados = (depois["phases"][fase].get("ties") or {})
+    if set(gravados) != set(novos):
+        problemas.append(f"gravados {sorted(gravados)} != derivados {sorted(novos)}")
+    for tid in gravados:
+        for leg, m in ((gravados[tid].get("matches")) or {}).items():
+            if (m or {}).get("kickoff") is not None:
+                problemas.append(f"{tid}:{leg} gravou kickoff — agenda nao pode ser inventada")
+            if (m or {}).get("venue") is not None:
+                problemas.append(f"{tid}:{leg} gravou venue — local nao pode ser inventado")
+    if (depois.get("espnSync") or {}).get("activePhaseId") != (estado.get("espnSync") or {}).get("activePhaseId"):
+        problemas.append("activePhaseId mudou — materializar nao avanca fase")
+    # A trilha tem de EXISTIR no servidor, uma entrada por confronto, com o clientRef que enviamos.
+    refs_trilha = {e.get("clientRef") for e in (depois.get("auditLog") or []) if isinstance(e, dict)}
+    faltando_trilha = sorted(f"materialize:{fase}:{tid}" for tid in novos
+                             if f"materialize:{fase}:{tid}" not in refs_trilha)
+    if faltando_trilha:
+        problemas.append(f"sem trilha de auditoria no servidor para: {faltando_trilha}")
+    if problemas:
+        print(f"\n  🛑 INVARIANTES VIOLADAS: {problemas}")
+        return 2
+    print(f"\n  ✓ MATERIALIZADO: {len(gravados)} confronto(s) em '{fase}', sem agenda inventada.")
+    print("    activePhaseId INTACTO — avancar a fase continua sendo `open-picks`, decisao separada.")
+    print("=" * 70)
+    return 0
+
+
 # ── open-picks ─────────────────────────────────────────────────────────────────────────────────
 def cmd_open_picks(a):
     estado = le_estado()
@@ -432,11 +609,17 @@ def main():
     o.add_argument("--actor", default="operator-cli")
     o.add_argument("--dry-run", action="store_true"); o.add_argument("--apply", action="store_true")
 
+    m = sub.add_parser("materialize-derived-phase")
+    m.add_argument("--phase", required=True)
+    m.add_argument("--actor", default="operator-cli")
+    m.add_argument("--dry-run", action="store_true"); m.add_argument("--apply", action="store_true")
+
     a = p.parse_args()
     if a.cmd in ("apply-draw", "open-picks") and not (a.dry_run or a.apply):
         p.error("escolha --dry-run ou --apply")
     return {"snapshot": cmd_snapshot, "apply-draw": cmd_apply_draw,
-            "open-picks": cmd_open_picks}[a.cmd](a)
+            "open-picks": cmd_open_picks,
+            "materialize-derived-phase": cmd_materialize_derived_phase}[a.cmd](a)
 
 
 if __name__ == "__main__":
