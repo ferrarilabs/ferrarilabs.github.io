@@ -43,7 +43,7 @@ function corpo(nome) {
 
 const FUNCS = ["topologyProvenanceIsValid", "tieQualifiedTeam", "resolveParticipant", "participantLabel",
                "tieDisplayName", "derivedPhaseView", "findNextKnownUndatedPhase",
-               "undatedMatchupBlockHtml"];
+               "nextMatchBlockHtml"];
 
 const TEXTOS = { winnerOfPrefix: "Vencedor de", toBeDefined: "A definir",
                  nextGameLabel: "Próxima partida", schedulePendingTitle: "Aguardando datas e horários" };
@@ -59,9 +59,9 @@ const sandbox = new Function(`
   const esc = x => String(x).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
   const teamLogoImg = (team) => '<img data-team="' + esc(team) + '">';
   ${FUNCS.map(corpo).join("\n\n")}
-  return { findNextKnownUndatedPhase, undatedMatchupBlockHtml, derivedPhaseView, DATA };
+  return { findNextKnownUndatedPhase, nextMatchBlockHtml, derivedPhaseView, DATA };
 `)();
-const { findNextKnownUndatedPhase, undatedMatchupBlockHtml } = sandbox;
+const { findNextKnownUndatedPhase, nextMatchBlockHtml } = sandbox;
 
 // Mesma FORMA da proveniência real em produção (lida em 2026-09-05): o `app.js` exige os quatro
 // campos de `TOPOLOGY_REQUIRED_FIELDS`, e um fixture com dois passaria a testar uma regra mais
@@ -148,7 +148,7 @@ test("sem topologia autoritativa => null (o hero volta a dizer 'não disponível
 
 console.log("\nC. O que o bloco NUNCA imprime");
 
-const html = undatedMatchupBlockHtml(findNextKnownUndatedPhase(estado()));
+const html = nextMatchBlockHtml(findNextKnownUndatedPhase(estado()));
 
 test("mostra os times e diz, com a redação canônica, que a data está pendente", () => {
   A(html.includes("Grêmio") && html.includes("Atlético-MG"), "faltam os times");
@@ -169,8 +169,17 @@ test("sem data, sem local, sem 'Onde assistir' — todos sairiam de um kickoff i
 });
 
 test("bloco vazio quando não há confronto conhecido", () => {
-  A(undatedMatchupBlockHtml(null) === "", "null deveria render nada");
-  A(undatedMatchupBlockHtml({ items: [] }) === "", "lista vazia deveria render nada");
+  A(nextMatchBlockHtml(null) === "", "null deveria render nada");
+  A(nextMatchBlockHtml({ undated: true, items: [] }) === "", "lista vazia deveria render nada");
+});
+
+test("UM markup só — o caso sem data é MODO do bloco, não um bloco novo", () => {
+  // O gate `hero-composition` pegou exatamente isto quando escrevi um segundo bloco: duas
+  // implementações do mesmo componente divergem, e foi o que o #358 pagou. Fica registrado aqui
+  // também, junto da regra que ele protege.
+  A((SRC.match(/next-game-label/g) || []).length === 1,
+    "há mais de um markup de próxima partida — o modo sem data não pode ser um bloco separado");
+  A(!/function undatedMatchupBlockHtml/.test(SRC), "o bloco duplicado voltou");
 });
 
 console.log("\nD. Costura no hero");
@@ -186,7 +195,7 @@ test("o fallback entra DEPOIS do caminho datado e ANTES de 'não disponível'", 
 });
 
 test("o fallback não escreve estado", () => {
-  const f = corpo("findNextKnownUndatedPhase") + corpo("undatedMatchupBlockHtml");
+  const f = corpo("findNextKnownUndatedPhase") + corpo("nextMatchBlockHtml");
   for (const p of ["saveState", "_rpc", "persist", "supabase", "upsert", "createTie", "espn-add-tie"]) {
     A(!f.includes(p), `a derivação referencia \`${p}\` — apresentação não pode gravar`);
   }
