@@ -975,6 +975,10 @@
     "bolao/cdb2026/scripts/test_materialize_derived_phase.py": {
       "classification": "REGISTERED_AND_EXECUTED",
       "coverage": "Materializacao de fase DERIVADA no operator_cli do CDB2026 (#410). Um caso feliz e doze recusas: invocacao sem --dry-run nem --apply (a guarda de exclusao mutua do main() nao listava o comando novo, e o default do argparse ESCREVE -- o gate exercita main() por subprocesso), fase anterior parcialmente decidida, vencedor gravado com perna sem placar, topologia ausente ou sem proveniencia CBF validada, predecessor inexistente, vaga de topologia incompleta (recusa a fase inteira, nao materializa so a metade boa), fase ja materializada, fase nao-derivada, e escrita sem trilha de auditoria no servidor. Prova tambem que kickoff/venue/city ficam NULOS -- confronto conhecido sem tabela publicada e estado normal (#395), e inventar calendario seria pior do que nao materializar. Mutacao: 12 mutacoes mortas individualmente; `erros` e a contagem de vagas sao par redundante e morrem quando removidas juntas."
+    },
+    "bolao/cdb2026/scripts/test_next_known_undated.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED",
+      "coverage": "Hero do CDB2026 quando a proxima partida e CONHECIDA mas ainda nao tem data (#395). Extrai e executa as funcoes reais do app.js (derivedPhaseView/resolveParticipant/participantLabel + findNextKnownUndatedPhase/undatedMatchupBlockHtml) em vez de reimplementar a regra. A maioria das assercoes verifica AUSENCIA, porque o risco desta correcao e preencher a tela com informacao inventada: sem contador, sem data, sem local, sem 'Onde assistir', e sem escudo em lado nao resolvido. Prova tambem que o caminho datado sempre vence (fase com qualquer kickoff cede), que fase decidida nao volta a ser 'a proxima', que sem topologia autoritativa o hero volta a dizer 'nao disponivel', e que a derivacao nao grava estado. Mutacao: 7 mutacoes, todas mortas; a guarda de escudo e provada em par com o ramo nao-resolvido de resolveParticipant."
     }
   }
 }

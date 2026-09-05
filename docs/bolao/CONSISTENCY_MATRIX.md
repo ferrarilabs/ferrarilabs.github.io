@@ -2523,3 +2523,26 @@ broadcast no pipeline, porque um estágio que só produz `[]` é peso morto. O c
 (`CONFIG.archived`) e não exibe card de próxima partida; ela não carrega `where_to_watch.js` e não
 deve carregá-lo. É essa assimetria que o `APP_SHARED_FILES` do `cachebust.mjs` passou a modelar (ver
 o incidente 2026-09-03, run 33786641021).
+
+## Próximo jogo conhecido sem data — `TOURNAMENT_SPECIFIC` ao CDB2026 (2026-09-05, #395)
+
+Quando não há nenhuma partida datada no futuro mas a próxima vaga já é autoritativa, o CDB2026
+mostra o confronto derivado da topologia com "Aguardando datas e horários", em vez de "Próxima
+partida ainda não disponível".
+
+| comportamento | copa2026 | br2026 | cdb2026 |
+|---|---|---|---|
+| fallback de confronto conhecido sem data | `INTENTIONALLY_DIFFERENT` | `INTENTIONALLY_DIFFERENT` | sim |
+| fonte do confronto | — | — | `topology` + `qualifiedTeamId` (nunca placar) |
+| contador / data / local / "Onde assistir" no bloco sem data | — | — | **nunca** |
+
+**Por que não propagar.** `br2026` é pontos corridos: não tem fase derivada nem topologia de
+chaveamento, então não existe "próximo confronto conhecido sem data" para derivar — o conceito não
+tem referente lá. `copa2026` está concluída e arquivada (`CONFIG.archived`), não exibe card de
+próxima partida, e só aceita patch pequeno e reversível; introduzir um caminho de apresentação novo
+num app arquivado é risco sem benefício.
+
+A regra de derivação é lógica de torneio, e a governança proíbe generalizá-la entre apps — copiar
+tokens e componentes da Copa é sempre correto, copiar sua lógica de chaveamento nunca é. O que É
+compartilhado aqui continua compartilhado: o bloco reusa `.next-game-card`/`.next-game-teams` e a
+redação canônica de `i18n.js`, sem componente novo.

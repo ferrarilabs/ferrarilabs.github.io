@@ -1,5 +1,54 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.142 — data desconhecida não apaga confronto conhecido (2026-09-05, #395)
+
+`TOURNAMENT_SPECIFIC` (apresentação) — não toca scoring, bracket, sorteio, prazo, ranking nem
+persistência. Nenhuma gravação de estado é adicionada.
+
+**A contradição.** As quartas acabaram e a CBF ainda não publicou a tabela da semifinal. A aba
+**Jogos** mostrava `Vasco × Palmeiras`; o hero, na mesma página, dizia **"Próxima partida ainda não
+disponível"**. Duas telas do mesmo produto discordando sobre um fato que o site sabe.
+
+**Causa.** `findNextUpcomingMatch()` exige `m.kickoff` futuro:
+
+```js
+if (!m || !m.kickoff || m.status === "FINAL") return;
+```
+
+A semifinal falha por não ter data. Logo `null`, e o hero cai no rótulo de desconhecido — que é
+falso. O confronto é conhecido; o que falta é a data. Jogos e palpites já resolviam isso porque
+passam por `derivedPhaseView()`, que lê topologia, não calendário.
+
+**A correção — um fallback EXPLÍCITO, nunca uma mistura.** "Próximo jogo" tem duas semânticas
+possíveis: (A) a próxima partida *datada*, (B) o próximo confronto *conhecido*. Elas não podem se
+confundir silenciosamente, senão um confronto sem data começaria a competir por posição com um
+datado. Então (A) continua mandando, inteira e inalterada; só quando ela não devolve nada é que (B)
+entra:
+
+- `findNextKnownUndatedPhase(s)` — deriva de `topology` + `qualifiedTeamId` pelas MESMAS funções que
+  a aba Jogos usa. Cede a vez se qualquer perna da fase já tiver data, e ignora fase já decidida.
+- `undatedMatchupBlockHtml(info)` — desenha times e a frase canônica que já existia,
+  `schedulePendingTitle` ("Aguardando datas e horários").
+
+**O que ele se recusa a desenhar, e é aí que está o trabalho:**
+
+| campo | por quê |
+|---|---|
+| contador | contagem para data desconhecida é contagem inventada |
+| data/hora | a CBF não publicou |
+| local | `resolveLocation()` casa por data — sem data casaria a partida errada |
+| "Onde assistir" | idem, `whereToWatchHtml()` depende de data/evento |
+| escudo em lado não resolvido | um escudo afirma um clube; "Vencedor de Grêmio × Internacional" não tem clube |
+
+**Nenhuma persistência nova.** Não se materializa tie de semifinal para agradar o renderizador —
+isso seria gravar estado de torneio a partir de uma decisão de apresentação. (A materialização real
+existe, é decisão separada de operador, e veio pelo #410 por outro motivo: sem tie materializado o
+`_find_new_legs()` não descobre o resultado da semifinal.)
+
+**Gate.** `test_next_known_undated.mjs` — 13 asserções, herméticas, extraindo e executando as
+funções reais do `app.js`. Mutação: 7/7 mortas; a guarda de escudo é provada em par com o ramo
+não-resolvido de `resolveParticipant()`.
+
 ## (sem release de site) — materializar a fase derivada é um comando, não um efeito colateral (2026-09-05, #410)
 
 `TOURNAMENT_SPECIFIC` (ferramenta de operador) — **nenhum byte muda no que o navegador baixa**: só
