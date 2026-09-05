@@ -55,7 +55,7 @@ import { applyPolicy, POLICY_VERSION } from "../policy.mjs";
 import { makeFinding, SCHEMA_VERSION } from "../finding_schema.mjs";
 
 export const DETECTOR_ID = "cdb2026_phase_advance";
-export const DETECTOR_VERSION = "1.0.0";
+export const DETECTOR_VERSION = "1.1.0";   // 1.1.0: alta positiva (#415)
 
 /** Ordem oficial do mata-mata. Sucessora = a próxima nesta lista que tenha topologia registrada. */
 export const PHASE_ORDER = [
@@ -168,7 +168,24 @@ export function detectCdb2026PhaseAdvance({ fetchState, now = new Date() } = {})
 
   const c = classifyPhaseAdvance(state);
   if (c.state !== SUCCESSOR_NOT_MATERIALIZED) {
-    return { findings: [], confirmedRecoveries: new Set(), evidence: c };
+    // ALTA POSITIVA (#415). O `run.mjs` e explicito: quando o detector fornece
+    // `confirmedRecoveries`, AUSENCIA do achado nao basta -- a impressao digital tem de estar no
+    // conjunto para o ciclo limpo avancar. Este ramo devolvia o conjunto VAZIO, entao o detector
+    // sabia acusar e nao sabia se retratar: a #409 continuou OPEN mesmo depois de a semifinal do
+    // CDB2026 ser materializada (2026-09-05) e o detector passar a reportar `finding_count: 0`.
+    //
+    // E a mesma forma do #404 -- achado que nunca fecha deixa o painel vermelho para sempre, e
+    // painel sempre vermelho e painel que se aprende a ignorar. Foi assim que o #396 passou.
+    //
+    // So HEALTHY confirma, e so com os DOIS ids conhecidos: `UNKNOWN` e nao conseguir ler o estado,
+    // e nao conseguir ler nao e prova de saude -- e ausencia de prova. A impressao digital tem de
+    // ser a MESMA que o achado emite (`phaseAdvanceFingerprint(ativa, sucessora)`), senao confirma
+    // um par que ninguem abriu e o achado real continua aberto.
+    const recuperadas = new Set();
+    if (c.state === HEALTHY && c.activePhaseId && c.successorPhaseId) {
+      recuperadas.add(phaseAdvanceFingerprint(c.activePhaseId, c.successorPhaseId));
+    }
+    return { findings: [], confirmedRecoveries: recuperadas, evidence: c };
   }
 
   const sha = headSha();
