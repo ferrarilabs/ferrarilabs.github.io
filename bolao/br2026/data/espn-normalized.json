@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-09-05T20:29:09Z",
-  "sourceUpdatedAt": "2026-09-05T20:29:09Z",
+  "generatedAt": "2026-09-05T22:13:55Z",
+  "sourceUpdatedAt": "2026-09-05T22:13:55Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "009f1590ea22909c9450b5061d4d80fd2ae5c068d870463cb123ba12ac288cf6",
+  "payloadHash": "c6afc66bec27ab6ac56e9d1c08e1b9f48e3a620319ac4235d800db1ceee9f13a",
   "matches": [
     {
       "id": "401840808",
@@ -41784,12 +41784,12 @@
     {
       "id": "401841224",
       "date": "2026-09-05T19:00Z",
-      "state": "in",
-      "statusName": "STATUS_SECOND_HALF",
-      "statusDescription": "Second Half",
-      "statusShortDetail": "64'",
-      "statusDetail": "64'",
-      "completed": false,
+      "state": "post",
+      "statusName": "STATUS_FULL_TIME",
+      "statusDescription": "Full Time",
+      "statusShortDetail": "FT",
+      "statusDetail": "FT",
+      "completed": true,
       "homeTeam": "Red Bull Bragantino",
       "awayTeam": "Bahia",
       "homeTeamId": "6079",
@@ -41797,11 +41797,11 @@
       "homeScore": 2,
       "awayScore": 3,
       "homeWinner": false,
-      "awayWinner": false,
+      "awayWinner": true,
       "venue": "Estádio Municipal Cicero de Souza Marques",
       "city": "Bragança Paulista",
-      "clockSec": 3840.0,
-      "clockStr": "64'",
+      "clockSec": 5400.0,
+      "clockStr": "90'+12'",
       "period": 2,
       "details": [
         {
@@ -41955,17 +41955,36 @@
               "shortName": "Luciano Juba"
             }
           ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "6079"
+          },
+          "clock": {
+            "value": 5400.0,
+            "displayValue": "90'+12'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Alix Vinicius",
+              "shortName": "A. Vinicius"
+            }
+          ]
         }
       ]
     },
     {
       "id": "401841226",
       "date": "2026-09-05T21:30Z",
-      "state": "pre",
-      "statusName": "STATUS_SCHEDULED",
-      "statusDescription": "Scheduled",
-      "statusShortDetail": "Scheduled",
-      "statusDetail": "Sat, September 5th at 5:30 PM EDT",
+      "state": "in",
+      "statusName": "STATUS_FIRST_HALF",
+      "statusDescription": "First Half",
+      "statusShortDetail": "43'",
+      "statusDetail": "43'",
       "completed": false,
       "homeTeam": "São Paulo",
       "awayTeam": "Atlético-MG",
@@ -41977,9 +41996,9 @@
       "awayWinner": false,
       "venue": "Estádio Cícero Pompeu de Toledo",
       "city": "Sao Paulo",
-      "clockSec": 0.0,
-      "clockStr": "0'",
-      "period": null,
+      "clockSec": 2580.0,
+      "clockStr": "43'",
+      "period": 1,
       "details": []
     },
     {

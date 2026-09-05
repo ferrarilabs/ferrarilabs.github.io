@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-09-03T17:11:01Z",
-  "sourceUpdatedAt": "2026-09-03T17:11:01Z",
+  "generatedAt": "2026-09-05T22:13:55Z",
+  "sourceUpdatedAt": "2026-09-05T22:13:55Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "60dee0bee4476b675369483506a03d2f9c4c3ca88c01aa9214fd754f35124e7b",
+  "payloadHash": "47980e9ee95cee98f333918eec8750637f6a05d5ef23a115bf79140fa8b02674",
   "matches": [
     {
       "name": "Palmeiras",
@@ -51,10 +51,24 @@
       "gd": 12.0
     },
     {
+      "name": "Bahia",
+      "abbr": "BAH",
+      "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/9967.png",
+      "rank": 4.0,
+      "points": 43.0,
+      "played": 26.0,
+      "wins": 11.0,
+      "draws": 10.0,
+      "losses": 5.0,
+      "gf": 40.0,
+      "ga": 32.0,
+      "gd": 8.0
+    },
+    {
       "name": "Fluminense",
       "abbr": "FLU",
       "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/3445.png",
-      "rank": 4.0,
+      "rank": 5.0,
       "points": 42.0,
       "played": 25.0,
       "wins": 11.0,
@@ -62,20 +76,6 @@
       "losses": 5.0,
       "gf": 39.0,
       "ga": 32.0,
-      "gd": 7.0
-    },
-    {
-      "name": "Bahia",
-      "abbr": "BAH",
-      "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/9967.png",
-      "rank": 5.0,
-      "points": 40.0,
-      "played": 25.0,
-      "wins": 10.0,
-      "draws": 10.0,
-      "losses": 5.0,
-      "gf": 37.0,
-      "ga": 30.0,
       "gd": 7.0
     },
     {
@@ -126,13 +126,13 @@
       "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/6079.png",
       "rank": 9.0,
       "points": 35.0,
-      "played": 24.0,
+      "played": 25.0,
       "wins": 10.0,
       "draws": 5.0,
-      "losses": 9.0,
-      "gf": 29.0,
-      "ga": 25.0,
-      "gd": 4.0
+      "losses": 10.0,
+      "gf": 31.0,
+      "ga": 28.0,
+      "gd": 3.0
     },
     {
       "name": "Corinthians",
