@@ -1,5 +1,78 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## (sem release de site) — materializar a fase derivada é um comando, não um efeito colateral (2026-09-05, #410)
+
+`TOURNAMENT_SPECIFIC` (ferramenta de operador) — **nenhum byte muda no que o navegador baixa**: só
+`bolao/cdb2026/scripts/operator_cli.py`, o gate novo e o registro dos gates. Por isso não há bump de
+`siteVersion`: não há cache a estourar, e bumpar por mudança que não sai no cliente ensinaria a
+tratar a versão como número de commit. Não toca scoring, ranking, entradas, pagamentos nem prazo.
+
+**O buraco.** O #409 (detector do #406) acusou, corretamente: `quartas` inteiramente decidida,
+`semifinal` com topologia oficial da CBF e **zero confrontos materializados**. A instrução era usar
+"o caminho administrativo explícito de avanço de fase que já existe". Fui procurar e ele **não
+existe**: `apply-draw` materializa a partir de um sorteio oficial (a semifinal não tem sorteio — o
+chaveamento já estava definido desde as oitavas) e `open-picks` só move `espnSync.activePhaseId` —
+apontar para uma fase vazia abriria os palpites numa tela sem jogo. Entre "sortear" e "abrir" faltava
+o passo do meio: **derivar**.
+
+**O comando.** `materialize-derived-phase --phase semifinal`. Ele não decide nada; ele *lê* duas
+coisas que o estado já afirma e junta:
+
+- a **topologia autoritativa** da fase alvo (`slots` com `winnerOf`, proveniência `CBF` + `validatedAt`);
+- o **`qualifiedTeamId` persistido** de cada confronto da fase anterior.
+
+Vencedor sai de `qualifiedTeamId`, nunca de placar — quem decidiu o classificado foi o app, no
+momento em que o resultado entrou; reinferir aqui seria uma segunda autoridade sobre a mesma
+pergunta, e duas autoridades divergem.
+
+**O que ele se recusa a fazer.** Quase todo o arquivo é recusa, e é de propósito — um comando que
+grava chaveamento erra caro:
+
+| situação | resposta |
+|---|---|
+| fase anterior com confronto sem vencedor, ou perna sem placar | recusa |
+| fase alvo sem topologia, ou sem proveniência CBF validada | recusa (exigir seria mandar inventar chaveamento) |
+| topologia apontando predecessor que não existe na fase anterior | recusa |
+| vaga de topologia incompleta | recusa a fase **inteira** — não materializa só a metade boa |
+| fase alvo já tem confronto | no-op, sai 0 (idempotente) |
+| fase não derivada (`quartas`) | recusa — não é criador genérico de confronto |
+| servidor aplicou a escrita mas não registrou trilha | **aborta** |
+| invocado sem `--dry-run` nem `--apply` | recusa no parser, antes de ler o estado |
+
+**Não há default que escreve.** A guarda de exclusão mútua do `main()` listava só `apply-draw` e
+`open-picks`; com o comando novo fora dela, rodar sem bandeira nenhuma cairia em `dry_run=False` e
+gravaria em silêncio. O defeito não estava na função — estava no despacho, e um teste que chamasse
+`cmd_materialize_derived_phase` direto passaria sem ver nada. O gate exercita `main()` por
+subprocesso.
+
+**`kickoff`, `venue` e `city` saem nulos, e isso é a feature.** A CBF ainda não publicou a tabela da
+semifinal. Confronto conhecido sem data é o estado normal e saudável do produto — é exatamente o que
+a #395 quer exibir. Fabricar um calendário para deixar o registro "completo" seria pior que não
+materializar: apareceria como data real na tela do participante. O comando reconfere isso *depois*
+de gravar, relendo o estado, e aborta se qualquer perna voltar com kickoff ou venue.
+
+**Materializar não avança fase.** `espnSync.activePhaseId` fica intacto, e o comando verifica que
+ficou. Abrir os palpites continua sendo `open-picks` — decisão separada, com autorização separada.
+
+**A trilha é verificada, não presumida.** Desde que `grava_estado()` saiu, o documento lido nunca
+volta ao servidor: um `auditLog.append` local morre na memória do processo e produz a *ilusão* de
+auditoria. A trilha real é a que `cdb_apply_operator_mutation` grava a partir de
+`p_actor`/`p_client_ref` — e o comando relê o estado e exige uma entrada por confronto, com o
+`clientRef` que enviou. (`cmd_apply_draw` ainda faz o append morto; é defeito pré-existente,
+reportado à parte, não corrigido em silêncio dentro deste diff.)
+
+**Gate.** `test_materialize_derived_phase.py` — 17 asserções: 1 caminho feliz, 12 recusas, e os
+efeitos colaterais checados por fingerprint (`entries`, `paid`, fase anterior, `final`,
+`activePhaseId`). Mutação: 12 mutações mortas individualmente; `erros` e a contagem de vagas são par
+redundante e morrem quando removidas juntas. O teste é hermético — sem rede, sem Supabase; `le_estado`
+e `_rpc` são injetados.
+
+**Propagação — não propagado, com motivo.** `copa2026` está concluída e arquivada (não há fase para
+materializar, e ela só aceita patch pequeno e reversível). `br2026` é pontos corridos: não tem fase
+derivada, não tem topologia de chaveamento, e o conceito não existe lá. A regra de derivação é
+`TOURNAMENT_SPECIFIC` por natureza — generalizá-la entre apps seria exatamente o que a governança
+proíbe (copiar lógica de torneio junto com a ferramenta).
+
 ## v3.141 — o local do jogo volta ao card de próxima partida (2026-09-03)
 
 `TOURNAMENT_SPECIFIC` (dado + apresentação) — não toca scoring, bracket, sorteio, prazo nem ranking.
