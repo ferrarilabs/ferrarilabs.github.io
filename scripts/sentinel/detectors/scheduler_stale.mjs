@@ -57,11 +57,28 @@
  * READ-ONLY. Nunca dispara, cancela ou re-executa workflow nenhum.
  */
 import { createHash } from "node:crypto";
+import { execFileSync } from "node:child_process";
 import { schedulerStaleFingerprint, REPOSITORY } from "../fingerprint.mjs";
 import { applyPolicy, POLICY_VERSION } from "../policy.mjs";
 import { makeFinding, SCHEMA_VERSION } from "../finding_schema.mjs";
 
 function hash(text) { return "sha256:" + createHash("sha256").update(text).digest("hex").slice(0, 24); }
+
+/**
+ * SHA do commit contra o qual a observacao foi feita. `writer.mjs` EXIGE `provenance.source_sha`
+ * (`refuses an invalid Finding: missing provenance.source_sha`) — eu tinha deixado `null` aqui, e
+ * o resultado foi o detector disparar corretamente e o writer recusar o finding, derrubando o run
+ * inteiro. Sem sha nao ha proveniencia, e sem proveniencia o finding nao deve existir: devolve
+ * `null` e o detector se cala, em vez de emitir algo invalido.
+ */
+function headSha() {
+  try {
+    return execFileSync("git", ["rev-parse", "HEAD"], { encoding: "utf8" }).trim() || null;
+  } catch {
+    return null;
+  }
+}
+
 
 export const DETECTOR_ID = "scheduler_stale";
 export const DETECTOR_VERSION = "1.0.0";
@@ -141,6 +158,11 @@ export function detectSchedulerStale({ fetchRecentRuns, now = new Date(), thresh
   // FRESH = saudavel; UNKNOWN = nao medido. Nenhum dos dois emite finding.
   if (c.state === FRESH || c.state === UNKNOWN) return { findings: [], confirmedRecoveries: new Set(), evidence: c };
 
+  const sha = headSha();
+  if (!sha) {
+    // Sem proveniencia o writer recusa (e com razao). Calar e melhor que emitir invalido.
+    return { findings: [], confirmedRecoveries: new Set(), unknown: "sem source_sha — proveniencia indisponivel" };
+  }
   const { canonical, authorization } = applyPolicy(DETECTOR_ID);
   const detalhe = c.state === NO_SCHEDULED_RUN
     ? "nenhuma execucao com event=schedule na amostra"
@@ -171,7 +193,7 @@ export function detectSchedulerStale({ fetchRecentRuns, now = new Date(), thresh
     ],
     canonical, authorization,
     provenance: {
-      source_sha: null,
+      source_sha: sha,
       detector_version: DETECTOR_VERSION,
       policy_version: POLICY_VERSION,
       config_hash: hash(JSON.stringify({ thresholdHours: c.thresholdHours })),
