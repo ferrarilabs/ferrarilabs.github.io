@@ -184,14 +184,32 @@ test("UM markup só — o caso sem data é MODO do bloco, não um bloco novo", (
 
 console.log("\nD. Costura no hero");
 
-test("o fallback entra DEPOIS do caminho datado e ANTES de 'não disponível'", () => {
+test("a ORDEM DE DECISÃO é datado → conhecido-sem-data → 'não disponível'", () => {
+  // Assere a ordem dos RETURNS, não a posição textual da chamada. A primeira versão deste teste
+  // media onde `findNextKnownUndatedPhase` aparecia no arquivo — um proxy que quebrou assim que a
+  // chamada subiu para alimentar o contrato de texto (#419), sem que o comportamento mudasse em
+  // nada. Quem decide o que o participante vê é o `return` que dispara primeiro.
   const hero = corpo("renderHeroSemAoVivo");
-  const iUpcoming = hero.indexOf("S.UPCOMING");
-  const iFallback = hero.indexOf("findNextKnownUndatedPhase");
-  const iUnknown = hero.indexOf("nextMatchUnknown");
-  A(iFallback !== -1, "o hero não chama o fallback — a correção não está ligada");
-  A(iUpcoming !== -1 && iUpcoming < iFallback, "o fallback precede o caminho datado");
-  A(iFallback < iUnknown, "'não disponível' vem antes do fallback — nunca seria alcançado");
+  A(hero.includes("findNextKnownUndatedPhase"), "o hero não chama o fallback — a correção não está ligada");
+
+  const iDatado = hero.indexOf("if (estado === S.UPCOMING && proximo)");
+  const iRetornoConhecido = hero.indexOf("if (conhecido) return");
+  const iRetornoDesconhecido = hero.indexOf("nextMatchUnknown");
+  A(iDatado !== -1, "o ramo datado sumiu do hero");
+  A(iRetornoConhecido !== -1, "o retorno do confronto conhecido sumiu");
+  A(iDatado < iRetornoConhecido,
+    "o confronto sem data retorna antes do datado — um confronto conhecido roubaria a vez de um jogo com hora marcada");
+  A(iRetornoConhecido < iRetornoDesconhecido,
+    "'não disponível' retorna antes do conhecido — o fallback nunca seria alcançado");
+});
+
+test("#419 o aviso de fonte degradada é decidido SABENDO se há conteúdo derivado", () => {
+  const hero = corpo("renderHeroSemAoVivo");
+  A(/hasAuthoritativeContent:\s*!!conhecido/.test(hero),
+    "o contrato de texto é chamado sem saber se haverá confronto na tela — voltaria a legendar " +
+    "'dados ao vivo indisponíveis' embaixo de um confronto autoritativo");
+  A(hero.indexOf("const conhecido") < hero.indexOf("selectHeroCopy"),
+    "`conhecido` é calculado depois de escolher o texto — a decisão sairia sempre com `false`");
 });
 
 test("o fallback não escreve estado", () => {

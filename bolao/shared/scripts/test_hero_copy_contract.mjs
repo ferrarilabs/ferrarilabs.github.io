@@ -348,5 +348,50 @@ test("nenhum renderizador decide aviso direto de `degraded` (o contrato é o ún
   }
 });
 
+// ─── #419: SCHEDULE_UNKNOWN deixou de ser sinônimo de "tela vazia" ─────────────────────────────
+//
+// A premissa original de `freshnessAffectsDisplayed` era que `SCHEDULE_UNKNOWN` nunca tem conteúdo,
+// então a queda da fonte explicava o vazio e o aviso era honesto. O #395 tornou isso falso: o hero
+// passou a exibir o confronto derivado da topologia, que é autoritativo e não vem da fonte. Sem a
+// distinção, produção mostrou "Dados ao vivo temporariamente indisponíveis" embaixo de
+// "Grêmio × Atlético-MG / Vasco × Palmeiras".
+test("#419 SCHEDULE_UNKNOWN COM conteúdo derivado e fonte degradada => NENHUM aviso", () => {
+  const r = HC.selectHeroCopy({ heroState: HC.HERO.SCHEDULE_UNKNOWN, degraded: true,
+                                hasAuthoritativeContent: true });
+  assert(r.noticeKey === null, `avisou "${r.noticeKey}" sobre conteúdo que não veio da fonte`);
+  assert(r.noticeRelevant === false, "marcou como relevante um aviso que desmente a própria tela");
+});
+
+test("#419 SCHEDULE_UNKNOWN VAZIO e fonte degradada => continua avisando", () => {
+  const r = HC.selectHeroCopy({ heroState: HC.HERO.SCHEDULE_UNKNOWN, degraded: true,
+                                hasAuthoritativeContent: false });
+  assert(r.noticeKey === "liveDataUnavailable",
+    `parou de avisar com a tela vazia (veio ${r.noticeKey}) — aí o aviso é a explicação do vazio`);
+});
+
+test("#419 omitir o campo preserva o comportamento anterior (BR2026 não passa nada)", () => {
+  const r = HC.selectHeroCopy({ heroState: HC.HERO.SCHEDULE_UNKNOWN, degraded: true });
+  assert(r.noticeKey === "liveDataUnavailable", "o default mudou de comportamento para quem não informa");
+});
+
+test("#419 conteúdo derivado NÃO silencia partida ao vivo atrasada", () => {
+  for (const st of [HC.HERO.LIVE_FRESH, HC.HERO.LIVE_DELAYED]) {
+    const r = HC.selectHeroCopy({ heroState: st, degraded: true, hasAuthoritativeContent: true });
+    assert(r.noticeKey === "liveDataDelayed",
+      `${st}: placar na tela depende do frescor e o aviso sumiu (veio ${r.noticeKey})`);
+  }
+  const r = HC.selectHeroCopy({ heroState: HC.HERO.SOURCE_UNAVAILABLE, degraded: true,
+                                hasAuthoritativeContent: true });
+  assert(r.noticeKey === "liveDataUnavailable", "SOURCE_UNAVAILABLE parou de avisar");
+});
+
+test("#419 fonte íntegra nunca avisa, com ou sem conteúdo derivado", () => {
+  for (const c of [true, false]) {
+    const r = HC.selectHeroCopy({ heroState: HC.HERO.SCHEDULE_UNKNOWN, degraded: false,
+                                  hasAuthoritativeContent: c });
+    assert(r.noticeKey === null, "avisou com a fonte íntegra");
+  }
+});
+
 console.log(`\n${fail === 0 ? "PASS" : "FAIL"} — ${ok} ok, ${fail} falhas\n`);
 process.exit(fail === 0 ? 0 : 1);
