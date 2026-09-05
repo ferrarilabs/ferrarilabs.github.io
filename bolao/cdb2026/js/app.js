@@ -4614,7 +4614,15 @@ function renderHeroSemAoVivo(heroEstado, proximo) {
   // proxima partida autoritativa e LOCAL, que a queda da fonte nao torna incerta. O contrato
   // decide se a degradacao e relevante para o que esta na tela -- e qual frase e verdadeira.
   const HC = (typeof window !== "undefined" && window.BOLAO_HERO_COPY) || null;
-  const copy = HC ? HC.selectHeroCopy({ heroState: estado, degraded: !!(heroEstado && heroEstado.degraded) }) : null;
+  // O confronto derivado é resolvido ANTES de escolher o texto (#419): o contrato precisa saber se
+  // vai haver conteúdo autoritativo na tela para decidir se o aviso de fonte degradada é relevante.
+  // Calculá-lo depois obrigaria a decidir o aviso sem saber o que ele vai legendar.
+  const conhecido = nextMatchBlockHtml(findNextKnownUndatedPhase(state()));
+  const copy = HC ? HC.selectHeroCopy({
+    heroState: estado,
+    degraded: !!(heroEstado && heroEstado.degraded),
+    hasAuthoritativeContent: !!conhecido,
+  }) : null;
   const aviso = copy && copy.noticeKey
     ? `<div class="live-hero-note">${esc(t(copy.noticeKey))}</div>` : "";
 
@@ -4625,7 +4633,6 @@ function renderHeroSemAoVivo(heroEstado, proximo) {
   }
   // FALLBACK EXPLÍCITO (#395), e só depois de o caminho datado ter falhado: data desconhecida não
   // pode fazer um confronto conhecido desaparecer. Se nem topologia houver, aí sim é desconhecido.
-  const conhecido = nextMatchBlockHtml(findNextKnownUndatedPhase(state()));
   if (conhecido) return `<div class="live-hero-idle">${conhecido}${aviso}</div>`;
 
   return `<div class="live-hero-idle">

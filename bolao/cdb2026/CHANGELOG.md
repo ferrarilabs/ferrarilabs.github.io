@@ -1,5 +1,57 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.143 — o aviso parou de desmentir a própria tela (2026-09-05, #419)
+
+`PLATFORM_SHARED` (texto do hero) — não toca scoring, bracket, sorteio, prazo, ranking nem
+persistência.
+
+**O que se via em produção, na v3.142:**
+
+```
+PRÓXIMA PARTIDA
+Grêmio × Atlético-MG
+Vasco × Palmeiras
+Semifinal
+Aguardando datas e horários
+Dados ao vivo temporariamente indisponíveis     <- este
+```
+
+As quatro primeiras linhas são autoritativas: saem de `topology` + `qualifiedTeamId` persistido, e
+continuam corretas com o provedor inteiramente fora do ar. A última dizia ao participante que os
+dados podem estar indisponíveis — lançando dúvida sobre a única coisa da tela que não tinha nenhuma.
+
+**Causa.** O contrato do #246 decide o aviso por `freshnessAffectsDisplayed(heroState)`, e incluía
+`SCHEDULE_UNKNOWN` na lista. O comentário do próprio arquivo dizia por quê:
+
+> `SCHEDULE_UNKNOWN` … ali não há conteúdo nenhum, e a queda da fonte é justamente a explicação de
+> por que não há.
+
+A premissa era verdadeira quando foi escrita. **O #395 a tornou falsa** um release antes: aquele
+estado passou a poder exibir o confronto derivado. O ramo final então emitia `liveDataUnavailable`
+com a justificativa "sem conteudo por indisponibilidade da fonte" — enquanto havia conteúdo, e ele
+não vinha da fonte.
+
+O contrato já tinha o ramo certo, logo acima, com o raciocínio exato ("dizer 'dados ao vivo
+indisponíveis' aqui seria verdadeiro sobre o sistema e enganoso sobre a tela"). O caso novo só não
+chegava lá.
+
+**A correção.** `SCHEDULE_UNKNOWN` passa a depender do frescor **condicionalmente**: vazio, o aviso
+explica o vazio e permanece; com confronto derivado na tela, o conteúdo é autoritativo e o aviso
+some. O estado degradado continua em `data-hero-degraded` para quem diagnostica — o participante
+deixa de receber um alarme sem consequência.
+
+O campo novo (`hasAuthoritativeContent`) tem default `false`: quem não informa nada — o BR2026, que
+é pontos corridos e nunca tem fase derivada — mantém comportamento **byte-idêntico**.
+
+**Um teste meu que estava medindo a coisa errada.** O gate do #395 assegurava a ordem do fallback
+pela posição TEXTUAL da chamada no arquivo. Ao subir o cálculo para alimentar o contrato, o proxy
+quebrou sem que o comportamento mudasse. Passou a asserir a **ordem dos `return`** — quem decide o
+que o participante vê é o retorno que dispara primeiro, não onde a linha está escrita.
+
+**Provas.** 5 asserções novas em `test_hero_copy_contract.mjs` (44 no total) e 2 em
+`test_next_known_undated.mjs` (15). Mutação: 5/5 mortas, incluindo a que reintroduz exatamente o
+defeito e a que faria conteúdo derivado silenciar um jogo ao vivo atrasado.
+
 ## v3.142 — data desconhecida não apaga confronto conhecido (2026-09-05, #395)
 
 `TOURNAMENT_SPECIFIC` (apresentação) — não toca scoring, bracket, sorteio, prazo, ranking nem

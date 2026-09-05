@@ -59,14 +59,29 @@
    * NÃO dependem: vieram do calendário/estado local do torneio, e continuam igualmente corretos
    * com o provedor fora do ar.
    *
-   * `SCHEDULE_UNKNOWN` e `SOURCE_UNAVAILABLE` também dependem, por um motivo diferente: ali não
-   * há conteúdo nenhum, e a queda da fonte é justamente a explicação de por que não há.
+   * `SOURCE_UNAVAILABLE` também depende, por um motivo diferente: ali não há conteúdo nenhum, e a
+   * queda da fonte é justamente a explicação de por que não há.
+   *
+   * `SCHEDULE_UNKNOWN` depende **condicionalmente**, e é aí que mora o #419: ele era sempre vazio,
+   * mas desde o #395 pode exibir o confronto conhecido derivado da topologia. Vazio, a queda da
+   * fonte explica o vazio e o aviso é honesto; com confronto derivado na tela, o conteúdo é
+   * autoritativo, não veio da fonte, e o aviso passaria a desmentir o que está escrito logo acima.
    */
-  function freshnessAffectsDisplayed(heroState) {
-    return heroState === HERO.LIVE_FRESH ||
-           heroState === HERO.LIVE_DELAYED ||
-           heroState === HERO.SOURCE_UNAVAILABLE ||
-           heroState === HERO.SCHEDULE_UNKNOWN;
+  function freshnessAffectsDisplayed(heroState, hasAuthoritativeContent) {
+    if (heroState === HERO.LIVE_FRESH || heroState === HERO.LIVE_DELAYED) return true;
+    if (heroState === HERO.SOURCE_UNAVAILABLE) return true;
+    if (heroState === HERO.SCHEDULE_UNKNOWN) {
+      // A premissa acima ("ali nao ha conteudo nenhum") era verdadeira quando foi escrita e o #395
+      // a tornou FALSA: `SCHEDULE_UNKNOWN` passou a poder exibir o confronto conhecido derivado de
+      // `topology` + `qualifiedTeamId` persistido. Esse conteudo e autoritativo e NAO vem da fonte
+      // ao vivo -- continua igualmente correto com o provedor fora do ar.
+      //
+      // Sem esta distincao o hero imprimia "Dados ao vivo temporariamente indisponiveis" embaixo de
+      // "Gremio x Atletico-MG / Vasco x Palmeiras", lancando duvida sobre a unica coisa da tela que
+      // nao tinha duvida nenhuma (visto em producao, v3.142).
+      return !hasAuthoritativeContent;
+    }
+    return false;
   }
 
   /**
@@ -83,12 +98,15 @@
     e = e || {};
     var estado = e.heroState || HERO.SCHEDULE_UNKNOWN;
     var degradado = e.degraded === true;
+    // Default `false`: quem nao informa nada continua tratado como "sem conteudo", que e o
+    // comportamento anterior. O BR2026 nao tem fase derivada e nunca passa este campo.
+    var temConteudoAutoritativo = e.hasAuthoritativeContent === true;
 
     if (!degradado) {
       return { state: estado, noticeKey: null, noticeRelevant: false,
                reason: "fonte integra: nada a avisar" };
     }
-    if (!freshnessAffectsDisplayed(estado)) {
+    if (!freshnessAffectsDisplayed(estado, temConteudoAutoritativo)) {
       // O caso 1 do cabeçalho. A fonte ESTÁ fora — e o hero mostra conteúdo autoritativo que não
       // veio dela. Dizer "dados ao vivo indisponíveis" aqui seria verdadeiro sobre o sistema e
       // enganoso sobre a tela. O estado degradado continua no `data-hero-degraded` para quem
