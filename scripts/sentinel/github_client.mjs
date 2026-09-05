@@ -171,6 +171,28 @@ export function createRealGithubClient() {
      * `{ headSha, createdAt, status, conclusion, jobs: [{ name, conclusion }] }` — the exact shape
      * main_ci_red.mjs's detectMainCiRed() expects. Read-only: never re-runs/cancels/dispatches.
      */
+    /**
+     * Execucoes RECENTES do repositorio inteiro, com o `event` preservado (#405).
+     *
+     * `event` e o campo que importa: o detector so conta `schedule`. Durante a #396 o produtor de
+     * cache ao vivo rodava a cada 5 min por `workflow_dispatch` externo enquanto todo o cron estava
+     * morto — sem o `event`, "ha run recente?" daria verde com o agendador parado.
+     *
+     * Limite alto de proposito: com a cadencia normal deste repo (dezenas de runs por dia, e o
+     * produtor sozinho fazendo ~288 dispatches/dia), uma amostra pequena pode nao conter NENHUM
+     * `schedule` mesmo com tudo saudavel — e isso viraria alarme falso.
+     */
+    fetchRecentRuns(limit = 200) {
+      return ghJson([
+        "run", "list", "--repo", REPO,
+        "--json", "databaseId,createdAt,event,status,conclusion,workflowName",
+        "--limit", String(limit),
+      ]).map((r) => ({
+        createdAt: r.createdAt, event: r.event, status: r.status,
+        conclusion: r.conclusion || null, workflowName: r.workflowName,
+      }));
+    },
+
     fetchLatestRuns(workflowName, branch, limit = 5) {
       const runs = ghJson([
         "run", "list", "--repo", REPO, "--workflow", workflowName, "--branch", branch,
@@ -202,6 +224,7 @@ export function createFakeGithubClient(initial = {}) {
   const projectItems = new Map(); // itemId -> {issueNumber, fields}
   let nextItemId = 1;
   let workflowRuns = initial.workflowRuns || []; // seeded by tests; fetchLatestRuns() below just returns this
+  let recentRuns = initial.recentRuns || [];   // idem, para fetchRecentRuns() (#405)
   const calls = []; // audit trail for assertions
 
   function record(name, args) { calls.push({ name, args }); }
@@ -285,6 +308,11 @@ export function createFakeGithubClient(initial = {}) {
       record("fetchLatestRuns", { workflowName, branch });
       return workflowRuns.map((r) => ({ ...r }));
     },
+    fetchRecentRuns() {
+      record("fetchRecentRuns", {});
+      return recentRuns.map((r) => ({ ...r }));
+    },
+    _setRecentRuns(runs) { recentRuns = runs; }, // test introspection only
     _setWorkflowRuns(runs) { workflowRuns = runs; }, // test introspection only
   };
 }
