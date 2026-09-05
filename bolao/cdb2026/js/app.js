@@ -3861,6 +3861,81 @@ function resolveLocation(m, home, away) {
   return extra && extra.venue ? { venue: extra.venue, city: extra.city || null } : { venue: null, city: null };
 }
 
+/**
+ * O PRÓXIMO CONFRONTO CONHECIDO QUE AINDA NÃO TEM DATA (#395)
+ *
+ * `findNextUpcomingMatch()` exige `m.kickoff` futuro. Quando a fase corrente acaba e a CBF ainda
+ * não publicou a tabela da seguinte, isso devolve `null` e o hero cai em "Próxima partida ainda não
+ * disponível" — o que é FALSO: a partida é conhecida, o que falta é a data. A aba Jogos já mostra
+ * "Vasco × Palmeiras" enquanto o hero diz que não sabe; duas telas do mesmo produto se
+ * contradizendo.
+ *
+ * Esta função responde só a segunda pergunta: "qual é o próximo confronto conhecido?". A primeira
+ * ("qual é a próxima partida datada?") continua sendo de `findNextUpcomingMatch()`, e continua
+ * vencendo — esta aqui é FALLBACK EXPLÍCITO, nunca uma mistura silenciosa das duas semânticas.
+ *
+ * NÃO PERSISTE NADA e não depende de tie materializado: lê `topology` + `qualifiedTeamId` pelo mesmo
+ * `derivedPhaseView()` que a aba Jogos e a tela de palpites já usam. Materializar confronto para
+ * agradar o renderizador seria escrever estado de torneio a partir de uma decisão de apresentação.
+ *
+ * Ordem = ordem dos slots na topologia (a mesma da aba Jogos). Sem data não existe "mais próximo", e
+ * inventar um critério de ordenação seria inventar informação.
+ */
+function findNextKnownUndatedPhase(s) {
+  for (const phase of DATA.phases) {
+    const view = derivedPhaseView(s, phase.id);
+    if (!view.topologyKnown || !view.slots.length) continue;
+
+    const ties = s?.phases?.[phase.id]?.ties || {};
+    // Fase já decidida não é "a próxima". Materializada e com vencedor em todo confronto = passado.
+    const decidida = Object.keys(ties).length >= view.slots.length &&
+                     Object.values(ties).every(t => t && t.qualifiedTeamId);
+    if (decidida) continue;
+
+    // Se QUALQUER perna desta fase já tem data, a fase pertence ao caminho datado — quem manda é
+    // `findNextUpcomingMatch()`. Sem isto, um confronto com data cairia aqui como se não tivesse.
+    const temData = Object.values(ties).some(t =>
+      Object.values(t?.matches || {}).some(m => m && m.kickoff));
+    if (temData) continue;
+
+    const items = view.slots.map(slot => ({
+      slotId: slot.slotId,
+      aLabel: participantLabel(slot.sideA, tieDisplayName(s, slot.sideA && slot.sideA.winnerOf)),
+      bLabel: participantLabel(slot.sideB, tieDisplayName(s, slot.sideB && slot.sideB.winnerOf)),
+      // Só desenha escudo para lado RESOLVIDO. "Vencedor de X × Y" não tem escudo porque não tem
+      // clube — pôr um seria afirmar um classificado que o estado não afirma.
+      aTeam: slot.sideA && slot.sideA.resolved ? slot.sideA.team : null,
+      bTeam: slot.sideB && slot.sideB.resolved ? slot.sideB.team : null,
+    }));
+    return { phaseId: phase.id, phaseName: phase.name, items };
+  }
+  return null;
+}
+
+/**
+ * Bloco do confronto conhecido SEM data. Deliberadamente sem contador, sem data, sem local e sem
+ * "Onde assistir": os quatro sairiam de um `kickoff` que não existe. Um contador para data
+ * desconhecida seria uma contagem inventada, e local/transmissão por data casariam a partida errada.
+ */
+function undatedMatchupBlockHtml(info) {
+  if (!info || !info.items || !info.items.length) return "";
+  const linhas = info.items.map(it => `<div class="next-game-teams">${
+    it.aTeam ? `${esc(it.aLabel)} ${teamLogoImg(it.aTeam, "team-logo")}` : esc(it.aLabel)
+  } <span class="next-game-vs">×</span> ${
+    it.bTeam ? `${teamLogoImg(it.bTeam, "team-logo")} ${esc(it.bLabel)}` : esc(it.bLabel)
+  }</div>`).join("");
+  return `<div class="next-game-card">
+    <div class="next-game-label">${esc(t("nextGameLabel"))}</div>
+    <div class="next-game-row">
+      <div class="next-game-info-block">
+        ${linhas}
+        ${info.phaseName ? `<div class="next-game-info">${esc(info.phaseName)}</div>` : ""}
+        <div class="next-game-info muted">${esc(t("schedulePendingTitle"))}</div>
+      </div>
+    </div>
+  </div>`;
+}
+
 function findNextUpcomingMatch(s) {
   let best = null;
   DATA.phases.forEach(phase => {
@@ -4539,6 +4614,11 @@ function renderHeroSemAoVivo(heroEstado, proximo) {
     const bloco = nextMatchBlockHtml(proximo);
     if (bloco) return `<div class="live-hero-idle">${bloco}${aviso}</div>`;
   }
+  // FALLBACK EXPLÍCITO (#395), e só depois de o caminho datado ter falhado: data desconhecida não
+  // pode fazer um confronto conhecido desaparecer. Se nem topologia houver, aí sim é desconhecido.
+  const conhecido = undatedMatchupBlockHtml(findNextKnownUndatedPhase(state()));
+  if (conhecido) return `<div class="live-hero-idle">${conhecido}${aviso}</div>`;
+
   return `<div class="live-hero-idle">
     <div class="live-hero-label">${esc(t("nextMatchUnknown"))}</div>
     ${aviso}</div>`;
