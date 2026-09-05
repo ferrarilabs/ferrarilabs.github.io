@@ -979,6 +979,10 @@
     "bolao/cdb2026/scripts/test_next_known_undated.mjs": {
       "classification": "REGISTERED_AND_EXECUTED",
       "coverage": "Hero do CDB2026 quando a proxima partida e CONHECIDA mas ainda nao tem data (#395). Extrai e executa as funcoes reais do app.js (derivedPhaseView/resolveParticipant/participantLabel + findNextKnownUndatedPhase/undatedMatchupBlockHtml) em vez de reimplementar a regra. A maioria das assercoes verifica AUSENCIA, porque o risco desta correcao e preencher a tela com informacao inventada: sem contador, sem data, sem local, sem 'Onde assistir', e sem escudo em lado nao resolvido. Prova tambem que o caminho datado sempre vence (fase com qualquer kickoff cede), que fase decidida nao volta a ser 'a proxima', que sem topologia autoritativa o hero volta a dizer 'nao disponivel', e que a derivacao nao grava estado. Mutacao: 7 mutacoes, todas mortas; a guarda de escudo e provada em par com o ramo nao-resolvido de resolveParticipant."
+    },
+    "bolao/cdb2026/scripts/test_operator_audit_trail.py": {
+      "classification": "REGISTERED_AND_EXECUTED",
+      "coverage": "Trilha de auditoria dos comandos de operador do CDB2026 (#413). Trava tres coisas: o append local de `auditLog` nao pode voltar (morre na memoria do processo desde que `grava_estado` saiu, e produzia a ILUSAO de trilha -- foi copiado para o materialize-derived-phase justamente por parecer real); cada comando que grava tem de RELER o estado e exigir a entrada com o clientRef que ele mesmo enviou; e a guarda precisa ser um `if` VIVO cuja condicao menciona a trilha e cujo corpo alimenta `problemas`, verificado por AST -- a primeira versao so exigia presenca de strings e `if False:` mantinha o teste verde com a guarda desligada. A premissa (`grava_estado` ausente) tambem e checada por AST porque a prosa que explica a correcao cita o token banido. Mutacao: 4/4 mortas."
     }
   }
 }
