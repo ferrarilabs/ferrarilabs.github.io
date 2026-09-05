@@ -933,6 +933,9 @@
     "scripts/sentinel/test_policy.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
     },
+    "scripts/sentinel/test_sentinel_hardening.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
     "scripts/sentinel/test_project_enrichment_isolation.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
     },
