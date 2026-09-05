@@ -349,6 +349,76 @@ test("MUTACAO: com source_sha null o writer REPROVA (logo o teste acima morde)",
   A(lancou, "o writer aceitou source_sha null — o teste acima nao prova nada");
 });
 
+
+
+// ─── #415: o detector de avanço de fase tem de saber SE RETRATAR ────────────────────────────────
+//
+// Ele sabia acusar e não sabia dar alta. O `run.mjs` exige impressão digital explícita em
+// `confirmedRecoveries` quando o detector fornece o conjunto — ausência do achado NÃO basta. Com o
+// conjunto sempre vazio, a #409 ficou OPEN mesmo depois de a semifinal ser materializada em
+// produção e o detector reportar `finding_count: 0`. Mesma forma do #404: vermelho para sempre.
+{
+  const { detectCdb2026PhaseAdvance } =
+    await import("./detectors/cdb2026_phase_advance.mjs");
+  const { phaseAdvanceFingerprint } = await import("./fingerprint.mjs");
+
+  const PROV = { authority: "CBF", validatedAt: "2026-08-12T19:00:00Z" };
+  const tie = (a, b, q) => ({ teamA: a, teamB: b, qualifiedTeamId: q,
+    matches: { first: { goalsHome: 1, goalsAway: 0 }, second: { goalsHome: 0, goalsAway: 0 } } });
+  const base = (semiTies) => ({
+    espnSync: { activePhaseId: "quartas" },
+    phases: {
+      quartas: { ties: { t1: tie("Vasco", "Vitória", "A"), t2: tie("Grêmio", "Internacional", "A") } },
+      semifinal: { ties: semiTies, topology: { provenance: PROV, slots: { "sf-1": {}, "sf-2": {} } } },
+    },
+  });
+
+  const FP = phaseAdvanceFingerprint("quartas", "semifinal");
+
+  test("#415 sucessora materializada => recuperação CONFIRMADA com a digital do par", () => {
+    const r = detectCdb2026PhaseAdvance({ fetchState: () => base({ sf1: tie("Vasco", "Grêmio", null) }) });
+    A(r.findings.length === 0, "não deveria acusar com a sucessora materializada");
+    A(r.confirmedRecoveries.has(FP),
+      `alta não confirmada — o achado nunca fecharia. Conjunto: ${[...r.confirmedRecoveries]}`);
+  });
+
+  test("#415 a digital confirmada é IDÊNTICA à emitida no achado", () => {
+    const aberto = detectCdb2026PhaseAdvance({ fetchState: () => base({}) });
+    A(aberto.findings.length === 1, "deveria acusar com a sucessora vazia");
+    const fechado = detectCdb2026PhaseAdvance({ fetchState: () => base({ sf1: tie("V", "G", null) }) });
+    A(fechado.confirmedRecoveries.has(aberto.findings[0].fingerprint),
+      "confirma um par diferente do que abriu — o achado real continuaria aberto");
+  });
+
+  test("#415 condição quebrada continua ACUSANDO e não dá alta", () => {
+    const r = detectCdb2026PhaseAdvance({ fetchState: () => base({}) });
+    A(r.findings.length === 1, "parou de acusar — o outro lado do gate se perdeu");
+    A(r.confirmedRecoveries.size === 0, "deu alta enquanto acusava");
+  });
+
+  test("#415 estado ilegível (UNKNOWN) NÃO confirma recuperação", () => {
+    const r = detectCdb2026PhaseAdvance({ fetchState: () => { throw new Error("sem rede"); } });
+    A(r.confirmedRecoveries.size === 0,
+      "não conseguir ler virou prova de saúde — é ausência de prova, não alta");
+    const semAtiva = detectCdb2026PhaseAdvance({ fetchState: () => ({ phases: {} }) });
+    A(semAtiva.confirmedRecoveries.size === 0, "sem activePhaseId não há par para confirmar");
+  });
+
+  test("#415 fase ativa ainda indecisa: saudável, mas sem confirmar par não observado", () => {
+    const s = base({});
+    s.phases.quartas.ties.t2.qualifiedTeamId = null;
+    const r = detectCdb2026PhaseAdvance({ fetchState: () => s });
+    A(r.findings.length === 0, "fase pela metade não é acusação");
+    // `size === 0`, nao apenas "nao contem FP": com a fase ativa indecisa nao se observou NADA
+    // sobre sucessora nenhuma, entao nao ha par a confirmar. A versao fraca deste assert deixava
+    // passar uma digital calculada com `successorPhaseId` indefinido -- lixo que nao casa com
+    // achado nenhum hoje, e que casa com o achado errado no dia em que a numeracao mudar.
+    A(r.confirmedRecoveries.size === 0,
+      `confirmou ${[...r.confirmedRecoveries]} sem ter observado sucessora — alta por engano`);
+  });
+}
+
+
 console.log(`\n  ${ok} passed, ${fail} failed\n`);
 console.log(fail ? "✗ SENTINEL HARDENING FAILED" : "✓ SENTINEL HARDENING OK");
 process.exit(fail ? 1 : 0);
