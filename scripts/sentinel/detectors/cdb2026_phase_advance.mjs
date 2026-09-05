@@ -49,6 +49,7 @@
  * de torneio e exige autorização própria do Eduardo — este detector só torna o buraco visível.
  */
 import { createHash } from "node:crypto";
+import { execFileSync } from "node:child_process";
 import { phaseAdvanceFingerprint, REPOSITORY } from "../fingerprint.mjs";
 import { applyPolicy, POLICY_VERSION } from "../policy.mjs";
 import { makeFinding, SCHEMA_VERSION } from "../finding_schema.mjs";
@@ -66,6 +67,22 @@ export const SUCCESSOR_NOT_MATERIALIZED = "SUCCESSOR_NOT_MATERIALIZED";
 export const UNKNOWN = "UNKNOWN";
 
 function hash(text) { return "sha256:" + createHash("sha256").update(text).digest("hex").slice(0, 24); }
+
+/**
+ * SHA do commit contra o qual a observacao foi feita. `writer.mjs` EXIGE `provenance.source_sha`
+ * (`refuses an invalid Finding: missing provenance.source_sha`) — eu tinha deixado `null` aqui, e
+ * o resultado foi o detector disparar corretamente e o writer recusar o finding, derrubando o run
+ * inteiro. Sem sha nao ha proveniencia, e sem proveniencia o finding nao deve existir: devolve
+ * `null` e o detector se cala, em vez de emitir algo invalido.
+ */
+function headSha() {
+  try {
+    return execFileSync("git", ["rev-parse", "HEAD"], { encoding: "utf8" }).trim() || null;
+  } catch {
+    return null;
+  }
+}
+
 
 /** Topologia é autoritativa quando tem slots E proveniência validada — mesma regra do app. */
 export function hasAuthoritativeTopology(phase) {
@@ -154,6 +171,11 @@ export function detectCdb2026PhaseAdvance({ fetchState, now = new Date() } = {})
     return { findings: [], confirmedRecoveries: new Set(), evidence: c };
   }
 
+  const sha = headSha();
+  if (!sha) {
+    // Sem proveniencia o writer recusa (e com razao). Calar e melhor que emitir invalido.
+    return { findings: [], confirmedRecoveries: new Set(), unknown: "sem source_sha — proveniencia indisponivel" };
+  }
   const { canonical, authorization } = applyPolicy(DETECTOR_ID);
   const finding = makeFinding({
     finding_type: DETECTOR_ID,
@@ -178,7 +200,7 @@ export function detectCdb2026PhaseAdvance({ fetchState, now = new Date() } = {})
     ],
     canonical, authorization,
     provenance: {
-      source_sha: null,
+      source_sha: sha,
       detector_version: DETECTOR_VERSION,
       policy_version: POLICY_VERSION,
       config_hash: hash(JSON.stringify({ phaseOrder: PHASE_ORDER })),

@@ -13,6 +13,7 @@
  */
 import { reconcile, isProjectsV2Unavailable } from "./reconcile.mjs";
 import { createFakeGithubClient } from "./github_client.mjs";
+import { upsertFinding } from "./writer.mjs";
 import {
   classifyScheduler, detectSchedulerStale,
   FRESH, STALE, NO_SCHEDULED_RUN, UNKNOWN as SCHED_UNKNOWN, STALE_THRESHOLD_HOURS,
@@ -306,6 +307,46 @@ test("não escreve estado: sem saveState/upsert/PATCH no detector", () => {
   for (const p of ["saveState", "upsert", "PATCH", "POST", "setProjectFields", "activePhaseId ="]) {
     A(!codigo.includes(p), `o detector referencia \`${p}\` — ele é somente leitura`);
   }
+});
+
+
+// ─────────────────────────────────────────────────────────────────────────────────────────────
+console.log("\nContrato do WRITER — um finding invalido derruba o run inteiro\n");
+
+// POR QUE ISTO EXISTE: a primeira versao destes dois detectores punha `source_sha: null`. Os
+// testes de unidade passavam (eles so olhavam o detector), o `npm run check` passava, o CI do PR
+// passava — e o primeiro run REAL do Sentinel morreu com
+// `writer.mjs refuses an invalid Finding: missing provenance.source_sha`.
+// O #406 tinha disparado CORRETAMENTE e o writer recusou o finding.
+//
+// Nenhum teste exercitava o caminho detector -> writer, porque o gate de aceitacao roda contra um
+// repo limpo (zero findings) e nunca chega ao writer. Estes testes fecham exatamente essa junta.
+
+test("finding do #405 ATRAVESSA o writer (era `source_sha: null` e derrubava o run)", () => {
+  const r = detectSchedulerStale({ fetchRecentRuns: () => [sched(45)], now: AGORA });
+  A(r.findings.length === 1, "sem finding para exercitar o writer");
+  A(r.findings[0].provenance.source_sha, "source_sha ausente — o writer recusaria");
+  const client = createFakeGithubClient();
+  const out = upsertFinding(r.findings[0], client, { log() {} });   // lanca se invalido
+  A(out.issueNumber, "o writer nao criou a Issue");
+});
+
+test("finding do #406 ATRAVESSA o writer", () => {
+  const r = detectCdb2026PhaseAdvance({ fetchState: () => estado(), now: AGORA });
+  A(r.findings.length === 1, "sem finding para exercitar o writer");
+  A(r.findings[0].provenance.source_sha, "source_sha ausente — o writer recusaria");
+  const client = createFakeGithubClient();
+  const out = upsertFinding(r.findings[0], client, { log() {} });
+  A(out.issueNumber, "o writer nao criou a Issue");
+});
+
+test("MUTACAO: com source_sha null o writer REPROVA (logo o teste acima morde)", () => {
+  const r = detectSchedulerStale({ fetchRecentRuns: () => [sched(45)], now: AGORA });
+  const invalido = { ...r.findings[0], provenance: { ...r.findings[0].provenance, source_sha: null } };
+  let lancou = false;
+  try { upsertFinding(invalido, createFakeGithubClient(), { log() {} }); }
+  catch (e) { lancou = /source_sha/.test(String(e.message)); }
+  A(lancou, "o writer aceitou source_sha null — o teste acima nao prova nada");
 });
 
 console.log(`\n  ${ok} passed, ${fail} failed\n`);
