@@ -380,9 +380,34 @@ test("#419 conteúdo derivado NÃO silencia partida ao vivo atrasada", () => {
     assert(r.noticeKey === "liveDataDelayed",
       `${st}: placar na tela depende do frescor e o aviso sumiu (veio ${r.noticeKey})`);
   }
+});
+
+// A asserção que estava aqui exigia que `SOURCE_UNAVAILABLE` continuasse avisando MESMO com
+// conteúdo derivado — eu escrevi a expectativa errada. Deduzi que o hero do CDB2026 estaria em
+// `SCHEDULE_UNKNOWN` e testei só esse. Produção mostrou `data-hero-presentation="SOURCE_UNAVAILABLE"`
+// e o aviso continuou embaixo do confronto autoritativo depois da "correção". Os dois estados
+// partilham a mesma premissa e agora a mesma regra.
+test("#419b SOURCE_UNAVAILABLE COM conteúdo derivado => NENHUM aviso", () => {
   const r = HC.selectHeroCopy({ heroState: HC.HERO.SOURCE_UNAVAILABLE, degraded: true,
                                 hasAuthoritativeContent: true });
-  assert(r.noticeKey === "liveDataUnavailable", "SOURCE_UNAVAILABLE parou de avisar");
+  assert(r.noticeKey === null,
+    `avisou "${r.noticeKey}" sobre confronto derivado — foi exatamente o que produção mostrou`);
+});
+
+test("#419b SOURCE_UNAVAILABLE VAZIO continua avisando", () => {
+  const r = HC.selectHeroCopy({ heroState: HC.HERO.SOURCE_UNAVAILABLE, degraded: true,
+                                hasAuthoritativeContent: false });
+  assert(r.noticeKey === "liveDataUnavailable",
+    "parou de avisar com a tela vazia — aí o aviso É a explicação do vazio");
+});
+
+test("#419b os dois estados sem conteúdo se comportam igual", () => {
+  for (const st of [HC.HERO.SOURCE_UNAVAILABLE, HC.HERO.SCHEDULE_UNKNOWN]) {
+    assert(HC.selectHeroCopy({ heroState: st, degraded: true }).noticeKey === "liveDataUnavailable",
+      `${st}: default (sem o campo) mudou de comportamento`);
+    assert(HC.selectHeroCopy({ heroState: st, degraded: true, hasAuthoritativeContent: true })
+             .noticeKey === null, `${st}: avisou com conteúdo autoritativo`);
+  }
 });
 
 test("#419 fonte íntegra nunca avisa, com ou sem conteúdo derivado", () => {
