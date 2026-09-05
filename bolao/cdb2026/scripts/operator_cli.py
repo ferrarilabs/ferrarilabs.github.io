@@ -313,11 +313,11 @@ def cmd_apply_draw(a):
         estado["officialDraw"].pop(fase, None)
         if not estado["officialDraw"]:
             estado.pop("officialDraw", None)
-    estado.setdefault("auditLog", []).append({
-        "type": "apply-official-draw", "actor": a.actor, "at": agora,
-        "clientRef": f"official-draw:{fase}:{bracket_hash}", "source": "operator-cli",
-        "payload": {"phaseId": fase, "ties": len(novos), "bracketHash": bracket_hash},
-    })
+    # NAO ha append local de `auditLog` aqui, e a ausencia e deliberada (#413). Desde que
+    # `grava_estado()` saiu, o documento lido nunca volta ao servidor: um append local morre na
+    # memoria do processo e produz a ILUSAO de trilha. A trilha real e a que o
+    # `cdb_apply_operator_mutation` grava a partir de `p_actor`/`p_client_ref`, e ela e VERIFICADA
+    # depois da escrita, contra o estado relido -- nao presumida.
 
     # UMA MUTACAO ESTREITA POR CONFRONTO, e depois a procedencia. Antes disto era um PATCH do
     # documento inteiro: se qualquer outra coisa gravasse entre a leitura e o PATCH, sumia.
@@ -343,6 +343,17 @@ def cmd_apply_draw(a):
     problemas = compara(inv_antes, inv_depois, permitido={"ties"})
     if (depois["phases"][fase].get("ties") or {}).keys() != novos.keys():
         problemas.append("os confrontos gravados nao batem com os enviados")
+    # A trilha e VERIFICADA, nao presumida (#413). O append local que existia aqui morria na memoria
+    # do processo; o unico registro real e o que o `cdb_apply_operator_mutation` grava a partir de
+    # `p_actor`/`p_client_ref`. Se o servidor aplicou a escrita e nao registrou a trilha, isto e
+    # ABORTO: um comando de operador que diz "feito" sem deixar rastro e pior que um que falha.
+    refs_trilha = {e.get("clientRef") for e in (depois.get("auditLog") or []) if isinstance(e, dict)}
+    faltando_trilha = sorted(f"apply-draw:{fase}:{tid}:{bracket_hash}" for tid in novos
+                             if f"apply-draw:{fase}:{tid}:{bracket_hash}" not in refs_trilha)
+    if f"official-draw:{fase}:{bracket_hash}" not in refs_trilha:
+        faltando_trilha.append(f"official-draw:{fase}:{bracket_hash}")
+    if faltando_trilha:
+        problemas.append(f"sem trilha de auditoria no servidor para: {faltando_trilha}")
     if problemas:
         print(f"\n  🛑 INVARIANTES VIOLADAS: {problemas}")
         print("     O estado anterior NAO foi restaurado automaticamente — restaure da baseline.")
@@ -571,11 +582,8 @@ def cmd_open_picks(a):
     # porque ja existe no documento e deixa-lo divergente e a proxima armadilha.
     estado.setdefault("espnSync", {})["activePhaseId"] = a.phase
     estado["activePhase"] = a.phase
-    estado.setdefault("auditLog", []).append({
-        "type": "set-active-phase", "actor": a.actor, "at": agora,
-        "clientRef": f"open-picks:{a.phase}", "source": "operator-cli",
-        "payload": {"phaseId": a.phase, "fields": ["espnSync.activePhaseId", "activePhase"]},
-    })
+    # Sem append local de `auditLog` (#413) -- ele nunca chegou ao servidor. A trilha real e
+    # verificada abaixo, pelo `clientRef` que este comando envia.
     # `set-active-phase` grava os DOIS campos no servidor desde 028 -- `activePhase` e
     # `espnSync.activePhaseId`. Era exatamente a divergencia que este arquivo documenta: o banco
     # dizia "quartas", o app continuava em "oitavas" e ninguem via os palpites abertos.
@@ -583,6 +591,10 @@ def cmd_open_picks(a):
 
     depois = le_estado()
     problemas = compara(inv_antes, invariantes(depois), permitido=set())
+    # Mesma regra do #413: a trilha do servidor tem de existir, com o clientRef que enviamos.
+    refs_trilha = {e.get("clientRef") for e in (depois.get("auditLog") or []) if isinstance(e, dict)}
+    if f"open-picks:{a.phase}" not in refs_trilha:
+        problemas.append(f"sem trilha de auditoria no servidor para: open-picks:{a.phase}")
     if depois.get("activePhase") != a.phase:
         problemas.append("activePhase nao gravou")
     if (depois.get("espnSync") or {}).get("activePhaseId") != a.phase:
