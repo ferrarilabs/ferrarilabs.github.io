@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-09-05T22:13:55Z",
-  "sourceUpdatedAt": "2026-09-05T22:13:55Z",
+  "generatedAt": "2026-09-06T00:00:01Z",
+  "sourceUpdatedAt": "2026-09-06T00:00:01Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "c6afc66bec27ab6ac56e9d1c08e1b9f48e3a620319ac4235d800db1ceee9f13a",
+  "payloadHash": "60a024e75b05d1bb5f647fb2a028a9b75540a088dfc41d150f4745ac537ed7e3",
   "matches": [
     {
       "id": "401840808",
@@ -41980,26 +41980,103 @@
     {
       "id": "401841226",
       "date": "2026-09-05T21:30Z",
-      "state": "in",
-      "statusName": "STATUS_FIRST_HALF",
-      "statusDescription": "First Half",
-      "statusShortDetail": "43'",
-      "statusDetail": "43'",
-      "completed": false,
+      "state": "post",
+      "statusName": "STATUS_FULL_TIME",
+      "statusDescription": "Full Time",
+      "statusShortDetail": "FT",
+      "statusDetail": "FT",
+      "completed": true,
       "homeTeam": "São Paulo",
       "awayTeam": "Atlético-MG",
       "homeTeamId": "2026",
       "awayTeamId": "7632",
-      "homeScore": 0,
+      "homeScore": 2,
       "awayScore": 0,
-      "homeWinner": false,
+      "homeWinner": true,
       "awayWinner": false,
       "venue": "Estádio Cícero Pompeu de Toledo",
       "city": "Sao Paulo",
-      "clockSec": 2580.0,
-      "clockStr": "43'",
-      "period": 1,
-      "details": []
+      "clockSec": 5400.0,
+      "clockStr": "90'+7'",
+      "period": 2,
+      "details": [
+        {
+          "type": {
+            "text": "Goal"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "2026"
+          },
+          "clock": {
+            "value": 3963.0,
+            "displayValue": "67'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Luciano",
+              "shortName": "Luciano"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Goal - Header"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "2026"
+          },
+          "clock": {
+            "value": 4106.0,
+            "displayValue": "69'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Iago",
+              "shortName": "Iago"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "2026"
+          },
+          "clock": {
+            "value": 5400.0,
+            "displayValue": "90'+1'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Djhordney Ferreira",
+              "shortName": "D. Ferreira"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "7632"
+          },
+          "clock": {
+            "value": 5400.0,
+            "displayValue": "90'+4'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Tomás Cuello",
+              "shortName": "T. Cuello"
+            }
+          ]
+        }
+      ]
     },
     {
       "id": "401841227",
