@@ -983,6 +983,10 @@
     "bolao/cdb2026/scripts/test_operator_audit_trail.py": {
       "classification": "REGISTERED_AND_EXECUTED",
       "coverage": "Trilha de auditoria dos comandos de operador do CDB2026 (#413). Trava tres coisas: o append local de `auditLog` nao pode voltar (morre na memoria do processo desde que `grava_estado` saiu, e produzia a ILUSAO de trilha -- foi copiado para o materialize-derived-phase justamente por parecer real); cada comando que grava tem de RELER o estado e exigir a entrada com o clientRef que ele mesmo enviou; e a guarda precisa ser um `if` VIVO cuja condicao menciona a trilha e cujo corpo alimenta `problemas`, verificado por AST -- a primeira versao so exigia presenca de strings e `if False:` mantinha o teste verde com a guarda desligada. A premissa (`grava_estado` ausente) tambem e checada por AST porque a prosa que explica a correcao cita o token banido. Mutacao: 4/4 mortas."
+    },
+    "bolao/cdb2026/scripts/test_backfill_venue.py": {
+      "classification": "REGISTERED_AND_EXECUTED",
+      "coverage": "Backfill de venue/city do CDB2026 (#393). A operacao toca pernas de partidas JA JOGADAS num app que paga dinheiro real, entao a maioria das assercoes verifica AUSENCIA de mudanca: kickoff, placar, status, qualifiedTeamId, resultSource, lockedBy, entries e paid provados estaveis por fingerprint. Trava tambem que CURADORIA VENCE PROVEDOR (local ja gravado nunca e sobrescrito), que o casamento e side-aware (mando invertido, time diferente ou data distante nao casam -- a ida e a volta sao estadios diferentes), que perna sem data fica de fora (#395), que a segunda execucao produz zero mutacoes, que o comando aborta se o servidor nao registrar a trilha, e que o app.js continua sem referenciar o backfill (renderizar nao repara dado, #392). Mutacao: 7/8 mortas individualmente; a guarda de 'sem data' e tripla (guarda externa + guarda do matcher + parse) e o trio morre junto. O teste 9b existe porque a verificacao pos-escrita nao era exercida por servidor falso bem-comportado -- ele simula um servidor que encosta em `status` e exige aborto."
     }
   }
 }

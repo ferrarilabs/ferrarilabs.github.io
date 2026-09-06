@@ -542,6 +542,147 @@ def cmd_materialize_derived_phase(a):
     return 0
 
 
+# ── backfill-venue ─────────────────────────────────────────────────────────────────────────────
+#
+# Preenche `venue`/`city` AUSENTES em pernas ja gravadas, a partir do snapshot normalizado da ESPN
+# que o repositorio ja versiona (#393). Nao inventa: o unico dado que entra vem do provedor, casado
+# por times COM O MANDO NO LADO CERTO e por data com folga.
+#
+# Por que existe como comando explicito: o #392 resolveu o local do CARD so na leitura, de proposito,
+# porque a alternativa reparava producao como efeito colateral de abrir a tela de admin. Renderizar
+# nao pode ser o gatilho que migra dado. Entao a correcao do dado ARMAZENADO tem de ser uma operacao
+# que alguem manda rodar, com dry-run, e que se recusa a sobrescrever curadoria.
+SNAPSHOT_ESPN = "data/espn-normalized.json"
+
+
+def _slug_time(nome):
+    """Mesma normalizacao do `_espn_tie_id`, para casar nome do provedor com nome gravado."""
+    import unicodedata
+    t = unicodedata.normalize("NFD", str(nome or ""))
+    t = "".join(c for c in t if unicodedata.category(c) != "Mn")
+    return re.sub(r"[^a-z0-9]+", "-", t.lower()).strip("-")
+
+
+def _carrega_snapshot():
+    caminho = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", SNAPSHOT_ESPN)
+    with open(os.path.normpath(caminho), encoding="utf-8") as f:
+        return (json.load(f) or {}).get("matches") or []
+
+
+def _acha_no_snapshot(partidas, home, away, kickoff_iso):
+    """Casa UMA partida do provedor. Exige mando no lado certo e data proxima.
+
+    Casar so por conjunto de times acharia a ida quando se procura a volta -- e o local da ida e
+    outro estadio. O mando e o que distingue as duas pernas, entao ele NAO e opcional aqui.
+    """
+    if not kickoff_iso:
+        return None
+    try:
+        alvo = datetime.fromisoformat(str(kickoff_iso).replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    h, a = _slug_time(home), _slug_time(away)
+    for m in partidas:
+        if _slug_time(m.get("homeTeam")) != h or _slug_time(m.get("awayTeam")) != a:
+            continue
+        try:
+            quando = datetime.fromisoformat(str(m.get("kickoff") or m.get("date") or "").replace("Z", "+00:00"))
+        except ValueError:
+            continue
+        if abs((quando - alvo).total_seconds()) > 12 * 3600:
+            continue
+        venue = (m.get("venue") or "").strip()
+        if not venue:
+            return None
+        return {"venue": venue, "city": (m.get("city") or "").strip() or None, "espnId": m.get("id")}
+    return None
+
+
+def cmd_backfill_venue(a):
+    estado = le_estado()
+    fases = estado.get("phases") or {}
+    partidas = _carrega_snapshot()
+
+    print("=" * 70)
+    print("  CDB2026 — BACKFILL DE LOCAL (venue/city)")
+    print("=" * 70)
+    print(f"  snapshot            {len(partidas)} partidas do provedor")
+
+    candidatos, sem_provedor, ja_tem = [], [], 0
+    for fase_id, fase in sorted(fases.items()):
+        for tid, t in sorted((fase.get("ties") or {}).items()):
+            for leg, m in sorted((t.get("matches") or {}).items()):
+                m = m or {}
+                if not m.get("kickoff"):
+                    continue                      # sem data nao se espera local (#395)
+                if (m.get("venue") or "").strip():
+                    ja_tem += 1
+                    continue                      # CURADORIA VENCE: nunca sobrescreve
+                # mando da volta inverte, mesma regra do app.js e do save-leg
+                home = m.get("homeTeam") or (t.get("teamB") if leg == "second" else t.get("teamA"))
+                away = m.get("awayTeam") or (t.get("teamA") if leg == "second" else t.get("teamB"))
+                achado = _acha_no_snapshot(partidas, home, away, m.get("kickoff"))
+                if not achado:
+                    sem_provedor.append(f"{fase_id}/{tid}/{leg}")
+                    continue
+                candidatos.append({"phaseId": fase_id, "tieId": tid, "leg": leg,
+                                   "home": home, "away": away, **achado})
+
+    print(f"  pernas com local    {ja_tem} (intocadas)")
+    print(f"  sem dado no provedor {len(sem_provedor)}: {sem_provedor if sem_provedor else '-'}")
+    print(f"\n  CANDIDATOS ({len(candidatos)}):")
+    for c in candidatos:
+        print(f"    {c['phaseId']}/{c['tieId']}/{c['leg']}  {c['home']} x {c['away']}")
+        print(f"        venue={c['venue']!r} city={c['city']!r}  (espnId={c['espnId']})")
+
+    if not candidatos:
+        print("\n  ✓ nada a preencher — todas as pernas com data ja tem local.")
+        print("=" * 70)
+        return 0
+
+    inv_antes = invariantes(estado)
+    imprime_invariantes("\n  invariantes antes", inv_antes)
+
+    if a.dry_run:
+        print(f"\n  DRY RUN — preencheria {len(candidatos)} perna(s). Nenhum kickoff, placar, status, "
+              "classificacao, entrada ou pagamento e tocado.")
+        print("=" * 70)
+        return 0
+
+    for c in candidatos:
+        _rpc("backfill-venue", {"phaseId": c["phaseId"], "tieId": c["tieId"], "leg": c["leg"],
+                                "venue": c["venue"], "city": c["city"]},
+             f"backfill-venue:{c['phaseId']}:{c['tieId']}:{c['leg']}", a.actor)
+
+    depois = le_estado()
+    inv_depois = invariantes(depois)
+    imprime_invariantes("\n  invariantes depois", inv_depois)
+    problemas = compara(inv_antes, inv_depois, permitido=set())
+
+    refs_trilha = {e.get("clientRef") for e in (depois.get("auditLog") or []) if isinstance(e, dict)}
+    for c in candidatos:
+        ref = f"backfill-venue:{c['phaseId']}:{c['tieId']}:{c['leg']}"
+        if ref not in refs_trilha:
+            problemas.append(f"sem trilha de auditoria no servidor para: {ref}")
+        d = ((depois["phases"][c["phaseId"]]["ties"][c["tieId"]].get("matches") or {}).get(c["leg"]) or {})
+        o = ((estado["phases"][c["phaseId"]]["ties"][c["tieId"]].get("matches") or {}).get(c["leg"]) or {})
+        if (d.get("venue") or "") != c["venue"]:
+            problemas.append(f"{ref}: venue nao gravou")
+        for campo in ("kickoff", "goalsHome", "goalsAway", "status", "resultSource", "lockedBy"):
+            if d.get(campo) != o.get(campo):
+                problemas.append(f"{ref}: {campo} MUDOU ({o.get(campo)!r} -> {d.get(campo)!r})")
+        tie_d = depois["phases"][c["phaseId"]]["ties"][c["tieId"]]
+        tie_o = estado["phases"][c["phaseId"]]["ties"][c["tieId"]]
+        if tie_d.get("qualifiedTeamId") != tie_o.get("qualifiedTeamId"):
+            problemas.append(f"{c['tieId']}: qualifiedTeamId MUDOU")
+    if problemas:
+        print(f"\n  🛑 INVARIANTES VIOLADAS: {problemas}")
+        return 2
+    print(f"\n  ✓ LOCAL PREENCHIDO em {len(candidatos)} perna(s). Nada mais foi tocado.")
+    print("=" * 70)
+    return 0
+
+
 # ── open-picks ─────────────────────────────────────────────────────────────────────────────────
 def cmd_open_picks(a):
     estado = le_estado()
@@ -621,6 +762,10 @@ def main():
     o.add_argument("--actor", default="operator-cli")
     o.add_argument("--dry-run", action="store_true"); o.add_argument("--apply", action="store_true")
 
+    b = sub.add_parser("backfill-venue")
+    b.add_argument("--actor", default="operator-cli")
+    b.add_argument("--dry-run", action="store_true"); b.add_argument("--apply", action="store_true")
+
     m = sub.add_parser("materialize-derived-phase")
     m.add_argument("--phase", required=True)
     m.add_argument("--actor", default="operator-cli")
@@ -631,11 +776,12 @@ def main():
     # rodar o comando sem bandeira nenhuma cai em `dry_run=False` e GRAVA em silencio. Um default
     # que escreve e o oposto de um default seguro -- e este comando grava chaveamento de torneio.
     # Nao ha default: ou se diz `--dry-run` ou se diz `--apply`.
-    if a.cmd in ("apply-draw", "open-picks", "materialize-derived-phase") and not (a.dry_run or a.apply):
+    if a.cmd in ("apply-draw", "open-picks", "materialize-derived-phase", "backfill-venue") and not (a.dry_run or a.apply):
         p.error("escolha --dry-run ou --apply")
     return {"snapshot": cmd_snapshot, "apply-draw": cmd_apply_draw,
             "open-picks": cmd_open_picks,
-            "materialize-derived-phase": cmd_materialize_derived_phase}[a.cmd](a)
+            "materialize-derived-phase": cmd_materialize_derived_phase,
+            "backfill-venue": cmd_backfill_venue}[a.cmd](a)
 
 
 if __name__ == "__main__":
