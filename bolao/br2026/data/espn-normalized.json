@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-09-06T15:52:41Z",
-  "sourceUpdatedAt": "2026-09-06T15:52:41Z",
+  "generatedAt": "2026-09-06T18:11:40Z",
+  "sourceUpdatedAt": "2026-09-06T18:11:40Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "144f9d82a7880662704410e7a2fc3b4d409d9e8c62168c9ba69ea5401ca5fdeb",
+  "payloadHash": "a9217ada035f1eec2227485a21191b160157bf4d970b5b947a9afe62a487f206",
   "matches": [
     {
       "id": "401840808",
@@ -42277,12 +42277,12 @@
     {
       "id": "401841219",
       "date": "2026-09-06T14:00Z",
-      "state": "in",
-      "statusName": "STATUS_SECOND_HALF",
-      "statusDescription": "Second Half",
-      "statusShortDetail": "87'",
-      "statusDetail": "87'",
-      "completed": false,
+      "state": "post",
+      "statusName": "STATUS_FULL_TIME",
+      "statusDescription": "Full Time",
+      "statusShortDetail": "FT",
+      "statusDetail": "FT",
+      "completed": true,
       "homeTeam": "Coritiba",
       "awayTeam": "Mirassol",
       "homeTeamId": "3456",
@@ -42290,11 +42290,11 @@
       "homeScore": 1,
       "awayScore": 2,
       "homeWinner": false,
-      "awayWinner": false,
+      "awayWinner": true,
       "venue": "Couto Pereira",
       "city": "Curitiba",
-      "clockSec": 5220.0,
-      "clockStr": "87'",
+      "clockSec": 5400.0,
+      "clockStr": "90'+10'",
       "period": 2,
       "details": [
         {
@@ -42446,6 +42446,25 @@
             {
               "displayName": "Bruno Santos",
               "shortName": "Bruno Santos"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "9169"
+          },
+          "clock": {
+            "value": 5400.0,
+            "displayValue": "90'+2'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Shaylon",
+              "shortName": "Shaylon"
             }
           ]
         }

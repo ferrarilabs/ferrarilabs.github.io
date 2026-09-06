@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-09-06T04:28:34Z",
-  "sourceUpdatedAt": "2026-09-06T04:28:34Z",
+  "generatedAt": "2026-09-06T18:11:40Z",
+  "sourceUpdatedAt": "2026-09-06T18:11:40Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "28daff2f1b17ffff38df8419e48562053347087f82c8384b136e4b04a1a78258",
+  "payloadHash": "2d4645ab4125f620036df3640cc24d7f5ef29918079da14fdf818b8f1a75e35b",
   "matches": [
     {
       "name": "Palmeiras",
@@ -98,13 +98,13 @@
       "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/3456.png",
       "rank": 7.0,
       "points": 37.0,
-      "played": 25.0,
+      "played": 26.0,
       "wins": 10.0,
       "draws": 7.0,
-      "losses": 8.0,
-      "gf": 33.0,
-      "ga": 33.0,
-      "gd": 0.0
+      "losses": 9.0,
+      "gf": 34.0,
+      "ga": 35.0,
+      "gd": -1.0
     },
     {
       "name": "Atlético-MG",
@@ -223,14 +223,14 @@
       "abbr": "MIR",
       "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/9169.png",
       "rank": 16.0,
-      "points": 25.0,
-      "played": 25.0,
-      "wins": 6.0,
+      "points": 28.0,
+      "played": 26.0,
+      "wins": 7.0,
       "draws": 7.0,
       "losses": 12.0,
-      "gf": 27.0,
-      "ga": 39.0,
-      "gd": -12.0
+      "gf": 29.0,
+      "ga": 40.0,
+      "gd": -11.0
     },
     {
       "name": "Vasco da Gama",
