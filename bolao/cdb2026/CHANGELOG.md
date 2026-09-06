@@ -1,5 +1,45 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## (sem release de site) — o local do jogo passa a ser corrigido no DADO, não só na leitura (2026-09-06, #393)
+
+`TOURNAMENT_SPECIFIC` (metadado) — **nenhum byte muda no que o navegador baixa**: migração,
+`operator_cli.py`, workflow de operador e gate. Sem bump de `siteVersion`.
+
+**O que ficou pendente do #392.** Aquele PR corrigiu o local ausente no card inteiramente na
+**leitura**, de propósito: a alternativa reparava dado de produção como efeito colateral de abrir a
+tela de admin, e renderizar não pode ser o gatilho escondido que migra dado.
+
+Isso deixou o dado armazenado errado, e a cobertura da leitura acompanha a janela do provedor —
+some para jogos antigos. Medido no estado autoritativo em 2026-09-05: **12 pernas FINAL com
+`kickoff` gravado e `venue`/`city` nulos** (as 8 das quartas e as 4 idas das oitavas). Qualquer
+consumidor futuro de `matches[leg].venue` herda o nulo em silêncio.
+
+**Por que um tipo de mutação novo.** Nenhum existente serve, e isso foi verificado antes de
+escrever a migração: `backfill-kickoff` escreve só `kickoff` por desenho declarado; `save-leg`
+escreve times/placar/status/resultSource e **não** escreve local. Usar `save-leg` para carregar um
+local exigiria reenviar placar e status junto — passar resultado por um caminho cuja finalidade é
+outra, exatamente o atalho que a disciplina de "um tipo estreito por fato" existe para impedir.
+
+**`backfill-venue`, e o que ele não alcança.** Preenche `venue`/`city` **ausentes** de uma perna.
+Não há caminho, neste ramo, para kickoff, placar, status, `qualifiedTeamId`, `resultSource`,
+`lockedBy`, entradas, pagamentos, scoring ou ranking.
+
+**Curadoria vence provedor.** Um local já gravado veio do sorteio, de correção manual ou de
+observação anterior; sobrescrevê-lo com o provedor trocaria dado verificado por inferido, em
+silêncio. O `case when ... is null` no SQL torna isso **estrutural**: a idempotência não depende de
+o chamador lembrar de conferir antes.
+
+**Casamento com mando no lado certo.** A ida e a volta de um mesmo confronto são estádios
+diferentes; casar só pelo conjunto de times acharia a partida errada. Mando, times e data (folga de
+12 h) precisam bater — provado por três mutações que casam de propósito o lado trocado, o time
+errado e a data distante.
+
+**Gate.** `test_backfill_venue.py` — 13 asserções. Mutação: 7/8 mortas individualmente; a guarda de
+"sem data não recebe local" é **tripla** e o trio morre junto. Duas lições viraram teste: o fixture
+precisou de um evento que **casasse** a semifinal para que a guarda de data fosse de fato exercida
+(antes o teste passava pelo motivo errado), e o teste 9b simula um servidor que encosta em `status`
+— sem ele, a verificação pós-escrita não era exercida por nenhum caso.
+
 ## v3.144 — a mesma correção, agora no estado em que o hero realmente estava (2026-09-05, #419)
 
 `PLATFORM_SHARED` (texto do hero) — mesma classe da v3.143, que **não bastou**.

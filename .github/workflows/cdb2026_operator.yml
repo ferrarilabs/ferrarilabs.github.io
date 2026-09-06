@@ -23,6 +23,7 @@ on:
           - apply-draw
           - open-picks
           - materialize-derived-phase
+          - backfill-venue
           - secure-access-canary
       derived_phase:
         # CHOICE, nao string livre, e por dois motivos independentes.
@@ -120,6 +121,12 @@ jobs:
               # que o workflow de recuperacao passou a receber input por env em vez de inline.
               python3 operator_cli.py materialize-derived-phase \
                 --phase "$FASE" --actor "$ATOR" $MODO
+              ;;
+            backfill-venue)
+              # Preenche venue/city AUSENTES a partir do snapshot commitado da ESPN (#393). Nao
+              # sobrescreve local ja gravado, nao toca kickoff, placar, status nem classificacao.
+              # Sem input proprio: o alvo e derivado do estado + snapshot, nao digitado.
+              python3 operator_cli.py backfill-venue --actor "$ATOR" $MODO
               ;;
             secure-access-canary)
               # Emite um token, usa, verifica e REVOGA na mesma execucao. O valor bruto nunca sai
