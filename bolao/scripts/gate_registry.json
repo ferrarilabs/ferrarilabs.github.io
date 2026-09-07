@@ -534,9 +534,16 @@
     "bolao/scripts/test_snapshot_publication_guard.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
     },
+    "bolao/shared/scripts/check_broadcast_coverage.mjs": {
+      "classification": "INTENTIONALLY_STANDALONE_WITH_REASON",
+      "reason": "Issue #425: detector operacional (nao gate de bloqueio) das proximas partidas do BR2026 sem transmissao confirmada. SEMPRE sai com exit 0 — reprovar o npm test por uma lacuna de curadoria contradiria a propria decisao de nao inferir transmissao automaticamente. Rodado diariamente por .github/workflows/br2026_broadcast_coverage.yml (evidencia no log do Actions), e sua logica de associacao (findBroadcast/upcomingWithoutCoverage) e exercitada por bolao/shared/scripts/test_broadcast_operations.mjs, que e REGISTERED_AND_EXECUTED."
+    },
     "bolao/shared/scripts/check_live_gateway_health.mjs": {
       "classification": "INTENTIONALLY_STANDALONE_WITH_REASON",
       "reason": "Sonda de disponibilidade ao vivo (Issue #248). Registrada em scripts/verify.mjs no grupo provider com requires:\"network\", entao no CI hermetico ela e SKIPPED — nunca PASSED. Fica FORA da cadeia do npm test de proposito: um terceiro fora do ar nao pode reprovar o npm test de quem mexeu noutra coisa — esse acoplamento e exatamente o que a #248 desfez. Roda por npm run check:live-gateway ou com VERIFY_ALLOW_NETWORK=1, e ai reprova alto e com evidencia."
+    },
+    "bolao/shared/scripts/test_broadcast_operations.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
     },
     "bolao/shared/scripts/test_cache_poisoning.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"

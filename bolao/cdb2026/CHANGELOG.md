@@ -1,5 +1,16 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.145 — "Onde assistir": dado sai do código, detector de lacunas automatizado (2026-09-07, #425)
+
+Mesma mudança do BR2026 (`bolao/br2026/CHANGELOG.md` v1.136) — o CDB2026 carrega o mesmo módulo
+compartilhado (`bolao/shared/js/where_to_watch.js`) e é afetado do mesmo jeito: os dados de
+transmissão saem do array embutido e passam a viver em `bolao/shared/data/broadcasts.json`,
+buscado com `{cache: "no-cache"}`. Nenhuma mudança de UI, local do jogo, countdown ou scoring
+neste app — o detector de cobertura (`check_broadcast_coverage.mjs`) é específico do calendário do
+BR2026 (CDB2026 é mata-mata sorteado fase a fase, sem um manifesto de temporada equivalente), mas
+a validação do arquivo (`validate_broadcasts.mjs`) protege os dois apps igualmente. Ver Issue #425
+e `docs/bolao/BROADCAST_OPERATIONS.md`.
+
 ## (sem release de site) — o local do jogo passa a ser corrigido no DADO, não só na leitura (2026-09-06, #393)
 
 `TOURNAMENT_SPECIFIC` (metadado) — **nenhum byte muda no que o navegador baixa**: migração,

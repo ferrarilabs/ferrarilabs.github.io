@@ -14,55 +14,74 @@
  * ─── FAIL SAFE ──────────────────────────────────────────────────────────────────────────────
  *
  * `lineHtml()` devolve string vazia — nunca lança — quando não há transmissão confirmada, quando
- * o descritor vem incompleto ou quando qualquer coisa dá errado. Ausência de dado de TV tem de
- * ser indistinguível do site de antes: o jogo aparece, o countdown corre, o layout não muda.
+ * o descritor vem incompleto, quando os dados ainda não chegaram do arquivo, ou quando qualquer
+ * coisa dá errado. Ausência de dado de TV tem de ser indistinguível do site de antes: o jogo
+ * aparece, o countdown corre, o layout não muda.
  *
- * ─── SEM REDE ───────────────────────────────────────────────────────────────────────────────
+ * ─── CARREGAMENTO: UM FETCH, SEM RE-RENDER PRÓPRIO (Issue #425) ────────────────────────────
  *
- * Os dados são estáticos e vivem aqui mesmo, o que torna a consulta SÍNCRONA. Isso é a razão de
- * não existir `fetch`, `MutationObserver` nem re-render: as funções de render existentes chamam
- * `lineHtml()` dentro do próprio template, na mesma passada em que já montam o card. Um arquivo
- * JSON separado exigiria carregamento assíncrono e, com ele, alguém para reinserir a linha depois
- * — que é exatamente onde nascem observadores duplicados e linhas repetidas.
+ * Os dados agora vivem em `bolao/shared/data/broadcasts.json` (não mais um array embutido aqui),
+ * para que a ferramenta operacional de detecção de lacunas (`check_broadcast_coverage.mjs`) e o
+ * validador (`validate_broadcasts.mjs`) leiam exatamente o mesmo arquivo que o navegador — uma
+ * fonte só, nunca duas cópias divergentes.
  *
- * ─── POR QUE CURADORIA, E NÃO O PROVEDOR (medido em 2026-09-03) ─────────────────────────────
+ * Isso é buscado UMA VEZ, de forma assíncrona, com `{cache: "no-cache"}` — o MESMO padrão já
+ * usado por `data/espn-normalized.json` em `br2026/js/app.js` (nunca passa pelo `?v=` do
+ * cachebust; a rede sempre confere com o servidor). Antes do fetch resolver, `lineHtml()` devolve
+ * "" (fail-safe, nunca "carregando..."). Isto NÃO precisa de `MutationObserver` nem de um
+ * re-render dedicado: os dois apps já re-renderizam os cards que chamam `lineHtml()` no próprio
+ * ciclo de poll ao vivo/countdown que já existe — quando o fetch resolve, a PRÓXIMA passada
+ * (segundos depois, no pior caso) já enxerga os dados. Nenhuma lógica de countdown ou de seleção
+ * de partida foi tocada para isto funcionar.
+ *
+ * ─── POR QUE CURADORIA, E NÃO O PROVEDOR (medido em 2026-09-03, reconfirmado em 2026-09-07) ──
  *
  * A pergunta certa antes de curar dado à mão é se o provedor já não o entrega. A ESPN TEM o campo
  * — `competitions[0].broadcasts`, `geoBroadcasts` e `broadcast` existem no schema — mas para as
- * competições deste bolão ele vem VAZIO. Medido nos payloads crus, nos dois endpoints:
+ * competições deste bolão ele vem VAZIO. Medido nos payloads crus, em múltiplos endpoints e
+ * variações de `lang`/`region`:
  *
- *     bra.copa_do_brazil 401909114 (Grêmio × Internacional)  broadcasts: []  geoBroadcasts: []  broadcast: ""
- *     bra.copa_do_brazil 401909110 / 401909111               broadcasts: []  geoBroadcasts: []  broadcast: ""
- *     bra.1              401913077 (Flamengo × Mirassol)     broadcasts: []  geoBroadcasts: []  broadcast: ""
- *     .../summary?event=401909114                            broadcasts: []  header...broadcasts: []
+ *     bra.copa_do_brazil 401909114 (Grêmio × Internacional)  broadcasts: []  geoBroadcasts: []
+ *     bra.1              401913077 (Flamengo × Mirassol)     broadcasts: []  geoBroadcasts: []
+ *     bra.1 (lang=pt&region=br, 5 eventos, 2026-09-07)       broadcasts: []  geoBroadcasts: []
+ *     .../summary?event=401913077                            broadcasts: []  header...broadcasts: []
  *
  * E onde a ESPN PREENCHE, o valor é do mercado errado — é a grade dela, não a brasileira:
  *
- *     usa.1 761770   broadcasts: [{"market":"national","names":["Apple TV"]}]  geo: region "us", lang "en"
- *     eng.1 401879288 broadcasts: [{"market":"national","names":["USA Net"]}]  geo: region "us", lang "en"
+ *     usa.1 761770   broadcasts: [{"market":"national","names":["Apple TV"]}]  geo: region "us"
+ *     eng.1 401879288 broadcasts: [{"market":"national","names":["USA Net"]}]  geo: region "us"
  *
- * Ou seja: consumir esse campo hoje não daria cobertura nenhuma nos jogos que importam e, no dia
- * em que desse, escreveria "USA Net" para um participante que assiste no Brasil — pior que a
- * ausência. Por isso a prioridade "dado do provedor primeiro" resolve, com a medição na mão, em
- * CURADORIA. Não há pipeline de broadcast: um estágio que só produz `[]` é peso morto.
+ * Outras fontes avaliadas na Issue #425 (API-Football, API oficial da CBF, scraping de emissora,
+ * APIs não-oficiais tipo SofaScore) foram descartadas por falta de evidência de cobertura,
+ * indisponibilidade de API pública, ou risco legal/de manutenção incompatível com "informação
+ * errada é pior que ausência". CURADORIA continua sendo a fonte autoritativa. O que MUDOU não é
+ * a fonte do dado — é a operação em volta dela: ver "MODELO OPERACIONAL" abaixo.
  *
  * PARA REVISITAR (a decisão é reversível e tem um ponto de entrada só): se a ESPN passar a
  * publicar `geoBroadcasts` com `region: "br"`, normalize esse campo em
  * `bolao/shared/scripts/espn_provider.py` junto com `venue`/`city`, carregue-o no descritor de
  * partida como os apps já fazem com o local, e faça `findBroadcast()` cair nele quando não houver
  * registro curado — nesta ordem: curadoria vence, provedor confiável entra em seguida, senão
- * nada. Só aceite entrada com região brasileira; qualquer outra é o mercado errado.
+ * nada. Só aceite entrada com região brasileira; qualquer outra é o mercado errado. Nenhuma
+ * mudança de UI é necessária para isso: `lineHtml()` já é o único ponto de saída.
  *
  * ─── CONTRATO OPERACIONAL: BROADCAST_SOURCE_MODEL = CURATED_ONLY ────────────────────────────
  *
- * Isto NÃO é automático, e não deve ser descrito como se fosse:
+ * A DESCOBERTA da transmissão continua sendo confirmada por humano — isso não é automático, e
+ * não deve ser descrito como se fosse:
  *
- *   - uma pessoa acrescenta um registro POR PARTIDA, com evidência específica daquela partida;
+ *   - uma pessoa acrescenta um registro POR PARTIDA, com evidência específica daquela partida, em
+ *     `bolao/shared/data/broadcasts.json`;
  *   - sem registro, não existe linha — nunca se adivinha, nunca se infere do contrato da
- *     competição, nunca se reaproveita o canal do outro jogo do mesmo confronto;
- *   - jogos futuros de BR2026/CDB2026 exigem manutenção: cada rodada nova entra à mão;
+ *     competição, nunca se reaproveita o canal do outro jogo ou do outro turno do mesmo confronto;
  *   - a ausência é o comportamento correto e seguro, não uma falha — o card fica idêntico ao de
  *     antes e nada mais na página muda.
+ *
+ * O que É automático agora (Issue #425): a COMPLETUDE da cobertura. `check_broadcast_coverage.mjs`
+ * roda em CI e lista, por rodada, quais partidas do BR2026 ainda não têm registro — ninguém
+ * precisa lembrar de conferir a tabela à mão. `validate_broadcasts.mjs` reprova o arquivo se um
+ * registro vier com identidade ambígua, canal vazio, duplicata/conflito de partida, ou dado velho
+ * demais sem reconfirmação. Ver `docs/bolao/BROADCAST_OPERATIONS.md`.
  *
  * ─── CURADORIA ─────────────────────────────────────────────────────────────────────────────
  *
@@ -74,64 +93,60 @@
  * TV aberta varia por praça. Quando a fonte diz que a Globo transmite só para alguns estados, o
  * texto diz "consulte sua região" em vez de fingir cobertura nacional.
  *
- * Ao editar a lista, lembre do `?v=`: este arquivo está registrado em `APP_SHARED_FILES` (br2026
- * e cdb2026) de `bolao/scripts/cachebust.mjs`, então o bot re-tagueia sozinho nos dois. Não
- * remova esse registro (é o achado F18: módulo compartilhado sem `?v=` fica preso no cache do
- * navegador) e não o mova para `SHARED_FILES` — copa2026 não carrega este arquivo, e forçar essa
- * lista a exigi-lo em TODO app foi exatamente o incidente 2026-09-03 (run 33786641021).
+ * ─── CACHE-BUST ─────────────────────────────────────────────────────────────────────────────
+ *
+ * Este ARQUIVO (`where_to_watch.js`, código) está registrado em `APP_SHARED_FILES` (br2026 e
+ * cdb2026) de `bolao/scripts/cachebust.mjs` — o bot re-tagueia sozinho nos dois. Não remova esse
+ * registro (achado F18) e não o mova para `SHARED_FILES` (copa2026 não carrega este módulo — foi
+ * o incidente 2026-09-03, run 33786641021).
+ *
+ * `broadcasts.json` (DADO, não código) deliberadamente NÃO entra no cachebust: é buscado via
+ * `fetch(..., {cache: "no-cache"})`, o mesmo mecanismo que já mantém `espn-normalized.json`
+ * sempre fresco sem precisar de `?v=` — ver br2026/js/app.js. Um arquivo JSON com `?v=` exigiria
+ * o navegador re-executar o cachebust a cada edição de dado (não de código), o que essa família
+ * de arquivo nunca precisou.
  */
 (function (root) {
   "use strict";
 
-  /**
-   * Transmissões CONFIRMADAS. `espnId` é a chave forte, e desde 2026-09-03 os DOIS apps a usam: o
-   * BR2026 sempre carregou o id do evento ESPN, e o CDB2026 passou a resolvê-lo a partir da
-   * observação que já tem em memória (`withProviderSchedule()`, o mesmo caminho que preenche o
-   * local). `kickoffUtc` + os dois times continua sendo o fallback para quando não há observação —
-   * a associação nunca depende de uma coisa só.
-   */
-  var BROADCASTS = [
-    {
-      // Volta das quartas da Copa do Brasil 2026 (Gre-Nal). Ida 0-0 no Beira-Rio em 27/08; quem
-      // vencer vai à semifinal, novo empate leva a decisão para os pênaltis.
-      espnId: "401909114",
-      kickoffUtc: "2026-09-03T23:00Z",
-      home: "Grêmio", away: "Internacional",
-      channels: ["Amazon Prime Video"],
-      confirmedAt: "2026-09-03",
-      // Três fontes independentes, todas específicas DESTA partida (nunca inferido do contrato de
-      // competição): CNN Brasil — "O duelo terá transmissão do Prime Video"; Metrópoles — "A
-      // partida terá transmissão exclusiva da Amazon Prime (streaming)"; Máquina do Esporte.
-      // As três dizem exclusiva em streaming: sem TV aberta (Globo) e sem TV fechada
-      // (sportv/Premiere) — por isso o registro tem um canal só, e não a lista de quatro que os
-      // jogos de 02/09 tinham.
-      source: "cnnbrasil.com.br/esportes/futebol/copa-do-brasil/gremio-x-internacional-horario-e-onde-assistir-a-copa-do-brasil/ + metropoles.com/esportes/saiba-onde-assistir-a-gremio-x-internacional-pela-copa-do-brasil + maquinadoesporte.com.br",
-    },
-    {
-      espnId: "401913077",
-      kickoffUtc: "2026-09-02T22:30Z",
-      home: "Flamengo", away: "Mirassol",
-      channels: ["Premiere"],
-      confirmedAt: "2026-09-02",
-      source: "infomoney.com.br/esportes/flamengo-mirassol-onde-assistir-brasileirao/ + maquinadoesporte.com.br",
-    },
-    {
-      espnId: "401909110",
-      kickoffUtc: "2026-09-03T00:30Z",
-      home: "Santos", away: "Palmeiras",
-      channels: ["Globo (TV aberta — consulte sua região)", "sportv", "Premiere", "Amazon Prime Video"],
-      confirmedAt: "2026-09-02",
-      source: "infomoney.com.br/esportes/santos-palmeiras-onde-assistir-copa-do-brasil/ + athlonsports.com",
-    },
-    {
-      espnId: "401909111",
-      kickoffUtc: "2026-09-03T00:30Z",
-      home: "Vitória", away: "Vasco",
-      channels: ["Globo (TV aberta — consulte sua região)", "sportv", "Premiere", "Amazon Prime Video"],
-      confirmedAt: "2026-09-02",
-      source: "maquinadoesporte.com.br + cnnbrasil.com.br + vavel.com (Globo regional: RJ, BA, ES, SE, RN, PB, MA, Santarém-PA, Juiz de Fora-MG)",
-    },
-  ];
+  var DATA_URL_FROM_APP_ROOT = "../shared/data/broadcasts.json";
+
+  /** Transmissões CONFIRMADAS, carregadas de forma assíncrona. Vazio até o fetch resolver —
+   * fail-safe: nenhuma linha aparece antes disso, nunca um placeholder. */
+  var BROADCASTS = [];
+  var _loadStarted = false;
+  var _loadPromise = null;
+
+  function _startLoad() {
+    if (_loadStarted) return _loadPromise;
+    _loadStarted = true;
+    try {
+      _loadPromise = fetch(DATA_URL_FROM_APP_ROOT, { cache: "no-cache" })
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (parsed) {
+          if (parsed && Array.isArray(parsed.entries)) {
+            // Muta em vez de reatribuir: `root.BOLAO_WHERE_TO_WATCH.BROADCASTS` guarda a
+            // referência original do array, capturada na hora em que o módulo foi montado.
+            // Reatribuir a variável local aqui deixaria essa propriedade exportada presa no
+            // array vazio inicial para sempre — `findBroadcast()` continuaria correto (lê a
+            // variável de closure), mas qualquer teste/consumidor que leia a propriedade
+            // exportada diretamente veria sempre [].
+            BROADCASTS.splice.apply(BROADCASTS, [0, BROADCASTS.length].concat(parsed.entries));
+          }
+        })
+        .catch(function () { /* fail-safe: BROADCASTS fica [] — nunca lança */ });
+    } catch (_) {
+      _loadPromise = Promise.resolve();
+    }
+    return _loadPromise;
+  }
+
+  // Dispara o fetch assim que o script é avaliado — não espera nenhum evento do app. Os
+  // consumidores (lineHtml/findBroadcast) continuam SÍNCRONOS; eles só enxergam o resultado a
+  // partir da PRÓXIMA chamada depois que o fetch resolver (ver comentário de carregamento acima).
+  if (typeof fetch === "function") {
+    _startLoad();
+  }
 
   // Escape próprio: este módulo não pode depender do `esc()` de nenhum dos apps.
   function esc(s) {
@@ -199,5 +214,8 @@
     findBroadcast: findBroadcast,
     lineHtml: lineHtml,
     BROADCASTS: BROADCASTS,
+    // Exposto só para os testes de navegador (Playwright) poderem aguardar o fetch antes de
+    // afirmar sobre `lineHtml()` — nunca usado pelos apps em produção.
+    _ready: function () { return _loadPromise || Promise.resolve(); },
   };
 })(typeof window !== "undefined" ? window : globalThis);

@@ -1,0 +1,28 @@
+# Detector operacional de cobertura de "Onde assistir" (Issue #425). Só leitura, nunca escreve
+# em nada — lê o snapshot da ESPN já commitado e a curadoria (bolao/shared/data/broadcasts.json)
+# e imprime no log quais partidas próximas do BR2026 ainda não têm transmissão confirmada.
+#
+# Isto NÃO é um gate: sempre sai com exit 0 (ver check_broadcast_coverage.mjs). O objetivo é só
+# eliminar "alguém precisa lembrar de olhar a tabela à mão" — o log da Action é a evidência.
+name: BR2026 — cobertura de "Onde assistir"
+
+on:
+  schedule:
+    - cron: "0 12 * * *" # uma vez por dia, meio-dia UTC
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  relatorio:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "20" }
+      - name: Validar broadcasts.json
+        run: node bolao/shared/scripts/validate_broadcasts.mjs
+      - name: Relatório de cobertura (próximos 21 dias)
+        run: node bolao/shared/scripts/check_broadcast_coverage.mjs --days=21

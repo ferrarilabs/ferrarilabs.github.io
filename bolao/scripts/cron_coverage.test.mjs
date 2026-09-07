@@ -225,6 +225,20 @@ const EXPECTED = [
     hourWindows: { evening: [0, 23], overnight: [0, 23] },
   },
   {
+    // Issue #425: detector operacional de cobertura de "Onde assistir" do BR2026. Mesma forma do
+    // Sentinel acima: nao envia e-mail, nao grava estado, SEMPRE sai com exit 0 (nao e gate de
+    // bloqueio) -- ver check_broadcast_coverage.mjs. Sem janela de negocio (a curadoria pode
+    // acontecer a qualquer hora), o requisito e so rodar pelo menos uma vez por dia para que o log
+    // do Actions seja a evidencia, em vez de depender de alguem lembrar de olhar a tabela a mao.
+    // Se este cron parar de disparar, o unico efeito e "nenhum relatorio novo hoje" -- nunca afeta
+    // scoring, ranking, entries, pagamentos ou qualquer notificacao real a participante.
+    file: "br2026_broadcast_coverage.yml",
+    why: "sem este vigia, lacunas de cobertura de \"Onde assistir\" voltam a depender de alguem " +
+         "lembrar de olhar a tabela curada a mao",
+    events: [0, 1, 2, 3, 4, 5, 6].map((d) => ({ label: `UTC dow ${d}`, utcDows: [d] })),
+    hourWindows: { evening: [0, 23], overnight: [0, 23] },
+  },
+  {
     // Coleta do resultado oficial das duas loterias. Nao envia e-mail e nao credita premio: e o
     // passo que REGISTRA o que a fonte publicou. Se ele nao rodar, todo o resto do pipeline
     // (e-mail de resultado, saldo, elegibilidade) fica sem insumo.

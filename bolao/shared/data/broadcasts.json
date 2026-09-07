@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "_comment": "Fonte de dados de 'Onde assistir' (bolao/shared/js/where_to_watch.js). Curadoria manual, evidência por partida. Ver docs/bolao/BROADCAST_OPERATIONS.md para o processo operacional completo antes de editar este arquivo.",
+  "entries": [
+    {
+      "espnId": "401909114",
+      "kickoffUtc": "2026-09-03T23:00Z",
+      "home": "Grêmio",
+      "away": "Internacional",
+      "channels": ["Amazon Prime Video"],
+      "confirmedAt": "2026-09-03",
+      "source": "cnnbrasil.com.br/esportes/futebol/copa-do-brasil/gremio-x-internacional-horario-e-onde-assistir-a-copa-do-brasil/ + metropoles.com/esportes/saiba-onde-assistir-a-gremio-x-internacional-pela-copa-do-brasil + maquinadoesporte.com.br",
+      "note": "Volta das quartas da Copa do Brasil 2026 (Gre-Nal). Ida 0-0 no Beira-Rio em 27/08. Três fontes independentes, todas específicas desta partida, concordam: exclusiva em streaming (sem TV aberta/fechada)."
+    },
+    {
+      "espnId": "401913077",
+      "kickoffUtc": "2026-09-02T22:30Z",
+      "home": "Flamengo",
+      "away": "Mirassol",
+      "channels": ["Premiere"],
+      "confirmedAt": "2026-09-02",
+      "source": "infomoney.com.br/esportes/flamengo-mirassol-onde-assistir-brasileirao/ + maquinadoesporte.com.br"
+    },
+    {
+      "espnId": "401909110",
+      "kickoffUtc": "2026-09-03T00:30Z",
+      "home": "Santos",
+      "away": "Palmeiras",
+      "channels": ["Globo (TV aberta — consulte sua região)", "sportv", "Premiere", "Amazon Prime Video"],
+      "confirmedAt": "2026-09-02",
+      "source": "infomoney.com.br/esportes/santos-palmeiras-onde-assistir-copa-do-brasil/ + athlonsports.com"
+    },
+    {
+      "espnId": "401909111",
+      "kickoffUtc": "2026-09-03T00:30Z",
+      "home": "Vitória",
+      "away": "Vasco",
+      "channels": ["Globo (TV aberta — consulte sua região)", "sportv", "Premiere", "Amazon Prime Video"],
+      "confirmedAt": "2026-09-02",
+      "source": "maquinadoesporte.com.br + cnnbrasil.com.br + vavel.com (Globo regional: RJ, BA, ES, SE, RN, PB, MA, Santarém-PA, Juiz de Fora-MG)"
+    }
+  ]
+}
