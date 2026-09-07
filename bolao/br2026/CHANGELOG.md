@@ -1,5 +1,30 @@
 # Bolão Brasileirão 2026 — CHANGELOG
 
+## v1.136 — "Onde assistir": dado sai do código, detector de lacunas automatizado (2026-09-07, #425)
+
+Correção de escopo: #391/#392 entregaram só a apresentação de "Onde assistir"; a ingestão
+continuava CURATED_ONLY sem nenhuma ferramenta operacional em volta. Isso mudou aqui — a fonte de
+dados continua sendo curadoria humana (nenhuma fonte automatizável confiável existe hoje para
+transmissão brasileira por partida — ver investigação completa na Issue #425), mas o modelo
+operacional agora é: **descoberta da fonte continua humana; completude de cobertura e detecção
+são automatizadas.**
+
+- `bolao/shared/data/broadcasts.json` (novo) — os registros curados saem do array embutido em
+  `where_to_watch.js` e passam a viver num arquivo de dados próprio, buscado com
+  `{cache: "no-cache"}` (mesmo padrão de `espn-normalized.json`, nunca fica preso em cache).
+- `bolao/shared/scripts/validate_broadcasts.mjs` (novo, roda em `npm run check`) — reprova
+  identidade ambígua, canal vazio, `source`/`confirmedAt` ausentes, duplicata/conflito de
+  partida; avisa (não reprova) quando a confirmação é antiga demais frente ao kickoff.
+- `bolao/shared/scripts/check_broadcast_coverage.mjs` (novo) — lista, ordenado por kickoff, quais
+  partidas próximas do BR2026 ainda não têm transmissão confirmada. Roda diariamente em CI
+  (`.github/workflows/br2026_broadcast_coverage.yml`) — o log da Action é a evidência, ninguém
+  precisa lembrar de checar a tabela à mão. Nunca reprova o build (ausência de dado é estado
+  normal, não falha).
+- `docs/bolao/BROADCAST_OPERATIONS.md` (novo) — processo operacional completo.
+- Nenhuma mudança de UI, countdown, seleção de partida ou scoring. `where_to_watch.js` continua
+  fail-safe: sem dado carregado ainda (fetch em andamento ou falhou) ⇒ `lineHtml()` devolve "",
+  igual a antes.
+
 ## v1.135 — 📍 no card primário, igual à Copa (2026-09-03)
 
 `PLATFORM_SHARED` — propagação visual do CDB2026 v3.141. Não toca scoring, tabela, projeção,

@@ -2,11 +2,13 @@
  * test_where_to_watch.mjs — o "Onde assistir" é enriquecimento, e tem de continuar sendo.
  *
  * O que se prova aqui é sobretudo o que a feature NÃO pode fazer: não inventar canal, não quebrar
- * o card quando não sabe, não aparecer duas vezes, não depender de rede e não tocar em nada que
- * decide partida ou countdown. A prova mais importante é a de REMOVIBILIDADE — se apagar este
- * módulo não devolve os apps ao estado anterior, a feature não é opcional de verdade.
+ * o card quando não sabe, não aparecer duas vezes, não fazer mais que UM fetch e não tocar em
+ * nada que decide partida ou countdown. A prova mais importante é a de REMOVIBILIDADE — se apagar
+ * este módulo não devolve os apps ao estado anterior, a feature não é opcional de verdade.
  *
- * Hermético: sem rede, sem provedor, sem participante.
+ * Hermético: sem provedor, sem participante. A única dependência externa é o fetch do dado
+ * curado (`bolao/shared/data/broadcasts.json`, Issue #425) — aqui servido de disco, não de rede
+ * de verdade (ver `fetchFromDisk` abaixo), mas com a mesma interface que o navegador usa.
  */
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
@@ -19,11 +21,23 @@ let ok = 0, fail = 0;
 const test = (n, f) => { try { f(); console.log(`  ✓ ${n}`); ok++; } catch (e) { console.log(`  ✗ ${n}\n      ${e.message}`); fail++; } };
 const A = (c, m) => { if (!c) throw new Error(m); };
 
-// Carrega o IIFE como o navegador faria: sem import/export, só um global.
+// Carrega o IIFE como o navegador faria: sem import/export, só um global. `fetch` é a ÚNICA
+// dependência de ambiente que o módulo agora tem (Issue #425) — aqui ela resolve o caminho
+// relativo contra o arquivo real em disco, em vez de uma rede de verdade, mas com a MESMA
+// interface (`.ok`, `.json()`) e o mesmo argumento (`{cache: "no-cache"}`) que o navegador vê.
 const src = readFileSync(MOD, "utf8");
+const BROADCASTS_JSON = join(ROOT, "bolao", "shared", "data", "broadcasts.json");
+function fetchFromDisk(url) {
+  if (url !== "../shared/data/broadcasts.json") return Promise.resolve({ ok: false });
+  return Promise.resolve({
+    ok: true,
+    json: () => Promise.resolve(JSON.parse(readFileSync(BROADCASTS_JSON, "utf8"))),
+  });
+}
 const root = {};
-new Function("window", `${src}`).call(root, root);
+new Function("window", "fetch", `${src}`).call(root, root, fetchFromDisk);
 const W = root.BOLAO_WHERE_TO_WATCH;
+await W._ready(); // sem isto, toda asserção de conteúdo abaixo veria BROADCASTS ainda vazio
 
 // As varreduras de isolamento abaixo olham CODIGO, nunca prosa: o cabecalho do modulo cita
 // `MutationObserver` e `scoring` justamente para dizer que nao os usa, e um gate que lesse o
@@ -176,8 +190,13 @@ test("todo registro declara quando foi confirmado (confirmedAt), em data legíve
 
 console.log("\nD. Isolamento — a feature tem de ser removível");
 
-test("o módulo não faz rede: sem fetch/XHR/WebSocket/observer/timer", () => {
-  for (const p of ["fetch(", "XMLHttpRequest", "WebSocket", "MutationObserver", "setInterval", "setTimeout", "import("]) {
+test("o módulo faz NO MÁXIMO um fetch (o dado curado) — sem XHR/WebSocket/observer/timer/polling", () => {
+  // Issue #425: o dado saiu do array embutido para bolao/shared/data/broadcasts.json, buscado
+  // uma vez com {cache:"no-cache"} — mesmo padrão de espn-normalized.json. Isso substitui a
+  // proibição TOTAL de rede por uma proibição de tudo que NÃO seja essa busca única: nenhum
+  // observer, nenhum timer, nenhum polling, nenhuma segunda chamada de rede.
+  A((codigo.match(/fetch\(/g) || []).length === 1, "esperado exatamente UM fetch — a busca do JSON curado");
+  for (const p of ["XMLHttpRequest", "WebSocket", "MutationObserver", "setInterval", "setTimeout", "import("]) {
     A(!codigo.includes(p), `o módulo referencia \`${p}\` — ele não precisa de nada disso`);
   }
 });
