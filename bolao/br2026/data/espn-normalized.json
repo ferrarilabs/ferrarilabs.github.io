@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-09-06T22:21:19Z",
-  "sourceUpdatedAt": "2026-09-06T22:21:19Z",
+  "generatedAt": "2026-09-07T00:15:20Z",
+  "sourceUpdatedAt": "2026-09-07T00:15:20Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "1ecd7f7342f6ca177f94f4db3b75eceae4816a1f60f95662002082ad95dc12b0",
+  "payloadHash": "447ca2c21ab961c8ea5fa3c317833ec0c73fcf6dec8be64482b8b4d86de6e022",
   "matches": [
     {
       "id": "401840808",
@@ -43080,12 +43080,12 @@
     {
       "id": "401841221",
       "date": "2026-09-06T21:30Z",
-      "state": "in",
-      "statusName": "STATUS_HALFTIME",
-      "statusDescription": "Halftime",
-      "statusShortDetail": "HT",
-      "statusDetail": "HT",
-      "completed": false,
+      "state": "post",
+      "statusName": "STATUS_FULL_TIME",
+      "statusDescription": "Full Time",
+      "statusShortDetail": "FT",
+      "statusDetail": "FT",
+      "completed": true,
       "homeTeam": "Botafogo",
       "awayTeam": "Palmeiras",
       "homeTeamId": "6086",
@@ -43096,9 +43096,9 @@
       "awayWinner": false,
       "venue": "Joao Havelange Stadium",
       "city": "Rio de Janeiro",
-      "clockSec": 2700.0,
-      "clockStr": "45'+5'",
-      "period": 1,
+      "clockSec": 5400.0,
+      "clockStr": "90'+5'",
+      "period": 2,
       "details": [
         {
           "type": {
@@ -43156,32 +43156,223 @@
               "shortName": "F. Marçal"
             }
           ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "6086"
+          },
+          "clock": {
+            "value": 4558.0,
+            "displayValue": "76'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Álvaro Montoro",
+              "shortName": "Á. Montoro"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "2029"
+          },
+          "clock": {
+            "value": 4596.0,
+            "displayValue": "77'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Marlon Freitas",
+              "shortName": "M. Freitas"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Red Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "2029"
+          },
+          "clock": {
+            "value": 5400.0,
+            "displayValue": "90'+3'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Alexander Barboza",
+              "shortName": "A. Barboza"
+            }
+          ]
         }
       ]
     },
     {
       "id": "401841220",
       "date": "2026-09-06T22:30Z",
-      "state": "pre",
-      "statusName": "STATUS_SCHEDULED",
-      "statusDescription": "Scheduled",
-      "statusShortDetail": "Scheduled",
-      "statusDetail": "Sun, September 6th at 6:30 PM EDT",
+      "state": "in",
+      "statusName": "STATUS_SECOND_HALF",
+      "statusDescription": "Second Half",
+      "statusShortDetail": "80'",
+      "statusDetail": "80'",
       "completed": false,
       "homeTeam": "Corinthians",
       "awayTeam": "Chapecoense",
       "homeTeamId": "874",
       "awayTeamId": "9318",
-      "homeScore": 0,
-      "awayScore": 0,
+      "homeScore": 1,
+      "awayScore": 2,
       "homeWinner": false,
       "awayWinner": false,
       "venue": "Neo Química Arena",
       "city": "Sao Paulo",
-      "clockSec": 0.0,
-      "clockStr": "0'",
-      "period": null,
-      "details": []
+      "clockSec": 4800.0,
+      "clockStr": "80'",
+      "period": 2,
+      "details": [
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "9318"
+          },
+          "clock": {
+            "value": 30.0,
+            "displayValue": "1'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Yago Felipe",
+              "shortName": "Yago Felipe"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Goal"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "874"
+          },
+          "clock": {
+            "value": 104.0,
+            "displayValue": "2'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Matheus Bidu",
+              "shortName": "M. Bidu"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Goal - Header"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "9318"
+          },
+          "clock": {
+            "value": 2375.0,
+            "displayValue": "40'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Marcinho",
+              "shortName": "Marcinho"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "9318"
+          },
+          "clock": {
+            "value": 2700.0,
+            "displayValue": "45'+4'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Túlio Eduardo Silva De Oliveira",
+              "shortName": "T. Silva De Oliveira"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "9318"
+          },
+          "clock": {
+            "value": 3387.0,
+            "displayValue": "57'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Giovanni Augusto",
+              "shortName": "Giovanni Augusto"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "9318"
+          },
+          "clock": {
+            "value": 4340.0,
+            "displayValue": "73'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Kauan",
+              "shortName": "Kauan"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Goal - Volley"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "9318"
+          },
+          "clock": {
+            "value": 4591.0,
+            "displayValue": "77'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Marcinho",
+              "shortName": "Marcinho"
+            }
+          ]
+        }
+      ]
     },
     {
       "id": "401841222",
