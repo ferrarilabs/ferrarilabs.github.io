@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-09-07T00:15:20Z",
-  "sourceUpdatedAt": "2026-09-07T00:15:20Z",
+  "generatedAt": "2026-09-07T04:55:25Z",
+  "sourceUpdatedAt": "2026-09-07T04:55:25Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "a7db90aa657d462efc23c0a2966ea7112286cf4bd860a07eefe01579b9cd78ba",
+  "payloadHash": "1a589348f434ee43402198abfd721f91c80d8d5a67c52d7ff2576328870a34fd",
   "matches": [
     {
       "name": "Flamengo",
@@ -154,13 +154,13 @@
       "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/874.png",
       "rank": 11.0,
       "points": 32.0,
-      "played": 25.0,
+      "played": 26.0,
       "wins": 8.0,
       "draws": 8.0,
-      "losses": 9.0,
-      "gf": 26.0,
-      "ga": 25.0,
-      "gd": 1.0
+      "losses": 10.0,
+      "gf": 27.0,
+      "ga": 27.0,
+      "gd": 0.0
     },
     {
       "name": "Santos",
@@ -279,14 +279,14 @@
       "abbr": "CHA",
       "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/9318.png",
       "rank": 20.0,
-      "points": 14.0,
-      "played": 24.0,
-      "wins": 2.0,
+      "points": 17.0,
+      "played": 25.0,
+      "wins": 3.0,
       "draws": 8.0,
       "losses": 14.0,
-      "gf": 25.0,
-      "ga": 49.0,
-      "gd": -24.0
+      "gf": 27.0,
+      "ga": 50.0,
+      "gd": -23.0
     }
   ]
 }
