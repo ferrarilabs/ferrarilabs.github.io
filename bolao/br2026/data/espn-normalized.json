@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-09-07T04:55:25Z",
-  "sourceUpdatedAt": "2026-09-07T04:55:25Z",
+  "generatedAt": "2026-09-08T00:37:49Z",
+  "sourceUpdatedAt": "2026-09-08T00:37:49Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "7fc7dbe949967b184ba35e30e8236fb7806d091256b060ed867c8e09b3d5168b",
+  "payloadHash": "82035fc74f71a269910dee4b31ea512385e335b11907ed0112edb043b7117f8e",
   "matches": [
     {
       "id": "401840808",
@@ -43377,26 +43377,160 @@
     {
       "id": "401841222",
       "date": "2026-09-07T23:00Z",
-      "state": "pre",
-      "statusName": "STATUS_SCHEDULED",
-      "statusDescription": "Scheduled",
-      "statusShortDetail": "Scheduled",
-      "statusDetail": "Mon, September 7th at 7:00 PM EDT",
+      "state": "in",
+      "statusName": "STATUS_SECOND_HALF",
+      "statusDescription": "Second Half",
+      "statusShortDetail": "75'",
+      "statusDetail": "75'",
       "completed": false,
       "homeTeam": "Vitória",
       "awayTeam": "Grêmio",
       "homeTeamId": "3457",
       "awayTeamId": "6273",
-      "homeScore": 0,
+      "homeScore": 1,
       "awayScore": 0,
       "homeWinner": false,
       "awayWinner": false,
       "venue": "Estadio Manoel Barradas",
       "city": "Salvador",
-      "clockSec": 0.0,
-      "clockStr": "0'",
-      "period": null,
-      "details": []
+      "clockSec": 4500.0,
+      "clockStr": "75'",
+      "period": 2,
+      "details": [
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "6273"
+          },
+          "clock": {
+            "value": 2142.0,
+            "displayValue": "36'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Pedro Gabriel",
+              "shortName": "Pedro Gabriel"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "6273"
+          },
+          "clock": {
+            "value": 2222.0,
+            "displayValue": "38'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Cristian Pavón",
+              "shortName": "C. Pavón"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "3457"
+          },
+          "clock": {
+            "value": 2866.0,
+            "displayValue": "48'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Erick",
+              "shortName": "Erick"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "6273"
+          },
+          "clock": {
+            "value": 2866.0,
+            "displayValue": "48'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Caio Paulista",
+              "shortName": "Caio Paulista"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "3457"
+          },
+          "clock": {
+            "value": 3256.0,
+            "displayValue": "55'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Caique",
+              "shortName": "Caique"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "6273"
+          },
+          "clock": {
+            "value": 3537.0,
+            "displayValue": "59'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Erick Noriega",
+              "shortName": "E. Noriega"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Goal - Header"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "3457"
+          },
+          "clock": {
+            "value": 3777.0,
+            "displayValue": "63'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Renê",
+              "shortName": "Renê"
+            }
+          ]
+        }
+      ]
     },
     {
       "id": "401841232",
