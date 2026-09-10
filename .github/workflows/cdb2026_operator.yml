@@ -130,7 +130,14 @@ jobs:
               # sorteio a confirmar para a final -- ver cabecalho do proprio script). Nao inventa
               # vencedor: quem de fato avanca continua vindo de qualifiedTeamId, via
               # materialize-derived-phase, separado e posterior.
-              python3 register_final_topology.py $MODO
+              #
+              # Mesmo padrao de register_semifinal_topology.py: so aceita `--apply`, a AUSENCIA
+              # dela ja e dry-run. `$MODO` (--dry-run/--apply) e generico para os outros comandos
+              # desta case, entao aqui ele e traduzido em vez de repassado direto -- repassar
+              # `--dry-run` quebraria com "unrecognized arguments" (achado ao rodar de verdade).
+              ARGS=""
+              [ "$MODO" = "--apply" ] && ARGS="--apply"
+              python3 register_final_topology.py $ARGS
               ;;
             backfill-venue)
               # Preenche venue/city AUSENTES a partir do snapshot commitado da ESPN (#393). Nao
