@@ -1,5 +1,41 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.146 — campeão/vice previsto parava de resolver depois que a semifinal virava confronto real (#428)
+
+Eduardo: "igual da copa do mundo, também precisa mostrar quem cada um marcou campeão e vice, mesmo
+que incorreto (time não avançou)". Ao verificar isso contra um espelho dos dados reais de produção
+(não uma fixture inventada), a seção de campeão/vice em "Ver palpites" apareceu **vazia** para uma
+entrada de teste com palpite completo — um bug real, não uma feature faltando.
+
+**Causa raiz.** `virtualDerivedTies(s, "final", picks)` monta o bracket da final a partir da
+semifinal *virtual* (`virtualDerivedTies(s, "semifinal", ...)`), que sempre recalculava por
+topologia — usando ids de **slot** (`sf-1`/`sf-2`). Isso era correto enquanto a semifinal nunca
+tinha sido materializada por time. Mas desde que `materialize-derived-phase` (#410) grava os
+confrontos **reais** (ids `espn-<time>_<time>`), `renderPickForm()` passa a salvar o palpite de
+classificação sob o id **real** — nunca mais sob `sf-1`. Neste torneio a topologia só foi
+registrada em 2026-09-05, **depois** do prazo original das quartas — então nenhum participante
+jamais teve a chance de palpitar pelo id de slot; o único id possível, desde sempre, é o real.
+
+**Efeito sem a correção:** `predictedPodium()` nunca encontrava o palpite de campeão/vice de
+ninguém — silenciosamente, sem erro. Isso não afetava só a exibição: `scoreEntry()` usa a MESMA
+função para o bônus real de campeão (30 pts) e vice (20 pts), então o bug teria zerado esse bônus
+para todo mundo no dia da final, sem nenhum sinal de que algo estava errado.
+
+**Correção:** `virtualDerivedTies()` agora prefere os confrontos REAIS da semifinal quando já
+materializados (mesmos ids que o formulário de palpites usa), caindo no cálculo por topologia
+só quando a fase ainda não foi materializada por time — comportamento antigo preservado
+integralmente para esse caso (32/32 em `test_bracket_browser.mjs`, que cobre exatamente esse
+cenário). A verificação `atualizaFasesDerivadas()` (invalidação ao vivo durante edição) também
+tinha o mesmo prefixo fixo `"sf-"` hardcoded — corrigida para checar contra os ids reais também.
+
+**Confirmação de que "mesmo que incorreto" funciona:** novo teste
+(`test_final_podium_after_materialization.mjs`) simula um resultado real de semifinal que
+DISCORDA do palpite do participante e confirma que "Ver palpites" continua mostrando o campeão
+**palpitado**, nunca recalculado a partir do resultado real — exatamente o comportamento pedido.
+
+`audit_scoring.py`: PASSOU — nenhuma constante nem fórmula de scoring mudou, só a resolução do
+palpite de campeão/vice voltou a encontrar o dado certo.
+
 ## 2026-09-10 — semifinal aberta para palpites; topologia da final registrada (#428, sem bump de siteVersion — scripts/workflow só)
 
 Eduardo, depois de confirmar as datas da semifinal: as quartas já estão 100% decididas (4/4
