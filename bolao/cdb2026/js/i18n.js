@@ -151,6 +151,8 @@ window.CDB2026_I18N = {
     receiptPayment: "Pagamento",
     receiptSentAt: "Enviado em",
     receiptColMatch: "Confronto",
+    receiptColTeamA: "Time A",
+    receiptColTeamB: "Time B",
     receiptColScore: "Placar palpitado",
     receiptColReal: "Resultado real",
     receiptFooterNote: "Bolão informal entre amigos. A pontuação final só é calculada após o encerramento da Copa do Brasil.",

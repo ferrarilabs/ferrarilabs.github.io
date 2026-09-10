@@ -243,7 +243,7 @@ try {
   // Agora que o resultado real da semifinal diverge do palpite e é CONHECIDO, a linha de
   // confronto da final troca a exibição para o time REAL, com o eliminado entre parênteses.
   test("FINAL_MATCH_ROW_SHOWS_REAL_TEAM_WITH_ELIMINATED_PICK_IN_PARENS", () =>
-    assert(detailAposResultado?.some(r => r[0]?.includes("Alfa (Delta)") && r[0]?.includes("Epsilon")),
+    assert(detailAposResultado?.some(r => r[0] === "Alfa (Delta)" && r[2] === "Epsilon"),
       `a linha de confronto da final não ganhou o parêntese esperado depois do resultado real ` +
       `divergir: ${JSON.stringify(detailAposResultado)}`));
 

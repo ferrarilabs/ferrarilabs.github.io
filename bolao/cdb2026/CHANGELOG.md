@@ -1,5 +1,59 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.150 — Time A e Time B em colunas separadas em "Ver palpites", igual à Copa (#428)
+
+Eduardo, depois do v3.149: "ainda nao esta como estava na copa do mundo." Perguntei o que
+especificamente divergia (localização já tinha sido confirmada certa no v3.149) — resposta:
+"O formato do texto entre parentesis."
+
+**O que realmente estava diferente.** Conferi TODAS as 162 linhas com parêntese das 23 entradas
+reais da Copa (não só uma amostra): o texto "Real (Escolhido)" por time batia exatamente. A
+diferença real é estrutural — a Copa mostra Time A e Time B em **colunas separadas**
+(`bolao/copa2026/js/app.js:2227`, `receiptTeamA`/`receiptTeamB`); o CDB2026 juntava os dois times
+numa célula só ("Alfa × Theta (Epsilon)"). Isso deixa ambíguo, numa leitura rápida, qual dos dois
+nomes o parêntese está modificando.
+
+**Primeira tentativa de correção ficou visualmente quebrada.** Botar só a linha da final com 5
+células contra um cabeçalho de 4 colunas fez a célula extra (Time B) cair embaixo do cabeçalho
+"Resultado real" — captura de tela confirmou antes de eu sequer considerar isso pronto (regra
+permanente: nenhuma tarefa visual se encerra só com `node --check`).
+
+**Correção real: a tabela inteira ganhou uma coluna.** `renderPickDisplay()` ("Ver palpites")
+agora tem 5 colunas -- Time A / Placar / Time B / Resultado real / Pts -- em vez de 4:
+
+- Linhas de placar (quartas/semifinal, cada perna): Time A e Time B em células próprias, como já
+  eram os dois nomes (só deixaram de ser concatenados com "×").
+- Linha "Classificado": rótulo do confronto com `colspan="2"` (ocupa Time A + Placar), time
+  escolhido na coluna Time B, resultado real e pontos nas colunas seguintes -- inalterado no
+  conteúdo, só a grade de colunas por baixo.
+- Linhas "🏆 Campeão"/"🥈 Vice": rótulo com `colspan="2"`, time previsto na coluna Time B --
+  continuam SEM parêntese (ver v3.149: o resumo de pódio da Copa também nunca leva parêntese).
+- Linha da final (nova, v3.148/v3.149): agora usa as 5 colunas nativamente -- Time A e Time B
+  cada um na própria célula, com o parêntese aplicado por `finalSideLabels()` sem ambiguidade
+  nenhuma sobre qual time ele descreve.
+
+Novas chaves de i18n: `receiptColTeamA`/`receiptColTeamB` (só `pt-BR` -- `bolao/cdb2026/js/i18n.js`
+hoje só tem esse idioma; achado incidental, fora do escopo desta correção, não mexido aqui).
+
+**Verificação visual, não só funcional:** capturas de tela em desktop e em 320px (mobile) antes de
+considerar isto pronto. Em 320px a tabela ultrapassa a largura da tela -- comportamento
+PRÉ-EXISTENTE e intencional (`.picks-detail { overflow-x: auto }`, `bolao/cdb2026/css/styles.css`),
+o mesmo padrão que a Copa já usa para sua própria tabela de 7 colunas; confirmado que não é
+overflow de PÁGINA (`CDB_RESPONSIVE_LAYOUT_PRESERVED @320px` de `test_bracket_browser.mjs`
+continua passando).
+
+**Propagação avaliada, não aplicada:** BR2026 não tem um "Ver palpites" equivalente com
+duas-equipes-por-confronto (o modelo lá é classificação G4/Z4, sem chaveamento) -- a mudança de
+colunas não se aplica, registrado aqui em vez de silenciosamente ignorado.
+
+Testes atualizados (`test_legacy_derived_pick_continuity.mjs`,
+`test_final_podium_after_materialization.mjs`): asserts de linha de placar agora leem Time A/Time
+B em células separadas (`r[0]`/`r[2]`), e o índice de pontos das linhas de placar mudou de `[3]`
+para `[4]` (5 células, não mais 4).
+
+`audit_scoring.py` (3 apps) e `audit_golden_master.mjs`: PASSARAM — nenhuma constante, fórmula ou
+função de pontuação mudou; só a estrutura de colunas de "Ver palpites".
+
 ## v3.149 — v3.148 botava o parêntese no lugar errado, e vazou um `console.log` de debug (#428)
 
 Eduardo, depois do v3.148 estar no ar: "A IMPLEMENTACAO DO TIME ESCOLHIDO ENTRE PARENTESIS AINDA

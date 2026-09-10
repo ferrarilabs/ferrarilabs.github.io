@@ -3339,7 +3339,7 @@ function renderPickDisplay(entry, detail) {
         const { home: pHome, away: pAway } = legTeams(tie, leg, tie.matches?.[leg]);
         const rm = tie.matches?.[leg];
         const realScore = (rm && rm.goalsHome != null && rm.goalsAway != null) ? `${rm.goalsHome} × ${rm.goalsAway}` : "—";
-        rows.push(`<tr><td>${esc(pHome)} × ${esc(pAway)}</td><td><b>${pick.goalsHome} × ${pick.goalsAway}</b></td><td>${esc(realScore)}</td><td style="text-align:center">${ptsCell(d)}</td></tr>`);
+        rows.push(`<tr><td>${esc(pHome)}</td><td><b>${pick.goalsHome} × ${pick.goalsAway}</b></td><td>${esc(pAway)}</td><td>${esc(realScore)}</td><td style="text-align:center">${ptsCell(d)}</td></tr>`);
       }
       if (leg === lastLeg && !qualifiedTiesEmitted.has(tieId)) {
         const pickQual = pickByTieId(entry.picks?.qualified, tieId, legado);
@@ -3348,7 +3348,7 @@ function renderPickDisplay(entry, detail) {
           const d = detail?.ties?.[tieId];
           const teamName = pickQual === "A" ? tie.teamA : tie.teamB;
           const realQualified = tie.qualifiedTeamId === "A" ? tie.teamA : tie.teamB;
-          rows.push(`<tr><td>${esc(t("pickQualifiedLabel"))}: ${esc(tie.teamA)} × ${esc(tie.teamB)}</td><td>${esc(teamName)}</td><td>${esc(realQualified)}</td><td style="text-align:center">${ptsCell(d)}</td></tr>`);
+          rows.push(`<tr><td colspan="2">${esc(t("pickQualifiedLabel"))}: ${esc(tie.teamA)} × ${esc(tie.teamB)}</td><td>${esc(teamName)}</td><td>${esc(realQualified)}</td><td style="text-align:center">${ptsCell(d)}</td></tr>`);
         }
       }
     });
@@ -3358,11 +3358,21 @@ function renderPickDisplay(entry, detail) {
   // Só faz sentido enquanto a final ainda NÃO foi materializada por time: depois disso o loop
   // principal acima (flatLegsChronological) já mostra a linha real, com o id legado resolvido
   // pelo mesmo mecanismo de #428. Só aparece se a pessoa já digitou um placar para ela.
+  //
+  // Time A e Time B em CÉLULAS SEPARADAS -- igual à Copa (Time A/Placar/Time B em colunas
+  // próprias, bolao/copa2026/js/app.js:2227). Achado ao comparar lado a lado com Eduardo
+  // (2026-09-10): o texto "Real (Escolhido)" por time já batia, mas juntar os dois times numa
+  // célula só ("TimeA × TimeB(X)") não é como a Copa mostra -- lá cada time tem a própria coluna,
+  // então o parêntese de cada lado fica claramente ligado a UM time, nunca ambíguo sobre qual dos
+  // dois ele modifica. Uma tentativa anterior só desta linha com 5 células contra um cabeçalho de
+  // 4 colunas ficou visualmente quebrada (a 5ª célula caía embaixo do cabeçalho errado) -- por
+  // isso a tabela INTEIRA agora tem 5 colunas (Time A/Placar/Time B/Resultado real/Pts), com as
+  // outras linhas usando colspan onde não precisam da separação.
   if (!Object.keys(s.phases?.final?.ties || {}).length) {
     const lados = finalSideLabels(s, entry.picks || {});
     const p = entry.picks?.matches?.["final-1"];
     if (lados && p && p.goalsHome != null && p.goalsAway != null) {
-      rows.push(`<tr><td>${esc(lados[0].label)} × ${esc(lados[1].label)}</td><td><b>${p.goalsHome} × ${p.goalsAway}</b></td><td>—</td><td style="text-align:center">${ptsCell(null)}</td></tr>`);
+      rows.push(`<tr><td>${esc(lados[0].label)}</td><td><b>${p.goalsHome} × ${p.goalsAway}</b></td><td>${esc(lados[1].label)}</td><td>—</td><td style="text-align:center">${ptsCell(null)}</td></tr>`);
     }
   }
 
@@ -3372,14 +3382,14 @@ function renderPickDisplay(entry, detail) {
   // parêntese realmente vive.
   const predicted = predictedPodium(entry, s);
   const bonusRow = (label, team, d) => team
-    ? `<tr><td>${esc(label)}</td><td>${esc(team)}</td><td>—</td><td style="text-align:center">${ptsCell(d)}</td></tr>`
+    ? `<tr><td colspan="2">${esc(label)}</td><td>${esc(team)}</td><td>—</td><td style="text-align:center">${ptsCell(d)}</td></tr>`
     : "";
 
-  return `<table><thead><tr><th scope="col">${esc(t("receiptColMatch"))}</th><th scope="col">${esc(t("receiptColScore"))}</th><th scope="col">${esc(t("receiptColReal"))}</th><th scope="col" style="text-align:center">Pts</th></tr></thead>
+  return `<table><thead><tr><th scope="col">${esc(t("receiptColTeamA"))}</th><th scope="col">${esc(t("receiptColScore"))}</th><th scope="col">${esc(t("receiptColTeamB"))}</th><th scope="col">${esc(t("receiptColReal"))}</th><th scope="col" style="text-align:center">Pts</th></tr></thead>
     <tbody>
       ${bonusRow("🏆 " + t("pickLabelChampion"), predicted.champion, detail?.champion)}
       ${bonusRow("🥈 " + t("pickLabelRunnerUp"), predicted.runnerUp, detail?.runnerUp)}
-      ${rows.join("") || `<tr><td colspan="4">${esc(t("pickNoOpenTies"))}</td></tr>`}
+      ${rows.join("") || `<tr><td colspan="5">${esc(t("pickNoOpenTies"))}</td></tr>`}
     </tbody></table>`;
 }
 

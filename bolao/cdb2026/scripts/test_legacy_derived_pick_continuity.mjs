@@ -198,7 +198,7 @@ try {
   // mas nao passou"): a LINHA de confronto da final (nunca o resumo de campeão/vice, que lá
   // também é sempre puro) mostra o time REAL, com o selecionado mas eliminado entre parênteses.
   test("FINAL_MATCH_ROW_SHOWS_REAL_TEAM_WITH_ELIMINATED_PICK_IN_PARENS", () =>
-    assert(rows?.some(r => r[0]?.includes("Alfa") && r[0]?.includes("Theta (Epsilon)")),
+    assert(rows?.some(r => r[0] === "Alfa" && r[2] === "Theta (Epsilon)"),
       `linhas: ${JSON.stringify(rows)}`));
 
   // O PONTO MAIS CRÍTICO: pontuação real, não só exibição. sf-1 acerta placar exato nas duas
@@ -216,13 +216,17 @@ try {
       [...tr.querySelectorAll("td")].map(td => (td.textContent || "").trim()));
     return rows;
   });
-  const linhaSf1Placar = pontuacao.find(r => r[0]?.includes("Alfa") && r[0]?.includes("Delta") && !r[0].includes("Classificado"));
+  // Linhas de placar agora têm Time A e Time B em células SEPARADAS (5 células: TimeA/Placar/
+  // TimeB/Real/Pts), diferente das linhas "Classificado" (4 células, rótulo com colspan) --
+  // r.length distingue as duas sem ambiguidade.
+  const ehPlacar = (r, a, b) => r.length === 5 && ((r[0] === a && r[2] === b) || (r[0] === b && r[2] === a));
+  const linhaSf1Placar = pontuacao.find(r => ehPlacar(r, "Alfa", "Delta"));
   const linhaSf1Tie    = pontuacao.find(r => r[0]?.includes("Classificado") && r[0]?.includes("Alfa") && r[0]?.includes("Delta"));
-  const linhaSf2Placar = pontuacao.find(r => r[0]?.includes("Epsilon") && r[0]?.includes("Theta") && !r[0].includes("Classificado"));
+  const linhaSf2Placar = pontuacao.find(r => ehPlacar(r, "Epsilon", "Theta"));
   const linhaSf2Tie    = pontuacao.find(r => r[0]?.includes("Classificado") && r[0]?.includes("Epsilon") && r[0]?.includes("Theta"));
 
   test("LEGACY_SCORING_SF1_MATCH_EXACT — placar exato pontua (+10) via id legado", () =>
-    assert(linhaSf1Placar?.[3] === "+10", `linha: ${JSON.stringify(linhaSf1Placar)}`));
+    assert(linhaSf1Placar?.[4] === "+10", `linha: ${JSON.stringify(linhaSf1Placar)}`));
   test("LEGACY_SCORING_SF1_TIE_BONUS_HIT — bônus de classificação pontua (+5) via id legado", () =>
     assert(linhaSf1Tie?.[3] === "+5", `linha: ${JSON.stringify(linhaSf1Tie)}`));
   test("LEGACY_SCORING_SF2_TIE_BONUS_MISS — classificação errada não pontua (—) via id legado", () =>
