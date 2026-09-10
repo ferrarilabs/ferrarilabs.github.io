@@ -78,20 +78,28 @@ def _slug(t):
     return re.sub(r"[^a-z0-9]+", "-", s.lower()).strip("-")
 
 
-# JANELA MAXIMA CARACTERIZADA CONTRA A FONTE (2026-08-12).
+# JANELA MAXIMA CARACTERIZADA CONTRA A FONTE (2026-08-12, remedida 2026-09-10).
 #
 # O endpoint de scoreboard da ESPN devolve LISTA VAZIA -- sem erro, sem aviso -- quando o
-# intervalo `dates=` e largo demais. Medido no mesmo minuto, a partir de 2026-08-12:
+# intervalo `dates=` e largo demais. Medido em 2026-08-12 (quartas ja publicadas):
 #
 #     7d -> 0     14d -> 3     21d -> 7     30d -> 8     45d -> 8     60d -> 8     90d -> 0
 #
-# A tabela das quartas ESTAVA publicada nas oito partidas. O reconciliador pedia 90 dias, recebia
-# zero, e concluia corretamente "a CBF ainda nao publicou" -- a partir de uma resposta que nao
-# significava isso. Limite silencioso da fonte lido como estado de negocio.
+# 45 dias era suficiente para as quartas (ida-volta de 9 dias, 25/08-03/09), mas NAO alcancava a
+# semifinal: a #410 materializou o chaveamento em 2026-08-11, e a CBF so publicou os horarios para
+# 01/11 (ida) e 08/11 (volta) -- um gap de ~52 dias entre "confronto materializado" e "primeiro
+# kickoff" que 45 dias nunca alcancaria, mesmo com a #428 (generalizacao para fase derivada) ja no
+# ar. Remedido em 2026-09-10, com a semifinal ja publicada:
 #
-# 45 dias fica com folga dentro da faixa que funciona e cobre ida e volta de um mata-mata com
-# sobra (as quartas de 2026 vao de 25/08 a 03/09, nove dias).
-JANELA_MAX_DIAS = 45
+#     45d -> 0    53d -> 2    60d -> 4    70d -> 4    75d -> 4    80d -> 4    85d -> 4
+#     88d -> 5    89d -> 5    90d -> 0    91d -> 5
+#
+# O limite NAO e um teto liso -- 90d caiu para zero enquanto 89d e 91d nao, o mesmo tipo de
+# resposta vazia sem erro que a medicao original ja descrevia, so que sem ser uma funcao monotona
+# da largura. Nao ha teto seguro conhecido acima de ~85d; 75d fica com folga real dos dois lados:
+# bem acima do que a semifinal precisou (60d ja bastava para as duas pernas) e bem abaixo de onde
+# a instabilidade comecou a aparecer.
+JANELA_MAX_DIAS = 75
 
 
 def busca_tabela(de, ate):

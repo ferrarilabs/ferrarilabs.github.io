@@ -95,14 +95,17 @@ test("janela ALEM do limite caracterizado e RECUSADA com erro explicito", lambda
     ))(R["busca_tabela"](hoje, hoje + timedelta(days=R["JANELA_MAX_DIAS"] + 1))))
 
 test("o limite fica DENTRO da faixa que a fonte atende", lambda: _assert(
-    R["JANELA_MAX_DIAS"] <= 60,
-    f"JANELA_MAX_DIAS={R['JANELA_MAX_DIAS']} — medido em 2026-08-12, 90d devolve 0 eventos com a "
-    "tabela publicada. Passar de 60 volta a zona de silencio"))
+    R["JANELA_MAX_DIAS"] <= 85,
+    f"JANELA_MAX_DIAS={R['JANELA_MAX_DIAS']} — remedido em 2026-09-10 (semifinal ja publicada): "
+    "45-85d consistentemente OK, 88-91d ja mostrou UMA resposta vazia (90d) no meio de vizinhos "
+    "nao-vazios -- nao ha teto seguro conhecido acima de 85d"))
 
-test("o limite cobre ida E volta de um mata-mata", lambda: _assert(
-    R["JANELA_MAX_DIAS"] >= 21,
-    f"JANELA_MAX_DIAS={R['JANELA_MAX_DIAS']} — as quartas de 2026 vao de 25/08 a 03/09; janela "
-    "curta demais acha a ida e perde a volta"))
+test("o limite cobre ida E volta de um mata-mata (quartas E semifinal)", lambda: _assert(
+    R["JANELA_MAX_DIAS"] >= 60,
+    f"JANELA_MAX_DIAS={R['JANELA_MAX_DIAS']} — a semifinal de 2026 publicou ida 01/11 e volta "
+    "08/11; medido em 2026-09-10 (~52d de hoje ate a ida), 60d ja foi o primeiro valor a trazer as "
+    "DUAS pernas das DUAS chaves (4 eventos) -- janela curta demais acha a ida e perde a volta, ou "
+    "nao acha nada, como aconteceu de verdade com 45d nesta materializacao"))
 
 # ── 2. APELIDO ──────────────────────────────────────────────────────────────────────────────
 test("'Vasco da Gama' da fonte casa com 'Vasco' do sorteio", lambda: _assert(
