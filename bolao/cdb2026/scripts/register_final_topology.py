@@ -100,7 +100,11 @@ def main():
         "event": "Derivado da contagem de confrontos da semifinal já gravados em produção "
                  f"(phases.semifinal.ties): {ids[0]} e {ids[1]}",
         "channel": "n/a — fato estrutural, não fato de sorteio",
-        "sourceUrl": None,
+        # A RPC exige sourceUrl nao-nulo (validado em producao, 2026-09-10). Nao ha artigo a citar
+        # para um fato estrutural -- entao aponta para a documentacao deste repositorio que registra
+        # o raciocinio, real e verificavel, em vez de inventar uma URL de cobertura jornalistica
+        # que nao existe.
+        "sourceUrl": "https://github.com/ferrarilabs/ferrarilabs.github.io/blob/main/docs/bolao/CDB2026_RULES_AND_MODEL.md",
         "sources": [],
         "independentSources": 0,
         "slotNumbering": "final-1 é o único slot possível — não há numeração a resolver.",
