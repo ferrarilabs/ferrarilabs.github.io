@@ -1,5 +1,62 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.147 — "Ver palpites" ainda não mostrava a semifinal para NINGUÉM em produção, mesmo depois do v3.146 (#428)
+
+Eduardo, depois do v3.146 estar no ar: "Na tv disse que já tem local e data. Ver palpites ainda não
+mostrou até a final." O v3.146 tinha corrigido um bug real, mas a mesma verificação (síntese de
+teste, não dado de produção) escondia um segundo bug maior.
+
+**Verificação desta vez foi contra dado de produção de verdade, em navegador real** — servidor
+estático local servindo os arquivos reais do app, com o estado público de produção
+(`bolao_state_normalized_public`) injetado no `localStorage`, Supabase bloqueado na rota. Resultado:
+**0 das 12 entradas reais** mostravam qualquer coisa da semifinal em "Ver palpites" — nem placar,
+nem classificação, nem campeão/vice.
+
+**Causa raiz — a mesma classe de bug do v3.146, um nível mais fundo.** O v3.146 (e a seção do
+CDB2026_RULES_AND_MODEL.md que o acompanhou) afirmava que "a topologia só foi registrada em
+2026-09-05, depois do prazo das quartas, então nenhum participante jamais teve a chance de
+palpitar pelo id de slot". **Essa afirmação era falsa** — não verificada contra dado real, só
+inferida. As 12 entradas reais mostram `picks.qualified` com as chaves `"sf-1"`/`"sf-2"` (id de
+SLOT da topologia): o participante palpitou a semifinal quando ela só existia como topologia —
+sem os times reais, salva sob o único id disponível então. Depois que `materialize-derived-phase`
+grava os confrontos reais (`espn-<time>_<time>`), três funções passaram a procurar o palpite só
+pelo id NOVO e não achavam nada no id antigo:
+
+- `renderPickDisplay()` ("Ver palpites") — a semifinal inteira ficava fora da tabela;
+- `scoreEntry()` — **as 12 entradas reais teriam pontuado ZERO nos jogos da semifinal e no bônus
+  de classificação quando o resultado saísse**, silenciosamente, sem erro nenhum;
+- `explainScore()` (auditoria) — o "esperado" da explicação divergiria do que `scoreEntry()`
+  realmente usou.
+
+**Correção:** duas funções novas em `bolao/cdb2026/js/app.js` — `legacyDerivedTieIds(s, phaseId)`
+casa cada confronto REAL materializado com o slot de topologia que produz os MESMOS DOIS TIMES
+hoje (por conjunto de times, nunca por posição — só existe enquanto os vencedores de quartas que
+geraram aquele confronto continuarem os mesmos); `pickByTieId(picksObj, tieId, legacyMap)` lê o
+palpite pelo id real primeiro, cai para o id de slot legado quando o real não tiver nada salvo.
+Aplicado nos quatro lugares que liam palpite de fase derivada por id: `virtualDerivedTies()`
+(ramo "final", usado por `predictedPodium()`), `scoreEntry()`, `explainScore()` e
+`renderPickDisplay()` — e também no pré-preenchimento do formulário ao editar uma entrada existente
+(`renderPickForm()`), para o admin não ver os campos da semifinal em branco e arriscar sobrescrever
+um palpite real com nada. Nenhum dado gravado foi alterado — só a leitura passou a olhar nos dois
+lugares certos.
+
+**Verificado contra as 12 entradas reais de produção (leitura, nenhuma escrita):** depois da
+correção, 12/12 mostram a linha da semifinal, 12/12 resolvem campeão, 12/12 resolvem vice.
+
+**Novo teste dedicado:** `test_legacy_derived_pick_continuity.mjs` — cobre exatamente o caminho que
+`test_final_podium_after_materialization.mjs` (v3.146) não cobria: palpite salvo SÓ sob id de slot
+(nunca sob id real), tanto em "Ver palpites" quanto em `scoreEntry()` (placar exato pontuando,
+bônus de classificação acertado E errado). 10/10 passando.
+
+`docs/bolao/CDB2026_RULES_AND_MODEL.md`: a seção "o placar migra por vaga" corrigida — a afirmação
+anterior ("o motor lê pelo MESMO slotId") estava errada; também corrigida a afirmação de que só o
+placar migra e não a classificação — na prática dos dados reais, os dois são preenchidos no mesmo
+momento e os dois precisam migrar juntos.
+
+`audit_scoring.py`: PASSOU — nenhuma constante nem fórmula de scoring mudou, só a resolução do
+palpite (matches/qualified) de fase derivada voltou a encontrar o dado certo, incluindo quando ele
+está sob um id legado.
+
 ## v3.146 — campeão/vice previsto parava de resolver depois que a semifinal virava confronto real (#428)
 
 Eduardo: "igual da copa do mundo, também precisa mostrar quem cada um marcou campeão e vice, mesmo

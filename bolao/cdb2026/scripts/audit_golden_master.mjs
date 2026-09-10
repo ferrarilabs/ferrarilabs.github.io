@@ -47,6 +47,16 @@ function extractFn(name) {
   throw new Error(`unbalanced braces extracting ${name}()`);
 }
 
+// Mesma técnica de extractFn(), para as poucas const de nível de módulo que scoreEntry()/
+// explainScore() passaram a exigir (#428, continuidade de palpite entre id de slot e id real de
+// fase derivada) — sem isto o motor sintético lançava ReferenceError na primeira entrada com
+// palpite de semifinal/final, porque a const nunca fazia parte do texto extraído.
+function extractConst(name) {
+  const m = src.match(new RegExp(`const ${name} = [^;]+;`, "s"));
+  if (!m) throw new Error(`const ${name} not found in app.js`);
+  return m[0];
+}
+
 // Real config (scoring values) + the real phase definitions, so the extracted engine scores with
 // exactly the constants production uses. If someone edits config.js scoring, these hashes move —
 // which is correct and intended: that IS a rule change and must be reviewed.
@@ -59,12 +69,20 @@ const DATA = { phases: [
 const ENGINE = new Function("C", "DATA", "_liveTies", `
   const SCORING_RULE_VERSION = ${JSON.stringify(
     (src.match(/const SCORING_RULE_VERSION = "([^"]+)"/) || [, "unknown"])[1])};
+  ${extractConst("TOPOLOGY_REQUIRED_FIELDS")}
+  ${extractConst("DERIVED_PHASES")}
   ${extractFn("legsForFormat")}
   ${extractFn("aggregateFromMatches")}
   ${extractFn("finalTieEntry")}
   ${extractFn("officialPodium")}
   ${extractFn("predictedPodium")}
   ${extractFn("matchPoints")}
+  ${extractFn("topologyProvenanceIsValid")}
+  ${extractFn("tieQualifiedTeam")}
+  ${extractFn("resolveParticipant")}
+  ${extractFn("derivedPhaseView")}
+  ${extractFn("legacyDerivedTieIds")}
+  ${extractFn("pickByTieId")}
   ${extractFn("scoreEntry")}
   ${extractFn("liveScoreEntry")}
   ${extractFn("hitChampion")}

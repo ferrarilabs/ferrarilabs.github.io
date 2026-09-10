@@ -437,6 +437,49 @@ function DERIVED_PHASES_PREDECESSOR_OF_TIE(s, tieId) {
 // inventado -- diferente da semifinal, onde QUAL vencedor de quartas encontra QUAL exigia o
 // sorteio oficial (e por isso ela usa a topologia registrada).
 //
+// ── CONTINUIDADE DE PALPITE ENTRE PRE- E POS-MATERIALIZACAO (#428, 2026-09-10) ─────────────────
+//
+// Antes de uma fase derivada (semifinal/final) ser materializada por time, o participante so pode
+// palpitar contra a VAGA da topologia (ex. "sf-1") -- e o palpite e salvo sob esse id de slot,
+// porque nenhum outro id existe ainda. Depois que `materialize-derived-phase` grava os times
+// reais, o confronto passa a existir com um id NOVO (espn-<time>_<time>), diferente do id de slot.
+// Sem isto, toda leitura por id real (Ver palpites, scoreEntry, o proprio formulario ao editar uma
+// entrada) simplesmente nao encontra o palpite antigo -- nao porque ele nao exista, mas porque
+// procura pela chave errada. O palpite em si nunca mudou de sentido: a regra ja e clara (ver
+// docs/bolao/CDB2026_RULES_AND_MODEL.md, "o placar migra por VAGA, nao por time") -- so faltava o
+// codigo de LEITURA acompanhar. Achado real: verificado contra as 12 entradas reais de producao,
+// nenhuma resolvia campeao/vice nem mostrava a semifinal em "Ver palpites" (0/12) -- e teria
+// pontuado ZERO nos jogos e no bonus de classificacao da semifinal quando o resultado saisse.
+//
+// Casa por CONJUNTO de times, nunca por posicao: o confronto real e o slot de topologia que
+// produz exatamente os mesmos dois times, hoje. So existe enquanto os vencedores de quartas que
+// geraram aquele confronto continuarem os mesmos -- se um resultado de quartas fosse corrigido
+// depois da materializacao, a correspondencia para de bater e o fallback simplesmente para de
+// achar nada, em vez de inventar uma correspondencia errada.
+function legacyDerivedTieIds(s, phaseId) {
+  const map = {};
+  const reais = Object.entries(s?.phases?.[phaseId]?.ties || {});
+  if (!reais.length) return map;
+  const view = derivedPhaseView(s, phaseId);
+  if (!view.topologyKnown) return map;
+  for (const slot of view.slots) {
+    if (!slot.sideA.resolved || !slot.sideB.resolved) continue;
+    const par = [slot.sideA.team, slot.sideB.team].sort().join("|");
+    const real = reais.find(([, tie]) => [tie.teamA, tie.teamB].sort().join("|") === par);
+    if (real) map[real[0]] = slot.slotId;
+  }
+  return map;
+}
+
+// Le um palpite (matches ou qualified) pelo id REAL do confronto, caindo para o id de slot legado
+// (`legacyDerivedTieIds`) quando o id real nao tiver nada salvo. `legacyMap` vazio (fase nao
+// derivada, ou ainda nao materializada) faz isto se comportar como uma leitura direta comum.
+function pickByTieId(picksObj, tieId, legacyMap) {
+  if (picksObj && Object.prototype.hasOwnProperty.call(picksObj, tieId)) return picksObj[tieId];
+  const legacyId = legacyMap && legacyMap[tieId];
+  return legacyId ? picksObj?.[legacyId] : undefined;
+}
+
 // Devolve entradas com a MESMA forma de um confronto real, para atravessarem o mesmo
 // renderizador de palpite. Vaga sem os dois lados resolvidos nao vira confronto: fica de fora e a
 // tela mostra a dependencia ("Vencedor de X"), nunca um clube inventado.
@@ -474,8 +517,11 @@ function virtualDerivedTies(s, phaseId, livePicks) {
     if (!semi.topologyKnown) return { topologyKnown: false, ties: [], pendentes: [] };
     const slots = [...semi.ties.map(([id]) => id), ...semi.pendentes.map(p => p.slotId)].sort();
     if (slots.length !== 2) return { topologyKnown: true, ties: [], pendentes: [] };
+    // Ver "CONTINUIDADE DE PALPITE" acima: `id` aqui e o id REAL do confronto de semifinal, mas
+    // quem palpitou antes da materializacao salvou sob o id de slot antigo.
+    const legadoSemi = legacyDerivedTieIds(s, "semifinal");
     const lados = slots.map(id => {
-      const escolhido = livePicks?.qualified?.[id];
+      const escolhido = pickByTieId(livePicks?.qualified, id, legadoSemi);
       const tie = (semi.ties.find(([tid]) => tid === id) || [])[1];
       if (tie && (escolhido === "A" || escolhido === "B")) {
         return { resolved: true, team: escolhido === "A" ? tie.teamA : tie.teamB, winnerOf: id };
@@ -2314,10 +2360,13 @@ function renderPickForm() {
     // "quem se classifica" descrevia uma fase seguinte que nao existe -- e o bonus tambem e
     // outro (pódio, nao classificacao).
     const ehFinal = phase.id === "final";
+    // Ver "CONTINUIDADE DE PALPITE" (#428): sem isto, editar uma entrada existente (admin) mostra
+    // os campos da semifinal em branco -- e salvar sobrescreveria um palpite real com nada.
+    const legadoForm = DERIVED_PHASES[phase.id] ? legacyDerivedTieIds(s, phase.id) : {};
     ties.forEach(([tieId, tie]) => {
       if (!tie.teamA || !tie.teamB) return;
-      const savedMatches = picksAtuais().matches?.[tieId] || {};
-      const savedQual    = picksAtuais().qualified?.[tieId] || "";
+      const savedMatches = pickByTieId(picksAtuais().matches, tieId, legadoForm) || {};
+      const savedQual    = pickByTieId(picksAtuais().qualified, tieId, legadoForm) || "";
 
       if (tie.qualifiedTeamId) {
         const winner = tie.qualifiedTeamId === "A" ? tie.teamA : tie.teamB;
@@ -2680,9 +2729,13 @@ function scoreEntry(entry, s) {
 
   DATA.phases.forEach(phase => {
     const ties = s.phases?.[phase.id]?.ties || {};
+    // Ver "CONTINUIDADE DE PALPITE" (#428): numa fase derivada (semifinal/final), um confronto
+    // materializado por time tem id REAL diferente do id de slot sob o qual o palpite pode ter
+    // sido salvo antes da materializacao. `{}` para fase nao-derivada -- comportamento inalterado.
+    const legado = DERIVED_PHASES[phase.id] ? legacyDerivedTieIds(s, phase.id) : {};
     Object.entries(ties).forEach(([tieId, tie]) => {
       const legs = legsForFormat(phase.format);
-      const pickMatches = entry.picks?.matches?.[tieId] || {};
+      const pickMatches = pickByTieId(entry.picks?.matches, tieId, legado) || {};
       legs.forEach(leg => {
         const r = matchPoints(pickMatches[leg], tie.matches?.[leg]);
         if (!r) return;
@@ -2690,7 +2743,7 @@ function scoreEntry(entry, s) {
         total += r.pts;
       });
       if (tie.qualifiedTeamId) {
-        const pickQual = entry.picks?.qualified?.[tieId];
+        const pickQual = pickByTieId(entry.picks?.qualified, tieId, legado);
         if (pickQual) {
           const hit = pickQual === tie.qualifiedTeamId;
           detail.ties[tieId] = { pts: hit ? sc.tieBonus : 0, type: hit ? "hit" : "miss" };
@@ -2742,6 +2795,10 @@ function explainScore(entry, s) {
   const fmt = m => (m && m.goalsHome != null ? `${m.goalsHome}–${m.goalsAway}` : null);
 
   DATA.phases.forEach(phase => {
+    // Ver "CONTINUIDADE DE PALPITE" (#428) e o mesmo uso em scoreEntry() acima -- a explicação
+    // precisa mostrar o palpite que scoreEntry() REALMENTE usou, inclusive quando ele veio do id
+    // de slot legado, senão o "expected" divergiria silenciosamente do que pontuou de verdade.
+    const legado = DERIVED_PHASES[phase.id] ? legacyDerivedTieIds(s, phase.id) : {};
     Object.entries(s.phases?.[phase.id]?.ties || {}).forEach(([tieId, tie]) => {
       legsForFormat(phase.format).forEach(leg => {
         const d = detail.matches?.[`${tieId}:${leg}`];
@@ -2753,7 +2810,7 @@ function explainScore(entry, s) {
           entityType: "match",
           entityId: `${tieId}:${leg}`,
           label: `${home} × ${away}${legName}`,
-          expected: fmt(entry.picks?.matches?.[tieId]?.[leg]),
+          expected: fmt(pickByTieId(entry.picks?.matches, tieId, legado)?.[leg]),
           actual: fmt(tie.matches?.[leg]),
           points: d.pts,
           explanation: {
@@ -2766,7 +2823,7 @@ function explainScore(entry, s) {
       });
       const dt = detail.ties?.[tieId];
       if (dt) {
-        const pick = entry.picks?.qualified?.[tieId];
+        const pick = pickByTieId(entry.picks?.qualified, tieId, legado);
         const nameOf = side => (side === "A" ? tie.teamA : tie.teamB);
         breakdown.push({
           ruleId: `tie.qualified.${dt.type}`,
@@ -3236,8 +3293,11 @@ function renderPickDisplay(entry, detail) {
     const legs = legsForFormat(phase.format);
     const lastLeg = legs[legs.length - 1];
     const qualifiedTiesEmitted = new Set();
+    // Ver "CONTINUIDADE DE PALPITE" (#428): sem isto, a semifinal inteira sumia de "Ver palpites"
+    // para todo participante que palpitou antes da materializacao por time.
+    const legado = DERIVED_PHASES[phase.id] ? legacyDerivedTieIds(s, phase.id) : {};
     flatLegsChronological(s, phase).forEach(({ tieId, tie, leg }) => {
-      const pickMatches = entry.picks?.matches?.[tieId];
+      const pickMatches = pickByTieId(entry.picks?.matches, tieId, legado);
       if (!pickMatches) return;
       const pick = pickMatches[leg];
       if (pick) {
@@ -3248,7 +3308,7 @@ function renderPickDisplay(entry, detail) {
         rows.push(`<tr><td>${esc(pHome)} × ${esc(pAway)}</td><td><b>${pick.goalsHome} × ${pick.goalsAway}</b></td><td>${esc(realScore)}</td><td style="text-align:center">${ptsCell(d)}</td></tr>`);
       }
       if (leg === lastLeg && !qualifiedTiesEmitted.has(tieId)) {
-        const pickQual = entry.picks?.qualified?.[tieId];
+        const pickQual = pickByTieId(entry.picks?.qualified, tieId, legado);
         if (tie.qualifiedTeamId && pickQual) {
           qualifiedTiesEmitted.add(tieId);
           const d = detail?.ties?.[tieId];

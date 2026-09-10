@@ -60,6 +60,7 @@
     "test:cdb-bracket-propagation": "node bolao/cdb2026/scripts/test_bracket_propagation.mjs",
     "test:cdb-bracket-browser": "node bolao/cdb2026/scripts/test_bracket_browser.mjs",
     "test:cdb-final-podium-after-materialization": "node bolao/cdb2026/scripts/test_final_podium_after_materialization.mjs",
+    "test:cdb-legacy-derived-pick-continuity": "node bolao/cdb2026/scripts/test_legacy_derived_pick_continuity.mjs",
     "test:cdb-bracket-persistence": "node bolao/cdb2026/scripts/test_bracket_persistence.mjs",
     "test:harness-ports-unique": "node bolao/scripts/test_harness_ports_unique.mjs",
     "test:no-whole-document-writers": "node bolao/scripts/test_no_whole_document_writers.mjs",

@@ -587,37 +587,54 @@ a este documento (regras/modelo):
   ADR dedicado (`docs/bolao/adr/ADR-003-official-vs-provisional-results.md`) documentando por que
   isso é uma garantia deliberada, não um acidente de implementação.
 
-## Palpite de semifinal/final: o placar migra por VAGA, não por time (2026-09-10)
+## Palpite de semifinal/final: o placar migra por VAGA, não por time (2026-09-10, corrigido)
 
 Eduardo pediu para deixar isto 100% claro: **se um participante palpitou achando que o
 Internacional se classificaria e quem se classificou de verdade foi o Grêmio, o placar que ele
 digitou para aquela vaga da semifinal continua valendo — só que agora marcado contra o Grêmio, não
-contra o Internacional.** Isto já é o comportamento do sistema hoje; esta seção só torna a regra
-explícita, com a evidência de código.
+contra o Internacional.**
+
+**CORREÇÃO (mesmo dia, mais tarde):** a primeira versão desta seção dizia que isto "já é o
+comportamento do sistema hoje" e que a pontuação lia "o MESMO `slotId`" antes e depois da
+materialização. **Isso estava errado**, e a verificação que sustentava a afirmação (leitura de
+código, sem rodar nada) não pegou o defeito. Verificação em navegador real contra o estado
+público de produção mostrou 0 das 12 entradas reais resolvendo a semifinal em "Ver palpites" —
+porque o id do confronto MUDA na materialização (`"sf-1"` antes, `"espn-<time>_<time>"`/
+`"real-<time>_<time>"` depois), e `scoreEntry()`/`renderPickDisplay()`/`explainScore()` liam só
+pelo id novo. A regra abaixo descreve o comportamento **depois** da correção (`legacyDerivedTieIds()`
++ `pickByTieId()`, `bolao/cdb2026/js/app.js`, #428); o histórico do erro fica registrado no
+CHANGELOG.md (v3.147).
 
 **Por quê isso é seguro.** A partir da semifinal, `entry.picks.matches`/`entry.picks.qualified`
-nunca são indexados pelo NOME do time — são indexados pelo `slotId` da vaga do chaveamento (ex.:
-`"semifinal-1"`), que vem da topologia oficial da CBF (`slot.sideA.winnerOf` / `sideB.winnerOf`,
-sempre "vencedor do confronto de quartas N", nunca "o time X"). Essa é a mesma técnica que a Copa
-do Mundo usa (`"Winner Match 87"` em vez de nome de time em `DATA.knockoutMatches`).
+nunca são indexados pelo NOME do time — são indexados pelo id do confronto (de SLOT da topologia
+antes da materialização, ex. `"sf-1"`; do confronto REAL depois, ex. `"espn-atletico-mg_gremio"`).
+A vaga do chaveamento em si vem da topologia oficial da CBF (`slot.sideA.winnerOf` /
+`sideB.winnerOf`, sempre "vencedor do confronto de quartas N", nunca "o time X") — essa parte
+sempre esteve certa. O que faltava era a PONTE entre o id de antes e o id de depois.
 
-- **No palpite** (`virtualDerivedTies()`, `bolao/cdb2026/js/app.js:443-486`): o formulário mostra
-  o nome do time que o PRÓPRIO participante escolheu nas quartas (`resolveParticipantPredicted()`,
-  `app.js:397-415`, via `entry.picks.qualified[quartasTieId]`) só para rotular a tela — o placar
-  que ele digita é salvo sob o `slotId` (`"semifinal-1"`), não sob o nome do time.
-- **Na pontuação** (`scoreEntry()`, `app.js:2659-2700`): quando a semifinal é materializada de
-  verdade (`materialize-derived-phase`, #410) e o placar real sai, o motor lê
-  `entry.picks.matches["semifinal-1"]` — o MESMO `slotId` — e compara contra o resultado real
-  daquela vaga, seja qual for o time que de fato ocupa `teamA`/`teamB` ali.
+- **No palpite, antes da materialização** (`virtualDerivedTies()`,
+  `bolao/cdb2026/js/app.js:443-486`): o formulário mostra o nome do time que o PRÓPRIO
+  participante escolheu nas quartas (`resolveParticipantPredicted()`, `app.js:397-415`, via
+  `entry.picks.qualified[quartasTieId]`) só para rotular a tela — o placar que ele digita é salvo
+  sob o `slotId` da topologia (`"sf-1"`), único id que existe até ali.
+- **`legacyDerivedTieIds(s, phaseId)`** casa cada confronto REAL materializado com o slot de
+  topologia que produz os MESMOS DOIS TIMES hoje (por conjunto de times, nunca por posição) — só
+  existe enquanto os vencedores de quartas que geraram aquele confronto continuarem os mesmos.
+- **`pickByTieId(picksObj, tieId, legacyMap)`** lê o palpite pelo id REAL primeiro e cai para o id
+  de slot legado quando o real não tiver nada salvo. Usado de forma consistente em `scoreEntry()`
+  (pontuação real), `explainScore()` (auditoria) e `renderPickDisplay()` ("Ver palpites") — os três
+  lugares que antes procuravam só pelo id novo.
+- **Isto vale tanto para o PLACAR quanto para a CLASSIFICAÇÃO da vaga**
+  (`entry.picks.qualified["sf-1"]`, ganha `tieBonus` se acertar quem passa PARA A FINAL) — a
+  primeira versão desta seção separava os dois e dizia que só o placar migrava; na prática, neste
+  torneio, o participante sempre preencheu os dois no MESMO momento (antes da materialização,
+  porque não havia outro), então os dois têm de migrar juntos, e agora migram.
 - **Orientação mandante/visitante** também sobrevive à troca de time: `legTeams()`
   (`app.js:1893-1907`, ver auditoria de 2026-08 acima) já garante que "mandante" é sempre relativo
   ao LADO do confronto (`teamA` na ida, `teamB` na volta), nunca ao nome do time — então mesmo a
   orientação do placar (gols do mandante × gols do visitante) migra corretamente.
 
-**O que NÃO migra:** o bônus de classificação da vaga em si
-(`entry.picks.qualified["semifinal-1"]`, ganha `tieBonus` se acertar quem passa PARA A FINAL) —
-esse é um palpite novo, sobre a vaga da semifinal, feito depois que ela existe. O que migra é
-exclusivamente o PLACAR digitado para os jogos daquela vaga, porque o placar sempre foi relativo a
-lado (A/B), nunca a nome de time.
-
-Nenhum código mudou nesta revisão — comportamento verificado por leitura, não alterado.
+Cobertura de regressão: `bolao/cdb2026/scripts/test_legacy_derived_pick_continuity.mjs` (exibição
+E pontuação, id de slot nunca id real — o único caminho que existiu de verdade neste torneio) e
+`bolao/cdb2026/scripts/test_final_podium_after_materialization.mjs` (palpite já salvo sob id
+real, e sobrevivência a um resultado real que discorda do palpite).
