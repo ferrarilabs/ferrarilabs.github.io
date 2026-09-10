@@ -1,5 +1,35 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## 2026-09-10 — vigia da tabela oficial generalizado para semifinal/final (#428, sem bump de siteVersion — scripts/workflow só)
+
+CBF publicou a tabela da semifinal. `reconcile_official_schedule.py` (que já materializava
+data/horário/prazo das quartas sozinho, via `.github/workflows/cdb2026_schedule_watch.yml`) agora
+aceita `--phase quartas|semifinal|final`. Generalização MÍNIMA e deliberadamente conservadora:
+
+- **O que muda:** o script materializa data/hora/prazo (`cutoffAt`) de uma fase já com confrontos
+  materializados — nunca decide quem avança, nunca toca `qualifiedTeamId`, nunca toca
+  scoring/entradas/pagamento. Fase derivada (semifinal/final) usa como portão a própria existência
+  de `ties` (que só existe depois de `materialize-derived-phase`, #410, já ter exigido topologia
+  autoritativa) em vez de `officialDraw.validatedAt`, que fase derivada nunca tem.
+- **O que NÃO muda:** o cron agendado (`40 */2 * * *`) continua rodando SÓ para quartas, sem
+  ganhar frequência nem escopo novo. Isso é deliberado, não uma limitação esquecida — a Issue #411
+  decidiu, com evidência, NÃO automatizar a materialização de fase derivada (rara: no máximo 2x
+  por torneio; custo de erro assimétrico), e essa mesma lógica de frequência/custo se aplica à
+  automação da DATA. Semifinal/final rodam por `workflow_dispatch` manual (`phase=semifinal` ou
+  `phase=final`), nunca sozinhas num cron.
+- **Convite por e-mail:** roda só quando a fase resolvida é quartas. Semifinal/final não são
+  inscrição nova — são o mesmo participante preenchendo mais uma vaga na mesma entrada, com o
+  mesmo link de convite que já tem.
+- **Esclarecimento de regra (sem mudança de código):** documentado em
+  `docs/bolao/CDB2026_RULES_AND_MODEL.md` que o placar palpitado para uma vaga de semifinal/final
+  migra pela VAGA do chaveamento, não pelo nome do time — se alguém apostou no Internacional e
+  quem se classificou foi o Grêmio, o placar digitado continua valendo, agora contado contra o
+  Grêmio. Comportamento já existente (`slotId` topológico em `virtualDerivedTies()`/`scoreEntry()`
+  em `bolao/cdb2026/js/app.js`), só verificado e explicitado — nenhum código de scoring mudou.
+
+`audit_scoring.py`: PASSOU, 6/6 — scoring completamente intocado.
+`test_schedule_reconciler.py`: 15/15 (6 casos novos cobrindo o portão `fase_esta_pronta()`).
+
 ## v3.145 — "Onde assistir": dado sai do código, detector de lacunas automatizado (2026-09-07, #425)
 
 Mesma mudança do BR2026 (`bolao/br2026/CHANGELOG.md` v1.136) — o CDB2026 carrega o mesmo módulo

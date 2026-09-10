@@ -1,20 +1,35 @@
 #!/usr/bin/env python3
-"""CDB2026 — vigia a tabela detalhada oficial das quartas e abre os palpites sozinho.
+"""CDB2026 — vigia a tabela detalhada oficial de uma fase e materializa data/prazo sozinho.
 
 POR QUE EXISTE
 --------------
-O sorteio das quartas ja aconteceu e os quatro confrontos estao em producao, mas a CBF ainda nao
-publicou datas e horarios. Pela regra de negocio o palpite NAO abre sem prazo: sem horario nao ha
-o que fechar, e um formulario aberto sem prazo aceitaria palpite depois de a bola rolar.
+Nasceu so pelas quartas (o sorteio ja tinha acontecido, so faltava a CBF publicar data/hora).
+Generalizado (Issue #428) para tambem cobrir semifinal/final -- fases DERIVADAS, cujos confrontos
+ja vem materializados por `materialize-derived-phase` (#410; time vem de `qualifiedTeamId`
+persistido, nunca inventado aqui). Nos dois casos a regra de negocio e a mesma: o palpite NAO abre
+sem prazo -- sem horario nao ha o que fechar, e um formulario aberto sem prazo aceitaria palpite
+depois de a bola rolar.
 
 Sem este vigia, alguem teria de perceber que a CBF publicou e voltar para rodar um comando. Isso
 nao e automacao -- e um alarme na cabeca de uma pessoa. E foi exatamente essa classe de coisa que
 fez o e-mail do Powerball de 10/08 nao sair.
 
+DELIBERADAMENTE NAO AUTOMATIZADO POR CRON PARA FASES DERIVADAS. A Issue #411 decidiu, com evidencia,
+NAO automatizar a materializacao de fase derivada (quem joga contra quem) por ser rara (2x por
+torneio) e ter custo de erro assimetrico -- grava chaveamento de torneio em producao. A materializacao
+de TIME ja segue essa decisao (continua manual, via `materialize-derived-phase`). Esta ferramenta so
+grava DATA/PRAZO sobre confrontos ja materializados -- nunca decide quem avanca, nunca toca
+`qualifiedTeamId`, nunca toca scoring/entradas/pagamento -- mas, pela mesma logica de frequencia e
+custo de erro do #411, o CICLO DE PUBLICACAO DA CBF (`schedule:` cron) continua ligado SO para
+quartas. Para uma fase derivada isto roda por `workflow_dispatch` explicito (operador aciona quando
+sabe que a CBF publicou), nunca sozinho num cron -- mesmo padrao operador-controlado que o #411
+endossou como suficiente.
+
 O QUE FAZ QUANDO A TABELA APARECE
 ---------------------------------
     valida competicao/temporada/fase
-    confere os confrontos contra o officialDraw ja gravado (nao aceita chaveamento novo)
+    quartas: confere os confrontos contra o officialDraw ja gravado (nao aceita chaveamento novo)
+    fase derivada: confere os confrontos contra os ja materializados (nao aceita confronto novo)
     grava data/hora de cada jogo com proveniencia
     calcula FIRST_OFFICIAL_KICKOFF = menor kickoff das IDAS
     calcula CUTOFF = FIRST_OFFICIAL_KICKOFF - 1h
@@ -24,8 +39,8 @@ NUNCA inventa data, horario ou confronto. Sem tabela publicada, sai com exit 0 d
 WAITING_FOR_OFFICIAL_SCHEDULE -- que e um estado de negocio normal, nao uma falha.
 
 Uso:
-    python3 reconcile_official_schedule.py --dry-run
-    python3 reconcile_official_schedule.py --apply
+    python3 reconcile_official_schedule.py --dry-run [--phase quartas|semifinal|final]
+    python3 reconcile_official_schedule.py --apply [--phase quartas|semifinal|final]
 """
 import argparse
 import json
@@ -40,7 +55,11 @@ sys.path.insert(0, AQUI)
 
 import operator_cli as OP          # reusa leitura/escrita/invariantes -- um caminho de estado so
 
-FASE = "quartas"
+FASES_VALIDAS = ("quartas", "semifinal", "final")
+# Fases DERIVADAS (#410): confrontos vem de materialize-derived-phase, nao de sorteio. Mesmo mapa
+# de operator_cli.FASES_DERIVADAS, repetido aqui de proposito -- regra de plataforma: cada app so
+# le o proprio estado, nenhuma importacao entre scripts alem do operator_cli local do proprio app.
+FASES_DERIVADAS = {"semifinal": "quartas", "final": "semifinal"}
 CUTOFF_ANTES_MS = 3600000          # 1 hora, a regra de negocio
 COMPETICAO_ESPN = "bra.copa_do_brazil"
 ESPN_URL = ("https://site.api.espn.com/apis/site/v2/sports/soccer/"
@@ -122,14 +141,30 @@ def casa_confronto(ev, pares):
     return pares.get(chave), times
 
 
+def fase_esta_pronta(ties, od, derivada):
+    """Ha confrontos casaveis contra uma fonte de verdade autoritativa?
+
+    Quartas: os confrontos vem de sorteio -- sem `officialDraw.validatedAt` nao ha o que casar.
+    Fase derivada (semifinal/final): os confrontos vem de `materialize-derived-phase` (#410), que
+    ja exige topologia AUTORITATIVA antes de gravar `ties` -- a existencia de `ties` aqui JA e a
+    prova de que aquele comando (manual, nunca este script) validou o chaveamento. Nao ha
+    officialDraw equivalente para fase derivada, e exigi-lo travaria a fase para sempre.
+    """
+    return bool(ties) and (derivada or bool(od.get("validatedAt")))
+
+
 def main():
     p = argparse.ArgumentParser()
     p.add_argument("--dry-run", action="store_true")
     p.add_argument("--apply", action="store_true")
+    p.add_argument("--phase", default="quartas", choices=FASES_VALIDAS)
     p.add_argument("--actor", default="schedule-reconciler")
     a = p.parse_args()
     if not (a.dry_run or a.apply):
         p.error("escolha --dry-run ou --apply")
+
+    FASE = a.phase
+    derivada = FASE in FASES_DERIVADAS
 
     estado = OP.le_estado()
     fase = (estado.get("phases") or {}).get(FASE) or {}
@@ -137,13 +172,22 @@ def main():
     od = fase.get("officialDraw") or {}
 
     print("=" * 70)
-    print("  CDB2026 — TABELA OFICIAL DAS QUARTAS")
+    print(f"  CDB2026 — TABELA OFICIAL: {FASE.upper()}")
     print("=" * 70)
     print(f"  confrontos gravados   {len(ties)}")
-    print(f"  sorteio validado      {bool(od.get('validatedAt'))}")
+    if derivada:
+        print(f"  fase derivada de      {FASES_DERIVADAS[FASE]} (materializacao via #410, manual)")
+    else:
+        print(f"  sorteio validado      {bool(od.get('validatedAt'))}")
 
-    if not ties or not od.get("validatedAt"):
-        print("  CDB_SCHEDULE_STATUS = WAITING_FOR_OFFICIAL_DRAW")
+    # Quartas: os confrontos vem de sorteio -- sem officialDraw.validatedAt nao ha o que casar.
+    # Fase derivada: os confrontos vem de materialize-derived-phase (#410), que ja exige topologia
+    # AUTORITATIVA antes de gravar `ties` -- a existencia de `ties` aqui JA e a prova de que aquele
+    # comando (manual, nunca este script) validou o chaveamento. Nao ha officialDraw equivalente.
+    pronta = bool(ties) and (derivada or bool(od.get("validatedAt")))
+    if not pronta:
+        status = "WAITING_FOR_DERIVED_MATERIALIZATION" if derivada else "WAITING_FOR_OFFICIAL_DRAW"
+        print(f"  CDB_SCHEDULE_STATUS = {status}")
         print("  PICKS_OPEN = NO | DATA_MUTATIONS = 0")
         print("=" * 70)
         return 0
@@ -187,7 +231,7 @@ def main():
         # Publicacao PARCIAL nao serve: o prazo e o menor kickoff de TODOS. Materializar com
         # metade da tabela produziria um prazo que a proxima publicacao invalidaria.
         print("  CDB_SCHEDULE_STATUS = WAITING_FOR_OFFICIAL_SCHEDULE")
-        print("     (a CBF ainda nao publicou a tabela COMPLETA das quartas)")
+        print(f"     (a CBF ainda nao publicou a tabela COMPLETA de {FASE})")
         print("  PICKS_OPEN = NO | DATA_MUTATIONS = 0")
         print("=" * 70)
         return 0
@@ -257,7 +301,7 @@ def main():
         print("=" * 70)
         return 2
 
-    print(f"\n  ✓ TABELA MATERIALIZADA — palpites das quartas ABERTOS ate {cutoff_iso}")
+    print(f"\n  ✓ TABELA MATERIALIZADA — palpites de {FASE} ABERTOS ate {cutoff_iso}")
     print("  CDB_SCHEDULE_STATUS = MATERIALIZED | PICKS_OPEN = YES | DATA_MUTATIONS = 1")
     print("=" * 70)
     return 0

@@ -10,6 +10,15 @@
         "node bolao/shared/scripts/test_broadcast_operations.mjs",
         "node bolao/shared/scripts/test_where_to_watch.mjs"
       ]
+    },
+    {
+      "surface_id": "NOTIFICATION_WORKFLOWS",
+      "reason": "Issue #428: .github/workflows/cdb2026_schedule_watch.yml generalizado para tambem materializar DATA (nao time -- isso continua manual, #410/#411) da semifinal/final via workflow_dispatch com um novo input `phase`, alem das quartas que ja cobria.",
+      "expected_behavior_change": "O cron agendado (40 */2 * * *) continua identico e SO quartas -- nao ganhou frequencia nem escopo novo. Um disparo MANUAL (workflow_dispatch) agora pode passar phase=semifinal|final para materializar data/cutoff de uma fase ja materializada por time (materialize-derived-phase). O passo de convite (send_invitation_email.py) passa a rodar SO quando a fase resolvida for quartas -- nao dispara para fase derivada, que nao e inscricao nova.",
+      "tests_required": [
+        "python3 bolao/cdb2026/scripts/test_schedule_reconciler.py",
+        "python3 bolao/cdb2026/scripts/audit_scoring.py"
+      ]
     }
   ]
 }

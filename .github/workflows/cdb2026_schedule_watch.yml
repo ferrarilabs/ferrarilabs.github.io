@@ -1,44 +1,65 @@
-name: Bolão CDB2026 — Vigia a tabela oficial das quartas
+name: Bolão CDB2026 — Vigia a tabela oficial da fase
 
 # POR QUE ESTE WORKFLOW EXISTE
 #
-# O sorteio das quartas ja aconteceu; a CBF ainda nao publicou datas e horarios. Pela regra de
-# negocio o palpite NAO abre sem prazo -- sem horario nao ha o que fechar.
+# Nasceu so pelas quartas: o sorteio ja tinha acontecido, so faltava a CBF publicar data/hora.
+# Generalizado (Issue #428) para tambem materializar DATA de semifinal/final -- fases DERIVADAS,
+# cujos confrontos (quem joga contra quem) ja vem materializados por `materialize-derived-phase`
+# (#410, operacao MANUAL e separada). Pela regra de negocio o palpite NAO abre sem prazo -- sem
+# horario nao ha o que fechar.
 #
 # Sem este vigia, alguem teria de PERCEBER que a CBF publicou e voltar para rodar um comando.
 # Isso nao e automacao, e um alarme na cabeca de uma pessoa -- e foi exatamente essa classe de
 # dependencia que fez o e-mail do Powerball de 10/08 nao sair.
 #
 # "Ainda nao publicaram" e estado de negocio NORMAL: sai com exit 0 e nao gera e-mail de falha.
-# Payload contraditorio (confronto que nao existe no sorteio oficial) permanece vermelho.
+# Payload contraditorio (confronto que nao existe na fonte de verdade da fase) permanece vermelho.
 #
-# NAO ENVIA E-MAIL. So materializa datas/horarios e o prazo.
+# NAO ENVIA E-MAIL para fase derivada, e ENVIA (convite) so para quartas -- ver o passo de convite
+# abaixo. NUNCA materializa QUEM avanca (#410/#411 continuam manuais, de proposito: a #411 decidiu
+# NAO automatizar materializacao de fase derivada por ser rara e ter custo de erro assimetrico —
+# ver docs/bolao/CDB2026_RULES_AND_MODEL.md). Este workflow so grava data/horario/prazo.
+#
+# CRON CONTINUA SO PARA QUARTAS, DE PROPOSITO. Pela mesma logica de frequencia/custo-de-erro da
+# #411: uma materializacao de DATA de fase derivada acontece no maximo 2x por torneio -- nao
+# justifica um cron proprio, e ligar um cron novo por fase seria a mesma classe de automacao que a
+# #411 recusou para o avanco de time, so que para a data. Semifinal/final rodam por
+# `workflow_dispatch` explicito (operador aciona quando sabe que a CBF publicou).
 
 on:
   schedule:
-    # De 2 em 2 horas. A publicacao pode sair a qualquer hora do dia; de 2 em 2 horas a janela
-    # maxima de atraso e pequena perto do intervalo ate o primeiro jogo (semanas), e o custo por
-    # execucao e uma consulta. Cadencia menor seria polling por ansiedade.
+    # De 2 em 2 horas, SO QUARTAS (ver nota acima). A publicacao pode sair a qualquer hora do dia;
+    # de 2 em 2 horas a janela maxima de atraso e pequena perto do intervalo ate o primeiro jogo
+    # (semanas), e o custo por execucao e uma consulta. Cadencia menor seria polling por ansiedade.
     - cron: '40 */2 * * *'
   workflow_dispatch:
     inputs:
+      phase:
+        description: "Fase a reconciliar (so importa no disparo manual — o agendado e sempre quartas)"
+        required: false
+        default: "quartas"
+        type: choice
+        options:
+          - quartas
+          - semifinal
+          - final
       apply:
         description: "Materializar de verdade (sem isto, dry-run)"
         required: false
         default: false
         type: boolean
       correction:
-        description: "CORRECAO DE ACESSO: rotaciona os tokens e reenvia (evento de negocio proprio)"
+        description: "CORRECAO DE ACESSO: rotaciona os tokens e reenvia (evento de negocio proprio, so quartas)"
         required: false
         default: false
         type: boolean
       only_missing:
-        description: "So quem NAO tem credencial viva (nao rotaciona quem ja esta com link bom)"
+        description: "So quem NAO tem credencial viva (nao rotaciona quem ja esta com link bom, so quartas)"
         required: false
         default: false
         type: boolean
       key_version:
-        description: "Versao da chave de negocio (subir = decisao deliberada de reenviar)"
+        description: "Versao da chave de negocio (subir = decisao deliberada de reenviar, so quartas)"
         required: false
         default: "1"
         type: string
@@ -60,6 +81,15 @@ jobs:
         with:
           python-version: '3.11'
 
+      # A fase alvo vira OUTPUT (nao so variavel de shell do passo) porque o passo de convite,
+      # mais abaixo, precisa dela no proprio `if:` -- convite so faz sentido para quartas.
+      - name: Resolve a fase alvo
+        id: fase
+        run: |
+          FASE="quartas"
+          [ "${{ github.event_name }}" = "workflow_dispatch" ] && FASE="${{ inputs.phase || 'quartas' }}"
+          echo "fase=$FASE" >> "$GITHUB_OUTPUT"
+
       - name: Reconcilia a tabela oficial
         working-directory: bolao/cdb2026/scripts
         env:
@@ -71,9 +101,9 @@ jobs:
           # No agendado, materializa de verdade: o objetivo do vigia e a transicao acontecer
           # sozinha. O dry-run existe para o disparo manual.
           [ "${{ github.event_name }}" = "schedule" ] && MODO="--apply"
-          python3 reconcile_official_schedule.py $MODO
+          python3 reconcile_official_schedule.py $MODO --phase "${{ steps.fase.outputs.fase }}"
 
-      # O convite vem COLADO na materializacao, de proposito.
+      # O convite vem COLADO na materializacao, de proposito -- MAS SO PARA QUARTAS.
       #
       # Abrir os palpites e avisar quem pode palpitar sao a mesma acao vista de dois lados. Se
       # ficarem em workflows separados existe uma janela em que o formulario esta aberto e
@@ -81,7 +111,15 @@ jobs:
       # propria entrada sem o link do convite: o navegador nao enxerga mais e-mail de ninguem.
       # Abrir sem convidar seria publicar uma porta sem entregar a chave.
       #
-      # Rodar sempre e seguro porque o script tem duas travas independentes:
+      # Isso vale para a INSCRICAO inicial (quartas). Semifinal/final nao sao inscricao nova --
+      # sao os MESMOS participantes preenchendo mais uma vaga na mesma entrada ja existente
+      # (docs/bolao/CDB2026_RULES_AND_MODEL.md, "Palpite de semifinal/final: o placar migra por
+      # VAGA"), com o MESMO link de convite que ja tem na mao. `send_invitation_email.py` nunca
+      # reemite para quem ja tem credencial viva -- entao rodar para fase derivada nao enviaria
+      # nada de qualquer forma, mas o guard fica explicito aqui em vez de depender so daquela
+      # trava interna.
+      #
+      # Rodar sempre (para quartas) e seguro porque o script tem duas travas independentes:
       #   1. sem `cutoffAt` publicado ele RECUSA (regra 50) e sai com 3
       #   2. quem ja tem credencial viva nao e convidado de novo (reemitir invalidaria o link
       #      que a pessoa tem na mao)
@@ -91,6 +129,7 @@ jobs:
       # chamada ao provedor. Duas camadas porque uma so depende de quem edita o YAML lembrar.
       - name: Disjuntor de e-mail do CDB
         id: killswitch
+        if: steps.fase.outputs.fase == 'quartas'
         run: |
           if [ -f bolao/cdb2026/EMAIL_KILL_SWITCH ]; then
             echo "ativo=true" >> "$GITHUB_OUTPUT"
@@ -101,7 +140,7 @@ jobs:
           fi
 
       - name: Convida quando (e so quando) o prazo estiver publicado
-        if: steps.killswitch.outputs.ativo != 'true'
+        if: steps.fase.outputs.fase == 'quartas' && steps.killswitch.outputs.ativo != 'true'
         working-directory: bolao/cdb2026/scripts
         env:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
