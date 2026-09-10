@@ -28,10 +28,14 @@
  * (`sf-1`/`sf-2`), nunca sob o id real — o único caminho que existiu de verdade neste torneio —,
  * e prova tanto a EXIBIÇÃO quanto a PONTUAÇÃO (`scoreEntry`, via o app carregado no navegador).
  *
- * TAMBÉM cobre `predictedPodiumDisplay()` (mesmo dia, pedido em seguida: "faz igual a copa do
- * mundo, bota entre parentesis o time que foi selecionado mas nao passou"): quando a semifinal que
- * alimentaria o campeão/vice previsto já está DECIDIDA e o time real diverge do palpite, "Ver
- * palpites" mostra o time REAL com o eliminado entre parênteses — display apenas, nunca pontuação.
+ * TAMBÉM cobre `finalSideLabels()` (mesmo dia, pedido em seguida: "faz igual a copa do mundo,
+ * bota entre parentesis o time que foi selecionado mas nao passou"). PRIMEIRA versão (errada)
+ * botava o parêntese direto nas linhas "Campeão"/"Vice" -- conferido contra dado REAL de produção
+ * da Copa do Mundo: o resumo de pódio de lá (`.picks-podium`) é SEMPRE puro, sem parêntese; quem
+ * tem o parêntese é a LINHA do confronto na tabela de partidas. Corrigido: campeão/vice
+ * continuam sempre o palpite puro (nunca recalculados — "mesmo que incorreto" preservado), e uma
+ * linha nova de confronto da final ganha o parêntese quando a semifinal correspondente já decidiu
+ * diferente do palpite.
  *
  * HERMÉTICO: servidor estático local, sem rede, sem dado de participante real (nomes sintéticos).
  *
@@ -131,6 +135,9 @@ ESTADO.entries = [{
     },
   },
 }];
+// Placar da final: sem isso a linha de confronto da final (finalSideLabels()) não tem o que
+// mostrar e não aparece.
+ESTADO.entries[0].picks.matches["final-1"] = { goalsHome: 1, goalsAway: 0 };
 ESTADO.paid = { e1: true };
 
 const srv = await startStaticServer(PORT, RAIZ);
@@ -181,14 +188,17 @@ try {
     assert(rows?.some(r => r[0]?.includes("Campeão") && r[1] === "Alfa"),
       `linhas: ${JSON.stringify(rows)}`));
 
+  test("LEGACY_RUNNERUP_RESOLVES — vice previsto continua o palpite puro, nunca recalculado", () =>
+    assert(rows?.some(r => r[0]?.includes("Vice") && r[1] === "Epsilon"),
+      `linhas: ${JSON.stringify(rows)}`));
+
   // sf-2 (real-epsilon_theta) já está DECIDIDO e discorda do palpite: quem passou de verdade foi
-  // Theta, não Epsilon (que o participante escolheu). Igual à Copa do Mundo
-  // (resolvedTeamsForEntryDisplay(), Eduardo 2026-09-10 "bota entre parentesis o time que foi
-  // selecionado mas nao passou"): mostra o time REAL, com o time selecionado mas eliminado entre
-  // parênteses -- só exibição, nunca pontuação (ver LEGACY_SCORING_SF2_TIE_BONUS_MISS abaixo, que
-  // confere que o bônus continua avaliando o palpite puro).
-  test("LEGACY_RUNNERUP_SHOWS_REAL_TEAM_WITH_ELIMINATED_PICK_IN_PARENS", () =>
-    assert(rows?.some(r => r[0]?.includes("Vice") && r[1] === "Theta (Epsilon)"),
+  // Theta, não Epsilon (que o participante escolheu). Igual à Copa do Mundo (conferido contra
+  // dado real de produção, Eduardo 2026-09-10 "bota entre parentesis o time que foi selecionado
+  // mas nao passou"): a LINHA de confronto da final (nunca o resumo de campeão/vice, que lá
+  // também é sempre puro) mostra o time REAL, com o selecionado mas eliminado entre parênteses.
+  test("FINAL_MATCH_ROW_SHOWS_REAL_TEAM_WITH_ELIMINATED_PICK_IN_PARENS", () =>
+    assert(rows?.some(r => r[0]?.includes("Alfa") && r[0]?.includes("Theta (Epsilon)")),
       `linhas: ${JSON.stringify(rows)}`));
 
   // O PONTO MAIS CRÍTICO: pontuação real, não só exibição. sf-1 acerta placar exato nas duas

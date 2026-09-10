@@ -28,10 +28,18 @@
  * `page.addInitScript()` fica registrado na página e roda de novo em TODA navegação, inclusive
  * reload — reescrevendo o localStorage com o estado ORIGINAL (sem a mutação) antes do app carregar,
  * fazendo a asserção "passar" mesmo que a divergência nunca tivesse existido para o app. Corrigido
- * com uma segunda página/navegação, já com o estado mutado desde o load inicial (sem reload). Esse
- * mesmo achado também é o motivo de agora existir `predictedPodiumDisplay()` (Eduardo, mesmo dia,
- * "faz igual a copa do mundo, bota entre parentesis o time que foi selecionado mas nao passou") —
- * a asserção corrigida cobre o parêntese, não mais o palpite puro sem indicação nenhuma.
+ * com uma segunda página/navegação, já com o estado mutado desde o load inicial (sem reload).
+ *
+ * Esse mesmo achado também é o motivo de existir `finalSideLabels()` (Eduardo, mesmo dia: "faz
+ * igual a copa do mundo, bota entre parentesis o time que foi selecionado mas nao passou").
+ * PRIMEIRA versão (errada) botava o parêntese direto nas linhas "Campeão"/"Vice" -- conferido
+ * contra dado REAL de produção da Copa do Mundo (23 entradas reais, torneio concluído): o resumo
+ * de pódio da Copa (`.picks-podium`/`finalPodiumForEntry()`) é SEMPRE puro, sem parêntese nenhum
+ * ("🥇 Argentina", mesmo quando o caminho até lá teve um palpite errado) -- o parêntese vive só na
+ * LINHA do confronto na tabela de partidas (M104 mostrou "Spain (France)" para quem errou o
+ * caminho). Corrigido: campeão/vice voltam a ser sempre o palpite puro
+ * (`predictedPodium()`/`scoreEntry()`, nunca alterados nesta issue), e uma linha nova de
+ * confronto ("Final: ladoA × ladoB") ganhou o parêntese, no lugar certo.
  *
  * HERMETICO: servidor estático local, sem rede, sem dado de participante real (nomes/emails
  * sintéticos, ver docs/bolao/SECURITY.md "Commit-message PII prevention").
@@ -102,12 +110,14 @@ const ESTADO = {
 };
 
 // Uma entrada que palpitou Delta campeã (perdendo a final para quem escolheu Epsilon) -- picks
-// pelo id REAL da semifinal (o único caminho possível neste torneio, ver cabeçalho).
+// pelo id REAL da semifinal (o único caminho possível neste torneio, ver cabeçalho). Inclui um
+// placar para a final (picks.matches["final-1"]) -- sem isso a linha de confronto da final
+// (finalSideLabels(), ver #428 mais abaixo) não tem o que mostrar e não aparece.
 ESTADO.entries = [{
   id: "e1", entryName: "Participante Um", payerName: "Participante Um",
   paymentMethod: "CashApp", participantEmail: "participante.um@example.invalid",
   createdAt: "2020-01-01T00:00:00.000Z",
-  picks: { matches: {}, qualified: {
+  picks: { matches: { "final-1": { goalsHome: 2, goalsAway: 1 } }, qualified: {
     "fix-alfa_delta": "B",       // Delta avança
     "fix-epsilon_theta": "A",    // Epsilon avança
     "final-1": "A",              // Delta (lado A da final) é campeã, no palpite
@@ -219,14 +229,23 @@ try {
   });
   await page2.close();
 
-  // DISPLAY apenas (predictedPodiumDisplay(), pedido de Eduardo em seguida no mesmo dia: "faz
-  // igual a copa do mundo, bota entre parentesis o time que foi selecionado mas nao passou"):
-  // agora que o resultado real da semifinal diverge do palpite e é CONHECIDO, "Ver palpites"
-  // troca a exibição para o time REAL, com o eliminado (o que a pessoa escolheu) entre parênteses.
-  test("PREDICTED_CHAMPION_SHOWS_REAL_TEAM_WITH_ELIMINATED_PICK_IN_PARENS", () =>
-    assert(detailAposResultado?.some(r => r[0]?.includes("Campeão") && r[1] === "Alfa (Delta)"),
-      `o palpite de campeão não ganhou o parêntese esperado depois do resultado real divergir: ` +
-      `${JSON.stringify(detailAposResultado)}`));
+  // O campeão previsto continua "Delta" mesmo agora -- confirma de novo, já contra o estado com
+  // resultado real divergente, que scoreEntry()/predictedPodium() (usados aqui) nunca recalculam
+  // o palpite a partir da realidade.
+  test("PREDICTED_CHAMPION_STILL_DELTA_AFTER_REAL_RESULT — campeão previsto não muda", () =>
+    assert(detailAposResultado?.some(r => r[0]?.includes("Campeão") && r[1] === "Delta"),
+      `linhas: ${JSON.stringify(detailAposResultado)}`));
+
+  // DISPLAY apenas (finalSideLabels(), pedido de Eduardo em seguida no mesmo dia: "faz igual a
+  // copa do mundo, bota entre parentesis o time que foi selecionado mas nao passou" -- conferido
+  // contra dado real de produção da Copa do Mundo: o parêntese vive na LINHA do confronto (M104
+  // no "Ver palpites" da Copa), nunca no resumo de campeão/vice, que lá também é sempre puro).
+  // Agora que o resultado real da semifinal diverge do palpite e é CONHECIDO, a linha de
+  // confronto da final troca a exibição para o time REAL, com o eliminado entre parênteses.
+  test("FINAL_MATCH_ROW_SHOWS_REAL_TEAM_WITH_ELIMINATED_PICK_IN_PARENS", () =>
+    assert(detailAposResultado?.some(r => r[0]?.includes("Alfa (Delta)") && r[0]?.includes("Epsilon")),
+      `a linha de confronto da final não ganhou o parêntese esperado depois do resultado real ` +
+      `divergir: ${JSON.stringify(detailAposResultado)}`));
 
   await page.screenshot({ path: "/tmp/test_final_podium_after_materialization.png", fullPage: true }).catch(() => {});
 } finally {

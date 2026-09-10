@@ -1,5 +1,62 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.149 — v3.148 botava o parêntese no lugar errado, e vazou um `console.log` de debug (#428)
+
+Eduardo, depois do v3.148 estar no ar: "A IMPLEMENTACAO DO TIME ESCOLHIDO ENTRE PARENTESIS AINDA
+NAO ESTA BATENDO IGUAL A COPA DO MUNDO."
+
+**Dois problemas reais, achados investigando esta mensagem:**
+
+**1. Vazamento de debug em produção.** O v3.148 foi commitado e implantado com um
+`console.log('DEBUG_PPD', ...)` esquecido dentro de `predictedPodiumDisplay()` — sobrou de uma
+sessão de depuração anterior (investigando por que `qualifiedTeamId` não sobrevivia a um
+`page.reload()` num teste) e o revert daquela sessão restaurou o backup errado. Regra permanente
+do CLAUDE.md ("Deixar `console.log` esquecido em código de produção") violada na prática, não só
+em tese — confirmado com `git show HEAD:bolao/cdb2026/js/app.js | grep DEBUG_PPD` batendo antes
+desta correção. Removido.
+
+**2. O parêntese estava na linha errada.** O v3.148 colocava `"<real> (<palpite>)"` direto nas
+linhas "🏆 Campeão"/"🥈 Vice" de "Ver palpites". Verificação contra o CÓDIGO da Copa do Mundo
+tinha sugerido isso, mas o código sozinho enganou: só ficou claro carregando o ESTADO REAL de
+produção da Copa (23 entradas reais, torneio já concluído) num navegador de verdade e comparando
+as DUAS seções que a Copa mostra.
+
+- **Resumo de pódio da Copa** (`.picks-podium`, `finalPodiumForEntry()` →
+  `resolvedTeamsForEntry()`, SEM parêntese): uma entrada real com M104 mostrou **"🥇 Argentina"**
+  puro — mesmo tendo errado o caminho até ali (escolheu França na M101, quem passou foi a
+  Espanha).
+- **Linha de confronto M104 na tabela de partidas** (`resolvedTeamsForEntryDisplay()`,
+  `bolao/copa2026/js/app.js:838`, COM parêntese): a MESMA entrada, na MESMA "Ver palpites",
+  mostrou **"Spain (France)"** como cabeçalho do confronto.
+
+São duas coisas diferentes na Copa: o resumo de pódio nunca leva parêntese; só a linha do
+confronto leva. `finalPodiumForEntry()` usa deliberadamente a versão SEM parêntese
+(`resolvedTeamsForEntry`), nunca a versão COM (`resolvedTeamsForEntryDisplay`).
+
+**Correção:**
+
+- `predictedPodiumDisplay()` removida. As linhas "🏆 Campeão"/"🥈 Vice" voltam a usar
+  `predictedPodium()` puro (igual a `scoreEntry()`) — sempre o palpite exato, nunca recalculado,
+  nunca com parêntese. Preserva o pedido anterior de Eduardo ("mesmo que incorreto, time não
+  avançou") exatamente como já estava certo antes do v3.148.
+- Nova `finalSideLabels(s, picks)`: para cada lado da final, resolve o time que o participante
+  previu (pelo próprio palpite de quem vence a semifinal correspondente) e, quando essa semifinal
+  já tem resultado real que diverge, troca para `"<real> (<previsto>)"` — a mesma técnica da Copa,
+  agora no lugar certo.
+- Nova LINHA de confronto em "Ver palpites" (`renderPickDisplay()`), equivalente à linha M104 da
+  Copa: aparece quando a final ainda não foi materializada por time mas o participante já digitou
+  um placar para ela (`picks.matches["final-1"]`), mostrando os dois lados via
+  `finalSideLabels()` e o placar que a pessoa apostou. Depois que a final materializa de verdade,
+  esta linha some sozinha — o loop principal já mostra a linha real (mesmo mecanismo de id legado
+  do #428, que já cobre a fase `final` genericamente desde v3.147).
+
+**Testes atualizados** (`test_legacy_derived_pick_continuity.mjs`,
+`test_final_podium_after_materialization.mjs`): campeão/vice voltam a esperar o palpite puro; o
+parêntese agora é conferido na linha de confronto da final, não no resumo de pódio.
+
+`audit_scoring.py` (3 apps) e `audit_golden_master.mjs`: PASSARAM — nenhuma constante, fórmula ou
+função de pontuação mudou; só onde/como "Ver palpites" rotula o confronto da final.
+
 ## v3.148 — time eliminado entre parênteses em "Ver palpites", igual à Copa do Mundo (#428)
 
 Eduardo, logo depois do v3.147: "faz igual a copa do mundo, bota entre parentesis o time que foi

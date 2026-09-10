@@ -2094,32 +2094,38 @@ function predictedPodium(entry, s) {
            runnerUp: pick === "A" ? tie.teamB : tie.teamA };
 }
 
-// "Ver palpites" DISPLAY apenas -- NUNCA usado para pontuação. `scoreEntry()` continua comparando
-// `predictedPodium()` puro contra `officialPodium()`, sem nenhum parêntese: o bônus de
-// campeão/vice tem de continuar batendo com o time exato que a pessoa escolheu, e essa função não
-// muda esse valor em nenhum lugar.
+// "Ver palpites" DISPLAY apenas -- devolve, para cada LADO da final (A/B), o rótulo do confronto
+// ainda não materializado: o time que o participante acha que chega lá (pelo próprio palpite de
+// quem vence a semifinal correspondente) e, quando essa semifinal já tem resultado real que
+// DIVERGE desse palpite, o time REAL com o selecionado-mas-eliminado entre parênteses.
 //
-// Mesma técnica da Copa do Mundo (`resolvedTeamsForEntryDisplay()`,
-// bolao/copa2026/js/app.js:838): quando o time que a pessoa escolheu como campeão/vice já foi
-// ELIMINADO de verdade (a semifinal que o levaria à final já tem `qualifiedTeamId` decidido, e o
-// vencedor real é outro), mostra o time REAL que ocupa aquela vaga hoje, com o time selecionado
-// mas que NÃO PASSOU entre parênteses. Eduardo, 2026-09-10: "faz igual a copa do mundo, bota entre
-// parentesis o time que foi selecionado mas nao passou". Continua mostrando o palpite puro (sem
-// parêntese) quando a semifinal correspondente ainda não foi decidida -- "mesmo que incorreto,
-// time não avançou" (mesma regra de #428) só ganha o parêntese quando a eliminação já é FATO, não
-// suposição.
-function predictedPodiumDisplay(entry, s) {
-  const predicted = predictedPodium(entry, s);
-  console.log('DEBUG_PPD', JSON.stringify({predicted, semiTies: Object.values(s?.phases?.semifinal?.ties||{}).map(t=>({teamA:t.teamA,teamB:t.teamB,qualifiedTeamId:t.qualifiedTeamId}))}));
-  const semiTies = Object.values(s?.phases?.semifinal?.ties || {});
-  const comResultadoReal = (team) => {
-    if (!team) return team;
-    const tie = semiTies.find(t => t.teamA === team || t.teamB === team);
-    if (!tie || !tie.qualifiedTeamId) return team; // ainda sem resultado real, ou nem veio de semifinal
-    const real = tie.qualifiedTeamId === "A" ? tie.teamA : tie.teamB;
-    return real !== team ? `${real} (${team})` : team;
-  };
-  return { champion: comResultadoReal(predicted.champion), runnerUp: comResultadoReal(predicted.runnerUp) };
+// CORRIGIDO (2026-09-10, mesmo dia): a primeira versão disto aplicava o parêntese direto nas
+// linhas "🏆 Campeão"/"🥈 Vice" -- errado. Conferido contra dado REAL de produção da Copa do
+// Mundo (23 entradas reais, torneio já concluído): o resumo de pódio da Copa
+// (`.picks-podium`/`finalPodiumForEntry()`, que usa `resolvedTeamsForEntry()` SEM parêntese)
+// nunca leva parêntese -- ex. real: uma entrada com palpite de M101 errado (escolheu França,
+// passou a Espanha) mostrou "🥇 Argentina" puro no pódio, mas a LINHA do confronto M104 na tabela
+// de partidas mostrou "Spain (France)" -- times reais da vaga, com o palpite errado entre
+// parênteses. É `resolvedTeamsForEntryDisplay()` (bolao/copa2026/js/app.js:838), usada só nas
+// LINHAS de confronto, nunca no resumo de pódio. `predictedPodium()` (usada tanto em
+// `scoreEntry()` quanto direto nas linhas de campeão/vice abaixo) continua puro, sem nenhuma
+// mudança -- "mesmo que incorreto, time não avançou" continua mostrando o palpite exato, sempre.
+// Esta função alimenta uma linha de CONFRONTO separada (ver renderPickDisplay()), o equivalente
+// da linha M104 da Copa -- não o resumo de campeão/vice.
+function finalSideLabels(s, picks) {
+  const semi = virtualDerivedTies(s, "semifinal", picks);
+  const slots = [...semi.ties.map(([id]) => id), ...semi.pendentes.map(p => p.slotId)].sort();
+  if (slots.length !== 2) return null;
+  const legado = legacyDerivedTieIds(s, "semifinal");
+  const lados = slots.map(id => {
+    const tie = (semi.ties.find(([tid]) => tid === id) || [])[1];
+    const escolhido = pickByTieId(picks?.qualified, id, legado);
+    if (!tie || !(escolhido === "A" || escolhido === "B")) return null;
+    const predicted = escolhido === "A" ? tie.teamA : tie.teamB;
+    const real = tie.qualifiedTeamId ? (tie.qualifiedTeamId === "A" ? tie.teamA : tie.teamB) : null;
+    return { label: (real && real !== predicted) ? `${real} (${predicted})` : predicted, team: predicted };
+  });
+  return (lados[0] && lados[1]) ? lados : null;
 }
 
 // ─── Per-tie picks (palpite por partida) ────────────────────────────────────
@@ -3348,9 +3354,23 @@ function renderPickDisplay(entry, detail) {
     });
   });
 
-  // DISPLAY apenas -- ver comentário de predictedPodiumDisplay(). scoreEntry()/detail (usados
-  // abaixo só para a coluna de pontos) continuam vindo do predictedPodium() puro, sem parêntese.
-  const predicted = predictedPodiumDisplay(entry, s);
+  // Linha do confronto da FINAL -- equivalente à linha M104 da Copa (ver finalSideLabels() acima).
+  // Só faz sentido enquanto a final ainda NÃO foi materializada por time: depois disso o loop
+  // principal acima (flatLegsChronological) já mostra a linha real, com o id legado resolvido
+  // pelo mesmo mecanismo de #428. Só aparece se a pessoa já digitou um placar para ela.
+  if (!Object.keys(s.phases?.final?.ties || {}).length) {
+    const lados = finalSideLabels(s, entry.picks || {});
+    const p = entry.picks?.matches?.["final-1"];
+    if (lados && p && p.goalsHome != null && p.goalsAway != null) {
+      rows.push(`<tr><td>${esc(lados[0].label)} × ${esc(lados[1].label)}</td><td><b>${p.goalsHome} × ${p.goalsAway}</b></td><td>—</td><td style="text-align:center">${ptsCell(null)}</td></tr>`);
+    }
+  }
+
+  // Campeão/vice previstos -- SEMPRE o palpite exato (predictedPodium() puro, igual a
+  // scoreEntry()), nunca com parêntese: mesma regra que o resumo de pódio da Copa
+  // (`.picks-podium`/`finalPodiumForEntry()`) segue -- ver finalSideLabels() acima para onde o
+  // parêntese realmente vive.
+  const predicted = predictedPodium(entry, s);
   const bonusRow = (label, team, d) => team
     ? `<tr><td>${esc(label)}</td><td>${esc(team)}</td><td>—</td><td style="text-align:center">${ptsCell(d)}</td></tr>`
     : "";
