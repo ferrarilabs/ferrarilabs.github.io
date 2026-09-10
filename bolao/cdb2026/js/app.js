@@ -442,6 +442,17 @@ function DERIVED_PHASES_PREDECESSOR_OF_TIE(s, tieId) {
 // tela mostra a dependencia ("Vencedor de X"), nunca um clube inventado.
 function virtualDerivedTies(s, phaseId, livePicks) {
   if (phaseId === "semifinal") {
+    // Fase JA materializada por time (materialize-derived-phase, #410): usa os confrontos REAIS,
+    // com os MESMOS ids que renderPickForm() usa para os palpites de verdade (espn-<time>_<time>),
+    // em vez de recalcular por topologia -- que produziria ids de slot (sf-1/sf-2) DIFERENTES dos
+    // ids reais. Achado real (#428, 2026-09-10): sem isto, `predictedPodium()` nunca resolvia
+    // campeão/vice de NENHUM participante, porque o palpite de qualificação real é sempre salvo
+    // sob o id real (o único caminho possível neste torneio -- a topologia só foi registrada
+    // 2026-09-05, DEPOIS do prazo original das quartas, então ninguém nunca palpitou pelo id de
+    // slot). O fallback por topologia abaixo continua existindo para quando a fase ainda não foi
+    // materializada por time.
+    const reais = Object.entries(s?.phases?.semifinal?.ties || {});
+    if (reais.length) return { topologyKnown: true, ties: reais, pendentes: [] };
     const view = derivedPhaseView(s, phaseId);
     if (!view.topologyKnown) return { topologyKnown: false, ties: [], pendentes: [] };
     const ties = [], pendentes = [];
@@ -2176,7 +2187,13 @@ function atualizaFasesDerivadas() {
   if (mudou.length) {
     const alcance = new Set(mudou);
     // A final depende das duas semifinais: mexeu em qualquer uma, o palpite da final cai junto.
-    if (mudou.some(id => id.startsWith("sf-"))) alcance.add("final-1");
+    //
+    // Verifica contra os ids REAIS de phases.semifinal.ties (nao mais um prefixo "sf-" fixo).
+    // Antes da materializacao por time (#410) a semifinal so existia por topologia, com ids de
+    // slot (sf-1/sf-2); depois, os ids viram os reais (espn-<time>_<time>) -- mesma mudanca de
+    // #428 em virtualDerivedTies(). Um prefixo fixo pararia de casar depois da materializacao.
+    const idsSemifinal = new Set(Object.keys(s?.phases?.semifinal?.ties || {}));
+    if (mudou.some(id => id.startsWith("sf-") || idsSemifinal.has(id))) alcance.add("final-1");
     for (const tieId of alcance) {
       delete _picksEmMemoria.matches[tieId];
       delete _picksEmMemoria.qualified[tieId];

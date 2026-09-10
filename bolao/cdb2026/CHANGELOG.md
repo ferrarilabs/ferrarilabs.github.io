@@ -1,5 +1,105 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.146 — campeão/vice previsto parava de resolver depois que a semifinal virava confronto real (#428)
+
+Eduardo: "igual da copa do mundo, também precisa mostrar quem cada um marcou campeão e vice, mesmo
+que incorreto (time não avançou)". Ao verificar isso contra um espelho dos dados reais de produção
+(não uma fixture inventada), a seção de campeão/vice em "Ver palpites" apareceu **vazia** para uma
+entrada de teste com palpite completo — um bug real, não uma feature faltando.
+
+**Causa raiz.** `virtualDerivedTies(s, "final", picks)` monta o bracket da final a partir da
+semifinal *virtual* (`virtualDerivedTies(s, "semifinal", ...)`), que sempre recalculava por
+topologia — usando ids de **slot** (`sf-1`/`sf-2`). Isso era correto enquanto a semifinal nunca
+tinha sido materializada por time. Mas desde que `materialize-derived-phase` (#410) grava os
+confrontos **reais** (ids `espn-<time>_<time>`), `renderPickForm()` passa a salvar o palpite de
+classificação sob o id **real** — nunca mais sob `sf-1`. Neste torneio a topologia só foi
+registrada em 2026-09-05, **depois** do prazo original das quartas — então nenhum participante
+jamais teve a chance de palpitar pelo id de slot; o único id possível, desde sempre, é o real.
+
+**Efeito sem a correção:** `predictedPodium()` nunca encontrava o palpite de campeão/vice de
+ninguém — silenciosamente, sem erro. Isso não afetava só a exibição: `scoreEntry()` usa a MESMA
+função para o bônus real de campeão (30 pts) e vice (20 pts), então o bug teria zerado esse bônus
+para todo mundo no dia da final, sem nenhum sinal de que algo estava errado.
+
+**Correção:** `virtualDerivedTies()` agora prefere os confrontos REAIS da semifinal quando já
+materializados (mesmos ids que o formulário de palpites usa), caindo no cálculo por topologia
+só quando a fase ainda não foi materializada por time — comportamento antigo preservado
+integralmente para esse caso (32/32 em `test_bracket_browser.mjs`, que cobre exatamente esse
+cenário). A verificação `atualizaFasesDerivadas()` (invalidação ao vivo durante edição) também
+tinha o mesmo prefixo fixo `"sf-"` hardcoded — corrigida para checar contra os ids reais também.
+
+**Confirmação de que "mesmo que incorreto" funciona:** novo teste
+(`test_final_podium_after_materialization.mjs`) simula um resultado real de semifinal que
+DISCORDA do palpite do participante e confirma que "Ver palpites" continua mostrando o campeão
+**palpitado**, nunca recalculado a partir do resultado real — exatamente o comportamento pedido.
+
+`audit_scoring.py`: PASSOU — nenhuma constante nem fórmula de scoring mudou, só a resolução do
+palpite de campeão/vice voltou a encontrar o dado certo.
+
+## 2026-09-10 — semifinal aberta para palpites; topologia da final registrada (#428, sem bump de siteVersion — scripts/workflow só)
+
+Eduardo, depois de confirmar as datas da semifinal: as quartas já estão 100% decididas (4/4
+resultados), então avançar a fase é seguro. Três operações manuais executadas (mesmo padrão
+`--dry-run` → conferir → `--apply` de sempre), nenhum código de app tocado:
+
+- **`open-picks --phase semifinal`**: `espnSync.activePhaseId` avançou de `quartas` para
+  `semifinal`. Antes disso, mesmo com data/cutoff já materializados (ver entrada anterior desta
+  data), a aba "Palpites" inteira mostrava "PALPITES ENCERRADOS" e escondia o formulário — porque
+  o banner de prazo lê `activePhaseId`, não o cutoff de cada fase individualmente. Confirmado por
+  render real (servidor local + fixture com os dados reais de produção, sem tocar em entrada de
+  participante): antes do `open-picks`, `#pickForm` existia no DOM com o conteúdo certo mas
+  ficava sem `offsetParent` (invisível); depois, visível.
+- **`bolao_provider_snapshot.yml --app cdb2026`**: o snapshot commitado da ESPN
+  (`bolao/cdb2026/data/espn-normalized.json`) estava parado em 2026-09-05, antes da semifinal
+  existir. Atualizado para incluir os jogos de 01/11 e 08/11.
+- **`backfill-venue`**: preenche `venue`/`city` da semifinal a partir do snapshot agora
+  atualizado. Não sobrescreve local já gravado, não toca kickoff/placar/status/classificação.
+
+**Topologia da final registrada** (`register_final_topology.py`, novo comando
+`register-final-topology` no `cdb2026_operator.yml`): Eduardo — "não haverá mais sorteio e tudo
+está definido igual na Copa do Mundo". A partir da semifinal isso é literalmente verdade: com
+exatamente duas semifinais, a final só pode ser entre as duas vencedoras — um fato estrutural do
+formato eliminatório, não uma decisão de sorteio como foi o caminho quartas→semifinal (que por
+isso exigiu duas fontes jornalísticas independentes, `register_semifinal_topology.py`). O novo
+script valida isso explicitamente (recusa se `phases.semifinal.ties` não tiver exatamente 2
+confrontos) e não inventa vencedor — quem de fato chega na final continua vindo de
+`qualifiedTeamId`, via `materialize-derived-phase` (#410), separado e posterior. Com a topologia
+registrada, "Ver palpites" já pode mostrar a vaga da final como confronto VIRTUAL previsível
+(`virtualDerivedTies()`), igual ao mecanismo que a Copa do Mundo sempre usou — sem esperar a
+semifinal ser jogada.
+
+`audit_scoring.py`: PASSOU — nenhuma mudança de scoring, entradas ou pagamento nesta entrada.
+
+## 2026-09-10 — vigia da tabela oficial generalizado para semifinal/final (#428, sem bump de siteVersion — scripts/workflow só)
+
+CBF publicou a tabela da semifinal. `reconcile_official_schedule.py` (que já materializava
+data/horário/prazo das quartas sozinho, via `.github/workflows/cdb2026_schedule_watch.yml`) agora
+aceita `--phase quartas|semifinal|final`. Generalização MÍNIMA e deliberadamente conservadora:
+
+- **O que muda:** o script materializa data/hora/prazo (`cutoffAt`) de uma fase já com confrontos
+  materializados — nunca decide quem avança, nunca toca `qualifiedTeamId`, nunca toca
+  scoring/entradas/pagamento. Fase derivada (semifinal/final) usa como portão a própria existência
+  de `ties` (que só existe depois de `materialize-derived-phase`, #410, já ter exigido topologia
+  autoritativa) em vez de `officialDraw.validatedAt`, que fase derivada nunca tem.
+- **O que NÃO muda:** o cron agendado (`40 */2 * * *`) continua rodando SÓ para quartas, sem
+  ganhar frequência nem escopo novo. Isso é deliberado, não uma limitação esquecida — a Issue #411
+  decidiu, com evidência, NÃO automatizar a materialização de fase derivada (rara: no máximo 2x
+  por torneio; custo de erro assimétrico), e essa mesma lógica de frequência/custo se aplica à
+  automação da DATA. Semifinal/final rodam por `workflow_dispatch` manual (`phase=semifinal` ou
+  `phase=final`), nunca sozinhas num cron.
+- **Convite por e-mail:** roda só quando a fase resolvida é quartas. Semifinal/final não são
+  inscrição nova — são o mesmo participante preenchendo mais uma vaga na mesma entrada, com o
+  mesmo link de convite que já tem.
+- **Esclarecimento de regra (sem mudança de código):** documentado em
+  `docs/bolao/CDB2026_RULES_AND_MODEL.md` que o placar palpitado para uma vaga de semifinal/final
+  migra pela VAGA do chaveamento, não pelo nome do time — se alguém apostou no Internacional e
+  quem se classificou foi o Grêmio, o placar digitado continua valendo, agora contado contra o
+  Grêmio. Comportamento já existente (`slotId` topológico em `virtualDerivedTies()`/`scoreEntry()`
+  em `bolao/cdb2026/js/app.js`), só verificado e explicitado — nenhum código de scoring mudou.
+
+`audit_scoring.py`: PASSOU, 6/6 — scoring completamente intocado.
+`test_schedule_reconciler.py`: 15/15 (6 casos novos cobrindo o portão `fase_esta_pronta()`).
+
 ## v3.145 — "Onde assistir": dado sai do código, detector de lacunas automatizado (2026-09-07, #425)
 
 Mesma mudança do BR2026 (`bolao/br2026/CHANGELOG.md` v1.136) — o CDB2026 carrega o mesmo módulo

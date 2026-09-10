@@ -586,3 +586,38 @@ a este documento (regras/modelo):
 - **`liveScoreEntry()` nunca fabrica bônus de pódio** — comportamento já correto, agora com um
   ADR dedicado (`docs/bolao/adr/ADR-003-official-vs-provisional-results.md`) documentando por que
   isso é uma garantia deliberada, não um acidente de implementação.
+
+## Palpite de semifinal/final: o placar migra por VAGA, não por time (2026-09-10)
+
+Eduardo pediu para deixar isto 100% claro: **se um participante palpitou achando que o
+Internacional se classificaria e quem se classificou de verdade foi o Grêmio, o placar que ele
+digitou para aquela vaga da semifinal continua valendo — só que agora marcado contra o Grêmio, não
+contra o Internacional.** Isto já é o comportamento do sistema hoje; esta seção só torna a regra
+explícita, com a evidência de código.
+
+**Por quê isso é seguro.** A partir da semifinal, `entry.picks.matches`/`entry.picks.qualified`
+nunca são indexados pelo NOME do time — são indexados pelo `slotId` da vaga do chaveamento (ex.:
+`"semifinal-1"`), que vem da topologia oficial da CBF (`slot.sideA.winnerOf` / `sideB.winnerOf`,
+sempre "vencedor do confronto de quartas N", nunca "o time X"). Essa é a mesma técnica que a Copa
+do Mundo usa (`"Winner Match 87"` em vez de nome de time em `DATA.knockoutMatches`).
+
+- **No palpite** (`virtualDerivedTies()`, `bolao/cdb2026/js/app.js:443-486`): o formulário mostra
+  o nome do time que o PRÓPRIO participante escolheu nas quartas (`resolveParticipantPredicted()`,
+  `app.js:397-415`, via `entry.picks.qualified[quartasTieId]`) só para rotular a tela — o placar
+  que ele digita é salvo sob o `slotId` (`"semifinal-1"`), não sob o nome do time.
+- **Na pontuação** (`scoreEntry()`, `app.js:2659-2700`): quando a semifinal é materializada de
+  verdade (`materialize-derived-phase`, #410) e o placar real sai, o motor lê
+  `entry.picks.matches["semifinal-1"]` — o MESMO `slotId` — e compara contra o resultado real
+  daquela vaga, seja qual for o time que de fato ocupa `teamA`/`teamB` ali.
+- **Orientação mandante/visitante** também sobrevive à troca de time: `legTeams()`
+  (`app.js:1893-1907`, ver auditoria de 2026-08 acima) já garante que "mandante" é sempre relativo
+  ao LADO do confronto (`teamA` na ida, `teamB` na volta), nunca ao nome do time — então mesmo a
+  orientação do placar (gols do mandante × gols do visitante) migra corretamente.
+
+**O que NÃO migra:** o bônus de classificação da vaga em si
+(`entry.picks.qualified["semifinal-1"]`, ganha `tieBonus` se acertar quem passa PARA A FINAL) —
+esse é um palpite novo, sobre a vaga da semifinal, feito depois que ela existe. O que migra é
+exclusivamente o PLACAR digitado para os jogos daquela vaga, porque o placar sempre foi relativo a
+lado (A/B), nunca a nome de time.
+
+Nenhum código mudou nesta revisão — comportamento verificado por leitura, não alterado.

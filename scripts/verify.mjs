@@ -307,6 +307,8 @@ const CHECKS = [
     why: "o bracket completo tem de sobreviver a Salvar + recarregar: \"a RPC devolveu 200\" nao prova que os dados voltam" },
   { id: "cdb-bracket-browser", group: "browser", cmd: ["node", "bolao/cdb2026/scripts/test_bracket_browser.mjs"],
     why: "o bracket de previsao no navegador REAL: quartas -> semifinal -> final -> campeao, sem salvar. O gate de unidade passava enquanto a producao renderizava undefined" },
+  { id: "cdb-final-podium-after-materialization", group: "browser", cmd: ["node", "bolao/cdb2026/scripts/test_final_podium_after_materialization.mjs"],
+    why: "#428 (2026-09-10): depois que materialize-derived-phase grava a semifinal com ids REAIS (nao mais sf-1/sf-2), predictedPodium() parava de achar o palpite de campeao/vice de qualquer participante -- silenciosamente, inclusive no bonus real de scoreEntry(). Prova tambem que o palpite mostrado em \"Ver palpites\" sobrevive a um resultado real que discorda dele (Eduardo: \"mesmo que incorreto, time nao avancou\")" },
   { id: "cdb-bracket-propagation", group: "app", cmd: ["node", "bolao/cdb2026/scripts/test_bracket_propagation.mjs"],
     why: "a semifinal reage ao palpite das quartas SEM salvar; e nao inventa vaga sem o mapeamento oficial da CBF" },
   { id: "cdb-schedule-reconciler", group: "app", cmd: ["python3", "bolao/cdb2026/scripts/test_schedule_reconciler.py"],

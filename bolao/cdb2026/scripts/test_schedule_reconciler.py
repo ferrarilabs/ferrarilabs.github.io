@@ -25,6 +25,10 @@ Duas causas independentes, e as duas silenciosas:
 Juntas, produziram o pior tipo de falha: tudo verde, nada errado aparente, e a abertura dos
 palpites de doze pessoas parada por dias.
 
+Generalizado (Issue #428) para tambem cobrir a materializacao de DATA (nao de time -- isso
+continua manual, #410/#411) de semifinal/final: secao 4 cobre o portao `fase_esta_pronta()` que
+decide se uma fase (draw-based ou derivada) tem confrontos casaveis contra uma fonte de verdade.
+
 HERMETICO: sem rede. Os eventos sao injetados.
 
 Uso: python3 bolao/cdb2026/scripts/test_schedule_reconciler.py
@@ -91,14 +95,17 @@ test("janela ALEM do limite caracterizado e RECUSADA com erro explicito", lambda
     ))(R["busca_tabela"](hoje, hoje + timedelta(days=R["JANELA_MAX_DIAS"] + 1))))
 
 test("o limite fica DENTRO da faixa que a fonte atende", lambda: _assert(
-    R["JANELA_MAX_DIAS"] <= 60,
-    f"JANELA_MAX_DIAS={R['JANELA_MAX_DIAS']} — medido em 2026-08-12, 90d devolve 0 eventos com a "
-    "tabela publicada. Passar de 60 volta a zona de silencio"))
+    R["JANELA_MAX_DIAS"] <= 85,
+    f"JANELA_MAX_DIAS={R['JANELA_MAX_DIAS']} — remedido em 2026-09-10 (semifinal ja publicada): "
+    "45-85d consistentemente OK, 88-91d ja mostrou UMA resposta vazia (90d) no meio de vizinhos "
+    "nao-vazios -- nao ha teto seguro conhecido acima de 85d"))
 
-test("o limite cobre ida E volta de um mata-mata", lambda: _assert(
-    R["JANELA_MAX_DIAS"] >= 21,
-    f"JANELA_MAX_DIAS={R['JANELA_MAX_DIAS']} — as quartas de 2026 vao de 25/08 a 03/09; janela "
-    "curta demais acha a ida e perde a volta"))
+test("o limite cobre ida E volta de um mata-mata (quartas E semifinal)", lambda: _assert(
+    R["JANELA_MAX_DIAS"] >= 60,
+    f"JANELA_MAX_DIAS={R['JANELA_MAX_DIAS']} — a semifinal de 2026 publicou ida 01/11 e volta "
+    "08/11; medido em 2026-09-10 (~52d de hoje ate a ida), 60d ja foi o primeiro valor a trazer as "
+    "DUAS pernas das DUAS chaves (4 eventos) -- janela curta demais acha a ida e perde a volta, ou "
+    "nao acha nada, como aconteceu de verdade com 45d nesta materializacao"))
 
 # ── 2. APELIDO ──────────────────────────────────────────────────────────────────────────────
 test("'Vasco da Gama' da fonte casa com 'Vasco' do sorteio", lambda: _assert(
@@ -129,6 +136,42 @@ test("apelido NAO reescreve o nome do sorteio (a autoridade e o documento oficia
     and "vasco" in R["ESPN_APELIDOS"].values(),
     "o mapa de apelidos aponta para o lado errado: ele traduz a FONTE para o SORTEIO, nunca o "
     "contrario — o documento oficial e quem manda no nome do clube"))
+
+# ── 4. FASE (Issue #428: generalizacao para semifinal/final) ──────────────────────────────────
+# quartas: precisa de sorteio validado. Fase derivada: `ties` so existe apos materialize-derived-
+# phase (#410) ja ter exigido topologia autoritativa -- entao a PROPRIA existencia de `ties` e a
+# prova, sem precisar (nem poder) checar um officialDraw que fase derivada nunca tem.
+
+test("quartas SEM sorteio validado nao esta pronta, mesmo com confrontos gravados", lambda: _assert(
+    R["fase_esta_pronta"]({"t1": {}}, {"validatedAt": None}, False) is False,
+    "quartas tem de esperar o sorteio ser validado -- confrontos sozinhos nao bastam"))
+
+test("quartas COM sorteio validado esta pronta", lambda: _assert(
+    R["fase_esta_pronta"]({"t1": {}}, {"validatedAt": "2026-08-11T00:00Z"}, False) is True,
+    "sorteio validado + confrontos gravados e o suficiente para quartas"))
+
+test("quartas sem NENHUM confronto nao esta pronta mesmo com sorteio validado", lambda: _assert(
+    R["fase_esta_pronta"]({}, {"validatedAt": "2026-08-11T00:00Z"}, False) is False,
+    "sem `ties` nao ha o que casar contra a fonte, sorteio validado ou nao"))
+
+test("fase derivada COM confrontos esta pronta SEM officialDraw (nao existe para fase derivada)", lambda: _assert(
+    R["fase_esta_pronta"]({"semifinal-1": {}, "semifinal-2": {}}, {}, True) is True,
+    "materialize-derived-phase ja exigiu topologia autoritativa antes de gravar `ties` -- exigir "
+    "tambem um officialDraw (que fase derivada nunca tem) travaria a fase para sempre"))
+
+test("fase derivada SEM confrontos materializados nao esta pronta", lambda: _assert(
+    R["fase_esta_pronta"]({}, {}, True) is False,
+    "sem `ties` a fase derivada ainda nao foi materializada (materialize-derived-phase e "
+    "operacao MANUAL e separada, #410/#411) -- este script nunca materializa time, so data"))
+
+test("--phase aceita quartas/semifinal/final e nada mais", lambda: (
+    lambda: (
+        _assert(set(R["FASES_VALIDAS"]) == {"quartas", "semifinal", "final"},
+                f"FASES_VALIDAS mudou: {R['FASES_VALIDAS']}"),
+        _assert(R["FASES_DERIVADAS"] == {"semifinal": "quartas", "final": "semifinal"},
+                "mapa de fase derivada diverge do mesmo mapa em operator_cli.py -- os dois "
+                "precisam concordar em qual fase deriva de qual"),
+    ))())
 
 print(f"\n  {ok} passed, {fail} failed\n")
 print("✓ SCHEDULE RECONCILER PASSED\n" if fail == 0 else "✗ SCHEDULE RECONCILER FAILED\n")
