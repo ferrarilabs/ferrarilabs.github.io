@@ -23,6 +23,7 @@ on:
           - apply-draw
           - open-picks
           - materialize-derived-phase
+          - register-final-topology
           - backfill-venue
           - secure-access-canary
       derived_phase:
@@ -121,6 +122,15 @@ jobs:
               # que o workflow de recuperacao passou a receber input por env em vez de inline.
               python3 operator_cli.py materialize-derived-phase \
                 --phase "$FASE" --actor "$ATOR" $MODO
+              ;;
+            register-final-topology)
+              # Registra a topologia da final (final-1 = vencedor da semifinal 1 x vencedor da
+              # semifinal 2). SO estrutural: exige exatamente 2 confrontos gravados em
+              # phases.semifinal.ties, nao depende de cobertura jornalistica (nao ha fato de
+              # sorteio a confirmar para a final -- ver cabecalho do proprio script). Nao inventa
+              # vencedor: quem de fato avanca continua vindo de qualifiedTeamId, via
+              # materialize-derived-phase, separado e posterior.
+              python3 register_final_topology.py $MODO
               ;;
             backfill-venue)
               # Preenche venue/city AUSENTES a partir do snapshot commitado da ESPN (#393). Nao

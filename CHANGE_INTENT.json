@@ -19,6 +19,14 @@
         "python3 bolao/cdb2026/scripts/test_schedule_reconciler.py",
         "python3 bolao/cdb2026/scripts/audit_scoring.py"
       ]
+    },
+    {
+      "surface_id": "NOTIFICATION_WORKFLOWS",
+      "reason": "Issue #428: .github/workflows/cdb2026_operator.yml ganha o comando `register-final-topology`, chamando o novo bolao/cdb2026/scripts/register_final_topology.py. Eduardo pediu (2026-09-10): como nao ha mais sorteio a partir da semifinal, o bracket ate a final ja pode ser registrado, igual ao modelo da Copa do Mundo.",
+      "expected_behavior_change": "Novo item na lista `command` do workflow_dispatch existente (nenhum trigger novo, nenhum cron). O script so registra a TOPOLOGIA da final (final-1 = vencedor da semifinal 1 x vencedor da semifinal 2) -- exige exatamente 2 confrontos ja gravados em phases.semifinal.ties, nunca inventa vencedor (isso continua vindo de qualifiedTeamId via materialize-derived-phase, separado). Nao envia e-mail, nao toca scoring/entradas/pagamento.",
+      "tests_required": [
+        "python3 bolao/cdb2026/scripts/audit_scoring.py"
+      ]
     }
   ]
 }

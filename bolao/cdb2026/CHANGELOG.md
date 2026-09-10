@@ -1,5 +1,39 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## 2026-09-10 — semifinal aberta para palpites; topologia da final registrada (#428, sem bump de siteVersion — scripts/workflow só)
+
+Eduardo, depois de confirmar as datas da semifinal: as quartas já estão 100% decididas (4/4
+resultados), então avançar a fase é seguro. Três operações manuais executadas (mesmo padrão
+`--dry-run` → conferir → `--apply` de sempre), nenhum código de app tocado:
+
+- **`open-picks --phase semifinal`**: `espnSync.activePhaseId` avançou de `quartas` para
+  `semifinal`. Antes disso, mesmo com data/cutoff já materializados (ver entrada anterior desta
+  data), a aba "Palpites" inteira mostrava "PALPITES ENCERRADOS" e escondia o formulário — porque
+  o banner de prazo lê `activePhaseId`, não o cutoff de cada fase individualmente. Confirmado por
+  render real (servidor local + fixture com os dados reais de produção, sem tocar em entrada de
+  participante): antes do `open-picks`, `#pickForm` existia no DOM com o conteúdo certo mas
+  ficava sem `offsetParent` (invisível); depois, visível.
+- **`bolao_provider_snapshot.yml --app cdb2026`**: o snapshot commitado da ESPN
+  (`bolao/cdb2026/data/espn-normalized.json`) estava parado em 2026-09-05, antes da semifinal
+  existir. Atualizado para incluir os jogos de 01/11 e 08/11.
+- **`backfill-venue`**: preenche `venue`/`city` da semifinal a partir do snapshot agora
+  atualizado. Não sobrescreve local já gravado, não toca kickoff/placar/status/classificação.
+
+**Topologia da final registrada** (`register_final_topology.py`, novo comando
+`register-final-topology` no `cdb2026_operator.yml`): Eduardo — "não haverá mais sorteio e tudo
+está definido igual na Copa do Mundo". A partir da semifinal isso é literalmente verdade: com
+exatamente duas semifinais, a final só pode ser entre as duas vencedoras — um fato estrutural do
+formato eliminatório, não uma decisão de sorteio como foi o caminho quartas→semifinal (que por
+isso exigiu duas fontes jornalísticas independentes, `register_semifinal_topology.py`). O novo
+script valida isso explicitamente (recusa se `phases.semifinal.ties` não tiver exatamente 2
+confrontos) e não inventa vencedor — quem de fato chega na final continua vindo de
+`qualifiedTeamId`, via `materialize-derived-phase` (#410), separado e posterior. Com a topologia
+registrada, "Ver palpites" já pode mostrar a vaga da final como confronto VIRTUAL previsível
+(`virtualDerivedTies()`), igual ao mecanismo que a Copa do Mundo sempre usou — sem esperar a
+semifinal ser jogada.
+
+`audit_scoring.py`: PASSOU — nenhuma mudança de scoring, entradas ou pagamento nesta entrada.
+
 ## 2026-09-10 — vigia da tabela oficial generalizado para semifinal/final (#428, sem bump de siteVersion — scripts/workflow só)
 
 CBF publicou a tabela da semifinal. `reconcile_official_schedule.py` (que já materializava
