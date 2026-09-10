@@ -23,6 +23,16 @@
  * Achado por verificação manual contra um espelho dos dados reais de produção (não fixture
  * inventada) — ver Issue #428.
  *
+ * CORREÇÃO NO PRÓPRIO TESTE (mesmo dia, achado investigando um pedido em seguida): a sub-suite
+ * "mesmo que incorreto" simulava um resultado real divergente com `page.evaluate()` + `reload()`.
+ * `page.addInitScript()` fica registrado na página e roda de novo em TODA navegação, inclusive
+ * reload — reescrevendo o localStorage com o estado ORIGINAL (sem a mutação) antes do app carregar,
+ * fazendo a asserção "passar" mesmo que a divergência nunca tivesse existido para o app. Corrigido
+ * com uma segunda página/navegação, já com o estado mutado desde o load inicial (sem reload). Esse
+ * mesmo achado também é o motivo de agora existir `predictedPodiumDisplay()` (Eduardo, mesmo dia,
+ * "faz igual a copa do mundo, bota entre parentesis o time que foi selecionado mas nao passou") —
+ * a asserção corrigida cobre o parêntese, não mais o palpite puro sem indicação nenhuma.
+ *
  * HERMETICO: servidor estático local, sem rede, sem dado de participante real (nomes/emails
  * sintéticos, ver docs/bolao/SECURITY.md "Commit-message PII prevention").
  *
@@ -166,34 +176,57 @@ try {
       `linhas encontradas: ${JSON.stringify(detail?.rows)}`));
 
   // "mesmo que incorreto (time não avançou)" -- Eduardo, 2026-09-10. Simula a semifinal decidida
-  // com um resultado que DISCORDA do palpite: na vida real, Alfa venceu (não Delta). O palpite de
-  // campeão/vice continua o mesmo -- ele não é recalculado a partir do resultado real, porque
-  // representa o que a pessoa apostou, sempre.
-  await page.evaluate(() => {
-    const estado = JSON.parse(localStorage.getItem("bolao_cdb2026_state"));
-    estado.phases.semifinal.ties["fix-alfa_delta"].qualifiedTeamId = "A"; // Alfa avançou de verdade, não Delta
+  // com um resultado que DISCORDA do palpite: na vida real, Alfa venceu (não Delta).
+  //
+  // NAVEGACAO NOVA, NAO reload() na mesma pagina: `page.addInitScript()` fica registrado na
+  // pagina e RODA DE NOVO em toda navegacao subsequente -- inclusive reload(). Um `page.evaluate()`
+  // mutando o localStorage e DEPOIS um `page.reload()` faz o addInitScript ORIGINAL (closure com o
+  // ESTADO sem a mutacao) reescrever o localStorage por cima da mutacao ANTES do app le-lo --
+  // fazendo o teste "passar" mesmo que a mutacao nunca tenha chegado a existir para o app.
+  // Achado real (#428, 2026-09-10) ao investigar o pedido de Eduardo de colocar o time eliminado
+  // entre parenteses: essa sub-suite media a mesma coisa desde v3.146 sem nunca ter exercitado de
+  // verdade a divergencia que afirmava cobrir. Corrigido com uma pagina/navegacao PROPRIA, com o
+  // estado ja mutado ANTES do primeiro load -- sem reload, sem corrida com o addInitScript antigo.
+  const ESTADO_APOS_RESULTADO = JSON.parse(JSON.stringify(ESTADO));
+  ESTADO_APOS_RESULTADO.phases.semifinal.ties["fix-alfa_delta"].qualifiedTeamId = "A"; // Alfa avançou de verdade, não Delta
+
+  const page2 = await browser.newPage({ viewport: { width: 1280, height: 1400 } });
+  const errors2 = [];
+  page2.on("pageerror", e => errors2.push(e.message));
+  await page2.addInitScript((estado) => {
     localStorage.setItem("bolao_cdb2026_state", JSON.stringify(estado));
-  });
-  await page.reload({ waitUntil: "domcontentloaded" });
-  await page.waitForTimeout(1200);
-  await page.evaluate(() => {
+  }, ESTADO_APOS_RESULTADO);
+  await page2.route("**/rest/v1/**", route => route.abort());
+  await page2.route("**/functions/v1/**", route => route.abort());
+  await page2.route("**cdn.jsdelivr.net/**", route => route.fulfill({ status: 200, contentType: "application/javascript", body: "" }));
+  await page2.goto(`http://localhost:${PORT}/bolao/cdb2026/`, { waitUntil: "domcontentloaded" });
+  await page2.waitForTimeout(1200);
+
+  test("nenhum erro de página com resultado real divergindo do palpite", () =>
+    assert(errors2.length === 0, `erros: ${JSON.stringify(errors2)}`));
+
+  await page2.evaluate(() => {
     const btns = [...document.querySelectorAll("[data-rank-toggle]")];
     const btn = btns.find(b => (b.getAttribute("aria-label") || "").includes("Participante Um"));
     if (btn) btn.click();
   });
-  await page.waitForTimeout(400);
-  const detailAposResultado = await page.evaluate(() => {
+  await page2.waitForTimeout(400);
+  const detailAposResultado = await page2.evaluate(() => {
     const d = document.querySelector('[data-rank-detail="e1"]');
     if (!d) return null;
     return [...d.querySelectorAll("tbody tr")].map(tr =>
       [...tr.querySelectorAll("td")].map(td => (td.textContent || "").trim()));
   });
+  await page2.close();
 
-  test("PREDICTED_CHAMPION_SURVIVES_WRONG_RESULT — palpite errado continua exibido como Delta", () =>
-    assert(detailAposResultado?.some(r => r[0]?.includes("Campeão") && r[1] === "Delta"),
-      `o palpite de campeão sumiu ou mudou depois do resultado real discordar: ` +
-      `${JSON.stringify(detailAposResultado)} — "Ver palpites" tem de mostrar o que a pessoa ` +
-      `apostou, mesmo quando o time não avançou de verdade`));
+  // DISPLAY apenas (predictedPodiumDisplay(), pedido de Eduardo em seguida no mesmo dia: "faz
+  // igual a copa do mundo, bota entre parentesis o time que foi selecionado mas nao passou"):
+  // agora que o resultado real da semifinal diverge do palpite e é CONHECIDO, "Ver palpites"
+  // troca a exibição para o time REAL, com o eliminado (o que a pessoa escolheu) entre parênteses.
+  test("PREDICTED_CHAMPION_SHOWS_REAL_TEAM_WITH_ELIMINATED_PICK_IN_PARENS", () =>
+    assert(detailAposResultado?.some(r => r[0]?.includes("Campeão") && r[1] === "Alfa (Delta)"),
+      `o palpite de campeão não ganhou o parêntese esperado depois do resultado real divergir: ` +
+      `${JSON.stringify(detailAposResultado)}`));
 
   await page.screenshot({ path: "/tmp/test_final_podium_after_materialization.png", fullPage: true }).catch(() => {});
 } finally {

@@ -28,6 +28,11 @@
  * (`sf-1`/`sf-2`), nunca sob o id real — o único caminho que existiu de verdade neste torneio —,
  * e prova tanto a EXIBIÇÃO quanto a PONTUAÇÃO (`scoreEntry`, via o app carregado no navegador).
  *
+ * TAMBÉM cobre `predictedPodiumDisplay()` (mesmo dia, pedido em seguida: "faz igual a copa do
+ * mundo, bota entre parentesis o time que foi selecionado mas nao passou"): quando a semifinal que
+ * alimentaria o campeão/vice previsto já está DECIDIDA e o time real diverge do palpite, "Ver
+ * palpites" mostra o time REAL com o eliminado entre parênteses — display apenas, nunca pontuação.
+ *
  * HERMÉTICO: servidor estático local, sem rede, sem dado de participante real (nomes sintéticos).
  *
  * Uso: node bolao/cdb2026/scripts/test_legacy_derived_pick_continuity.mjs
@@ -176,8 +181,14 @@ try {
     assert(rows?.some(r => r[0]?.includes("Campeão") && r[1] === "Alfa"),
       `linhas: ${JSON.stringify(rows)}`));
 
-  test("LEGACY_RUNNERUP_RESOLVES", () =>
-    assert(rows?.some(r => r[0]?.includes("Vice") && r[1] === "Epsilon"),
+  // sf-2 (real-epsilon_theta) já está DECIDIDO e discorda do palpite: quem passou de verdade foi
+  // Theta, não Epsilon (que o participante escolheu). Igual à Copa do Mundo
+  // (resolvedTeamsForEntryDisplay(), Eduardo 2026-09-10 "bota entre parentesis o time que foi
+  // selecionado mas nao passou"): mostra o time REAL, com o time selecionado mas eliminado entre
+  // parênteses -- só exibição, nunca pontuação (ver LEGACY_SCORING_SF2_TIE_BONUS_MISS abaixo, que
+  // confere que o bônus continua avaliando o palpite puro).
+  test("LEGACY_RUNNERUP_SHOWS_REAL_TEAM_WITH_ELIMINATED_PICK_IN_PARENS", () =>
+    assert(rows?.some(r => r[0]?.includes("Vice") && r[1] === "Theta (Epsilon)"),
       `linhas: ${JSON.stringify(rows)}`));
 
   // O PONTO MAIS CRÍTICO: pontuação real, não só exibição. sf-1 acerta placar exato nas duas

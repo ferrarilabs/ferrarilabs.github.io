@@ -1,5 +1,47 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.148 — time eliminado entre parênteses em "Ver palpites", igual à Copa do Mundo (#428)
+
+Eduardo, logo depois do v3.147: "faz igual a copa do mundo, bota entre parentesis o time que foi
+selecionado mas nao passou. Veja como está essa lógica lá".
+
+**Onde já existia na Copa:** `resolvedTeamsForEntryDisplay()`
+(`bolao/copa2026/js/app.js:838`) — uma vez que o time REAL de um slot do bracket já é conhecido, a
+tela troca a exibição para o time real, com o palpite original (se errado) entre parênteses:
+`${realA} (${predictedA})`. Só exibição, nunca pontuação — `matchPoints()`/`resolvedMatchResult()`
+sempre comparam contra o resultado real diretamente.
+
+**Aplicado ao CDB2026:** nova função `predictedPodiumDisplay(entry, s)` (`app.js`), usada só em
+`renderPickDisplay()` ("Ver palpites"). Pega o campeão/vice PREVISTO (`predictedPodium()`, sem
+nenhuma mudança) e, para cada um, procura a semifinal que o alimentaria; se essa semifinal já tem
+resultado real (`qualifiedTeamId`) e o vencedor de verdade é outro time, troca a exibição para
+`"<time real> (<time selecionado>)"`. `scoreEntry()`/`explainScore()` continuam usando
+`predictedPodium()` puro — o bônus de campeão/vice segue avaliando o palpite exato que a pessoa
+fez, sem parêntese nenhum, exatamente como antes.
+
+**Não conflita com "mesmo que incorreto" (v3.146):** aquela regra diz que o palpite NUNCA é
+recalculado a partir do resultado real (continua verdade — `predictedPodium()` não mudou). Esta
+mudança é só sobre COMO o palpite original é rotulado na tela, depois que a eliminação já é fato
+conhecido — nunca antes disso (sem resultado real, mostra só o palpite puro, sem parêntese).
+
+**Achado ao verificar:** a suíte `test_final_podium_after_materialization.mjs` (v3.146) tinha uma
+sub-suite que simulava "resultado real diverge do palpite" com `page.evaluate()` (muta o
+localStorage) seguido de `page.reload()`. `page.addInitScript()` fica registrado na página e roda
+de novo em TODA navegação — inclusive `reload()` — reescrevendo o localStorage com o estado
+ORIGINAL (sem a mutação) ANTES do app carregar. A asserção "palpite errado continua exibido como
+Delta" estava passando desde v3.146 pelo motivo ERRADO: a divergência simulada nunca chegava a
+existir para o app, não porque o app resistisse a ela corretamente. Corrigido usando uma
+segunda página/navegação com o estado já mutado desde o load inicial (sem reload) — agora a
+suite realmente exercita a divergência, e a asserção foi atualizada para o novo comportamento
+esperado (`"Alfa (Delta)"`, não mais `"Delta"` puro).
+
+**Novo teste dedicado:** `test_legacy_derived_pick_continuity.mjs` ganhou uma asserção cobrindo o
+mesmo mecanismo com palpite salvo sob id de slot legado (`sf-2`) — o vice previsto muda de
+`"Epsilon"` para `"Theta (Epsilon)"` quando a semifinal correspondente já está decidida e diverge.
+
+`audit_scoring.py` (3 apps) e `audit_golden_master.mjs`: PASSARAM — nenhuma constante, fórmula ou
+função de pontuação mudou; só a exibição em "Ver palpites" ganhou o parêntese.
+
 ## v3.147 — "Ver palpites" ainda não mostrava a semifinal para NINGUÉM em produção, mesmo depois do v3.146 (#428)
 
 Eduardo, depois do v3.146 estar no ar: "Na tv disse que já tem local e data. Ver palpites ainda não

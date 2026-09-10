@@ -2094,6 +2094,34 @@ function predictedPodium(entry, s) {
            runnerUp: pick === "A" ? tie.teamB : tie.teamA };
 }
 
+// "Ver palpites" DISPLAY apenas -- NUNCA usado para pontuação. `scoreEntry()` continua comparando
+// `predictedPodium()` puro contra `officialPodium()`, sem nenhum parêntese: o bônus de
+// campeão/vice tem de continuar batendo com o time exato que a pessoa escolheu, e essa função não
+// muda esse valor em nenhum lugar.
+//
+// Mesma técnica da Copa do Mundo (`resolvedTeamsForEntryDisplay()`,
+// bolao/copa2026/js/app.js:838): quando o time que a pessoa escolheu como campeão/vice já foi
+// ELIMINADO de verdade (a semifinal que o levaria à final já tem `qualifiedTeamId` decidido, e o
+// vencedor real é outro), mostra o time REAL que ocupa aquela vaga hoje, com o time selecionado
+// mas que NÃO PASSOU entre parênteses. Eduardo, 2026-09-10: "faz igual a copa do mundo, bota entre
+// parentesis o time que foi selecionado mas nao passou". Continua mostrando o palpite puro (sem
+// parêntese) quando a semifinal correspondente ainda não foi decidida -- "mesmo que incorreto,
+// time não avançou" (mesma regra de #428) só ganha o parêntese quando a eliminação já é FATO, não
+// suposição.
+function predictedPodiumDisplay(entry, s) {
+  const predicted = predictedPodium(entry, s);
+  console.log('DEBUG_PPD', JSON.stringify({predicted, semiTies: Object.values(s?.phases?.semifinal?.ties||{}).map(t=>({teamA:t.teamA,teamB:t.teamB,qualifiedTeamId:t.qualifiedTeamId}))}));
+  const semiTies = Object.values(s?.phases?.semifinal?.ties || {});
+  const comResultadoReal = (team) => {
+    if (!team) return team;
+    const tie = semiTies.find(t => t.teamA === team || t.teamB === team);
+    if (!tie || !tie.qualifiedTeamId) return team; // ainda sem resultado real, ou nem veio de semifinal
+    const real = tie.qualifiedTeamId === "A" ? tie.teamA : tie.teamB;
+    return real !== team ? `${real} (${team})` : team;
+  };
+  return { champion: comResultadoReal(predicted.champion), runnerUp: comResultadoReal(predicted.runnerUp) };
+}
+
 // ─── Per-tie picks (palpite por partida) ────────────────────────────────────
 function getPickValues() {
   const base = picksAtuais();
@@ -3320,7 +3348,9 @@ function renderPickDisplay(entry, detail) {
     });
   });
 
-  const predicted = predictedPodium(entry, s);
+  // DISPLAY apenas -- ver comentário de predictedPodiumDisplay(). scoreEntry()/detail (usados
+  // abaixo só para a coluna de pontos) continuam vindo do predictedPodium() puro, sem parêntese.
+  const predicted = predictedPodiumDisplay(entry, s);
   const bonusRow = (label, team, d) => team
     ? `<tr><td>${esc(label)}</td><td>${esc(team)}</td><td>—</td><td style="text-align:center">${ptsCell(d)}</td></tr>`
     : "";
