@@ -3370,7 +3370,13 @@ function renderPickDisplay(entry, detail) {
   // outras linhas usando colspan onde não precisam da separação.
   if (!Object.keys(s.phases?.final?.ties || {}).length) {
     const lados = finalSideLabels(s, entry.picks || {});
-    const p = entry.picks?.matches?.["final-1"];
+    // Achado real (2026-09-11, contra as 12 entradas reais de produção -- 11/12 tinham o placar,
+    // e a linha nunca aparecia para nenhuma): palpite de partida é SEMPRE aninhado por PERNA
+    // (`picks.matches[tieId][leg]`, igual a toda outra linha desta função via
+    // `flatLegsChronological`/`pickMatches[leg]`) -- nunca `{goalsHome,goalsAway}` direto sob o
+    // id do confronto. A final é SINGLE_MATCH, perna única "single" (legsForFormat()) -- mesma
+    // convenção já usada em matchPodiumBonus()/aggregateFromMatches() (app.js:2046/5574/5981).
+    const p = entry.picks?.matches?.["final-1"]?.single;
     if (lados && p && p.goalsHome != null && p.goalsAway != null) {
       rows.push(`<tr><td>${esc(lados[0].label)}</td><td><b>${p.goalsHome} × ${p.goalsAway}</b></td><td>${esc(lados[1].label)}</td><td>—</td><td style="text-align:center">${ptsCell(null)}</td></tr>`);
     }

@@ -1,5 +1,42 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.151 — a linha da final nunca aparecia para NINGUÉM: placar da final salvo com forma diferente (#428)
+
+Eduardo, depois do v3.150: "Não esta igual ainda. Estamos esperando algo?"
+
+**Sim — mas não só isso.** Fui conferir contra as 12 entradas REAIS de produção (não fixture) e
+achei um bug real e distinto de tudo que já tinha corrigido nesta Issue: **a linha da final nunca
+tinha aparecido para NENHUMA das 12 entradas reais**, desde que essa linha passou a existir
+(v3.148). Não era só "esperando o resultado da semifinal" (isso também é verdade — nenhuma
+semifinal está decidida ainda, games em 1º/8 de novembro) — era um bug de verdade na leitura do
+placar.
+
+**Causa raiz.** `entry.picks.matches[tieId]` é SEMPRE aninhado por PERNA
+(`matches[tieId][leg] = {goalsHome, goalsAway}`) — nunca `{goalsHome, goalsAway}` direto sob o id
+do confronto. Toda outra linha desta tabela já lia assim (`flatLegsChronological()` +
+`pickMatches[leg]`). A linha nova da final (v3.148) lia
+`entry.picks?.matches?.["final-1"]` direto, esperando `{goalsHome, goalsAway}` ali — mas o
+palpite real está em `entry.picks.matches["final-1"].single` (a final é `SINGLE_MATCH`, perna
+única `"single"`, ver `legsForFormat()`). Conferido contra o dado real: **11 das 12 entradas têm
+o placar da final salvo, todas sob `.single`** — a linha simplesmente nunca encontrava nada e não
+tinha o que mostrar. A 12ª entrada genuinamente nunca digitou um placar para a final (comportamento
+correto: sem placar, sem linha, igual a qualquer outra linha desta tabela).
+
+**Por que os testes não pegaram:** os dois fixtures desta Issue (`test_legacy_derived_pick_continuity.mjs`,
+`test_final_podium_after_materialization.mjs`) usavam a MESMA forma achatada errada
+(`{goalsHome,goalsAway}` direto) — o teste e o código erravam do mesmo jeito, então bateam entre
+si sem nunca provar nada contra a forma real dos dados. Corrigidos os dois fixtures para
+`{ single: {goalsHome, goalsAway} }`, igual à produção.
+
+**Verificado contra as 12 entradas reais de produção depois da correção:** 0/12 → 11/12
+mostrando a linha da final (a 12ª não tem placar, corretamente ausente). Cada entrada mostra os
+dois times que ELA MESMA previu para a final (ex.: "Atlético-MG" ou "Grêmio" × "Palmeiras" ou
+"Vasco", conforme o próprio palpite de semifinal de cada uma) — ainda sem parêntese em nenhuma,
+porque nenhuma semifinal real está decidida ainda (esperado e correto).
+
+`audit_scoring.py` (3 apps) e `audit_golden_master.mjs`: PASSARAM — nenhuma constante, fórmula ou
+função de pontuação mudou; só a leitura do placar da final em "Ver palpites".
+
 ## v3.150 — Time A e Time B em colunas separadas em "Ver palpites", igual à Copa (#428)
 
 Eduardo, depois do v3.149: "ainda nao esta como estava na copa do mundo." Perguntei o que

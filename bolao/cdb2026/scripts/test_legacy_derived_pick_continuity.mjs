@@ -137,7 +137,12 @@ ESTADO.entries = [{
 }];
 // Placar da final: sem isso a linha de confronto da final (finalSideLabels()) não tem o que
 // mostrar e não aparece.
-ESTADO.entries[0].picks.matches["final-1"] = { goalsHome: 1, goalsAway: 0 };
+// Aninhado sob a perna "single" (final é SINGLE_MATCH, legsForFormat()) -- igual a TODO palpite
+// de partida real (picks.matches[tieId][leg]), NUNCA {goalsHome,goalsAway} direto sob o id do
+// confronto. Achado real (2026-09-11): o fixture anterior usava a forma achatada errada, e por
+// isso este teste nunca teria pego o bug de verdade (11 das 12 entradas reais de produção têm
+// o placar aninhado sob "single" e a linha da final nunca aparecia para nenhuma).
+ESTADO.entries[0].picks.matches["final-1"] = { single: { goalsHome: 1, goalsAway: 0 } };
 ESTADO.paid = { e1: true };
 
 const srv = await startStaticServer(PORT, RAIZ);

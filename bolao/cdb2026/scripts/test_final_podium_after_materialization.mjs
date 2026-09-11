@@ -111,13 +111,15 @@ const ESTADO = {
 
 // Uma entrada que palpitou Delta campeã (perdendo a final para quem escolheu Epsilon) -- picks
 // pelo id REAL da semifinal (o único caminho possível neste torneio, ver cabeçalho). Inclui um
-// placar para a final (picks.matches["final-1"]) -- sem isso a linha de confronto da final
+// placar para a final (picks.matches["final-1"].single -- aninhado sob a perna, igual a TODO
+// palpite de partida real; achado real 2026-09-11: a forma achatada usada antes não é como o
+// app grava de verdade, e por isso não pegava o bug) -- sem isso a linha de confronto da final
 // (finalSideLabels(), ver #428 mais abaixo) não tem o que mostrar e não aparece.
 ESTADO.entries = [{
   id: "e1", entryName: "Participante Um", payerName: "Participante Um",
   paymentMethod: "CashApp", participantEmail: "participante.um@example.invalid",
   createdAt: "2020-01-01T00:00:00.000Z",
-  picks: { matches: { "final-1": { goalsHome: 2, goalsAway: 1 } }, qualified: {
+  picks: { matches: { "final-1": { single: { goalsHome: 2, goalsAway: 1 } } }, qualified: {
     "fix-alfa_delta": "B",       // Delta avança
     "fix-epsilon_theta": "A",    // Epsilon avança
     "final-1": "A",              // Delta (lado A da final) é campeã, no palpite
