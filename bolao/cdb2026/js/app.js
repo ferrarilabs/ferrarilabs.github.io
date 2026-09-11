@@ -3378,6 +3378,13 @@ function renderPickDisplay(entry, detail) {
     // convenção já usada em matchPodiumBonus()/aggregateFromMatches() (app.js:2046/5574/5981).
     const p = entry.picks?.matches?.["final-1"]?.single;
     if (lados && p && p.goalsHome != null && p.goalsAway != null) {
+      // Rótulo só-apresentação (2026-09-11, "final prevista"): esta linha combina o vencedor
+      // previsto de UMA semifinal com o da OUTRA -- sem identificação própria, parece à primeira
+      // vista mais uma linha de semifinal (mesmo formato Time/Placar/Time), e um confronto entre
+      // times que na semifinal real NUNCA se enfrentam. Uma legenda acima, numa linha própria,
+      // identifica a linha sem tocar nas células de valor abaixo (mesmas 5 células, mesmo
+      // conteúdo, byte a byte, de antes desta mudança).
+      rows.push(`<tr class="pick-final-predicted-caption"><td colspan="5"><small class="muted">${esc(t("pickFinalPredictedLabel"))}</small></td></tr>`);
       rows.push(`<tr><td>${esc(lados[0].label)}</td><td><b>${p.goalsHome} × ${p.goalsAway}</b></td><td>${esc(lados[1].label)}</td><td>—</td><td style="text-align:center">${ptsCell(null)}</td></tr>`);
     }
   }

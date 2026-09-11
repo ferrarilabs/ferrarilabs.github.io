@@ -77,6 +77,12 @@ window.CDB2026_I18N = {
     pickAdvanceLabel:  "Quem se classifica",
     pickSelectAdvance: "— Quem se classifica —",
     pickQualifiedLabel: "Classificado",
+    // Rótulo só-apresentação da linha de confronto previsto da final em "Ver palpites", antes da
+    // final ser materializada por time (finalSideLabels() em app.js) -- achado real (2026-09-11,
+    // incidente de "ranking suspeito"): essa linha combina o vencedor previsto de UMA semifinal
+    // com o vencedor previsto da OUTRA, então visualmente parece um confronto de semifinal errado
+    // se não tiver identificação própria. Sem impacto em dado, pontuação ou pick -- só rótulo.
+    pickFinalPredictedLabel: "Final prevista",
     // "Categorias da partida não acumulam" e explicito de proposito: a lista separada por pontos
     // parecia soma, e o motor NUNCA somou -- so a categoria mais alta conta por partida.
     pickHintTie:       "Partida: 10 pts placar exato · 5 pts resultado certo · 1 pt por lado com gols exatos. Categorias da partida não acumulam. +5 pts pelo classificado correto.",

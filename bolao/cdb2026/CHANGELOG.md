@@ -1,5 +1,41 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.152 — legenda "Final prevista" na linha de confronto previsto da final, em "Ver palpites"
+
+Eduardo reportou um "ranking suspeito" com print de produção (2026-09-11). Investigação forense
+read-only (sem tocar Supabase, sem rematerializar, sem mudar palpite nenhum) reconciliou CADA
+célula do print, linha a linha, contra o v3.151 real e o dado real de produção: **tudo batia
+exatamente** — nenhum dado corrompido, nenhuma pontuação errada, nenhum id de confronto trocado.
+A confusão veio de uma linha específica: a linha de confronto previsto da final
+(`finalSideLabels()`, v3.148+) combina o vencedor previsto de UMA semifinal com o vencedor
+previsto da OUTRA — e, sem identificação própria, no mesmo formato Time/Placar/Time das linhas de
+semifinal reais logo acima, parece à primeira vista mais uma linha de semifinal (times que na
+semifinal real nunca se enfrentam).
+
+**Correção — só apresentação.** Uma legenda nova (`Final prevista`), numa linha própria acima da
+linha de confronto, identifica o que ela é. A linha de valor abaixo (Time A/Placar/Time B/Real/
+Pts) continua com as MESMAS 5 células, mesmo conteúdo, byte a byte — nenhum dado, pontuação,
+resolução de palpite ou mapeamento de confronto foi tocado.
+
+`js/i18n.js`: chave nova `pickFinalPredictedLabel: "Final prevista"`. CDB2026 só tem bloco
+`pt-BR` em `i18n.js` (sem `es`/`en-US` — divergência pré-existente da convenção de 3 idiomas,
+fora do escopo desta mudança); nada a localizar nas outras duas línguas porque essa superfície
+não existe nelas.
+
+Teste de regressão (`test_legacy_derived_pick_continuity.mjs`, fixture que já materializa
+semifinal decidida + linha da final com parêntese): 3 asserções novas — legenda presente, legenda
+imediatamente acima da linha de confronto (não solta em outro lugar), e as 4 linhas de
+placar/Classificado da semifinal preservadas byte a byte (`JSON.stringify` exato, não só
+"presente"). 14/14 passou. `test_final_podium_after_materialization.mjs`: 9/9, inalterado.
+`audit_golden_master.mjs`: hash do snapshot completo inalterado. `audit_scoring.py` (copa2026,
+br2026, cdb2026): PASSOU nos três — nenhuma constante, fórmula ou função de pontuação mudou.
+
+Não propagado para copa2026/br2026: `finalSideLabels()`/linha de confronto previsto da final é
+mecanismo específico do CDB2026 (torneio derivado ainda não materializado por time) — a Copa está
+concluída (todos os confrontos reais já existem, esse código nunca mais executa lá) e o BR2026 é
+tabela de liga, sem bracket/final derivada. `INTENTIONALLY_DIFFERENT`, não aplicável aos outros
+dois apps.
+
 ## v3.151 — a linha da final nunca aparecia para NINGUÉM: placar da final salvo com forma diferente (#428)
 
 Eduardo, depois do v3.150: "Não esta igual ainda. Estamos esperando algo?"

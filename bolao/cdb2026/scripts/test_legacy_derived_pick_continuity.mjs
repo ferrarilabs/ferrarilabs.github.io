@@ -239,6 +239,34 @@ try {
   test("LEGACY_SCORING_SF2_MATCH_ROW_PRESENT — segunda perna da semifinal também aparece", () =>
     assert(!!linhaSf2Placar, `linhas: ${JSON.stringify(pontuacao)}`));
 
+  // Legenda "Final prevista" (2026-09-11, incidente de "ranking suspeito"): a linha de confronto
+  // previsto da final combina o vencedor de UMA semifinal com o da OUTRA e, sem identificação
+  // própria, é fácil de confundir com mais uma linha de semifinal -- foi exatamente essa confusão
+  // que motivou a investigação forense do print de produção. Mudança só-apresentação: uma linha
+  // de legenda nova, nenhuma célula de valor tocada.
+  const legendaFinal = pontuacao.find(r => r.length === 1 && r[0] === "Final prevista");
+  test("FINAL_PREDICTED_CAPTION_PRESENT — a legenda 'Final prevista' aparece", () =>
+    assert(!!legendaFinal, `linhas: ${JSON.stringify(pontuacao)}`));
+
+  const idxLegenda = pontuacao.findIndex(r => r.length === 1 && r[0] === "Final prevista");
+  const idxLinhaFinal = pontuacao.findIndex(r => r[0] === "Alfa" && r[2] === "Theta (Epsilon)");
+  test("FINAL_PREDICTED_CAPTION_PRECEDES_MATCH_ROW — a legenda fica imediatamente acima da linha de confronto da final, não em outro lugar", () =>
+    assert(idxLegenda >= 0 && idxLinhaFinal === idxLegenda + 1,
+      `idxLegenda=${idxLegenda} idxLinhaFinal=${idxLinhaFinal} linhas: ${JSON.stringify(pontuacao)}`));
+
+  // As linhas de semifinal (placar e "Classificado", ambas as pernas, ambos os confrontos) têm
+  // exatamente o mesmo conteúdo de antes da legenda existir -- byte a byte, não só "presentes".
+  test("SEMIFINAL_ROWS_UNCHANGED_BY_CAPTION — placar/tie da semifinal preservados byte a byte", () => {
+    assert(JSON.stringify(linhaSf1Placar) === JSON.stringify(["Alfa", "2 × 1", "Delta", "2 × 1", "+10"]),
+      `sf1 placar: ${JSON.stringify(linhaSf1Placar)}`);
+    assert(JSON.stringify(linhaSf1Tie) === JSON.stringify(["Classificado: Alfa × Delta", "Alfa", "Alfa", "+5"]),
+      `sf1 tie: ${JSON.stringify(linhaSf1Tie)}`);
+    assert(JSON.stringify(linhaSf2Placar) === JSON.stringify(["Epsilon", "1 × 0", "Theta", "0 × 0", "+1"]),
+      `sf2 placar: ${JSON.stringify(linhaSf2Placar)}`);
+    assert(JSON.stringify(linhaSf2Tie) === JSON.stringify(["Classificado: Epsilon × Theta", "Epsilon", "Theta", "—"]),
+      `sf2 tie: ${JSON.stringify(linhaSf2Tie)}`);
+  });
+
   await page.screenshot({ path: "/tmp/test_legacy_derived_pick_continuity.png", fullPage: true }).catch(() => {});
 } finally {
   await browser.close();
