@@ -46,7 +46,7 @@ const SAFETY_JSON = join(ROOT, "safety-summary.json");
 
 // ── sharding do grupo `browser` — max concorrencia = 2 ──────────────────────────────────────────
 //
-// Profiling mediu o grupo `browser` em ~606s, 76% do `npm run check` local. Nenhum dos 21 checks
+// Profiling mediu o grupo `browser` em ~606s, 76% do `npm run check` local. Nenhum dos 27 checks
 // muta arquivo de repositorio (so `visual-consistency` escreve, e so a sua propria evidencia) e
 // cada um ja declara sua PROPRIA porta fixa (harness-ports-unique garante isso) — entao, ao
 // contrario de M25/M26 na suite de mutacao, nao ha necessidade de isolamento por worktree aqui:
@@ -57,7 +57,7 @@ const SAFETY_JSON = join(ROOT, "safety-summary.json");
 const BROWSER_SHARD_A = [
   "countdown-layout", "prob-bar-geometry", "br-live-behavior-parity", "live-card-dom",
   "multi-live-hero-responsive", "cdb-sticky-overlap", "br-standings-layout",
-  "cdb-bracket-browser", "visual-consistency", "draw-combo",
+  "cdb-bracket-browser", "cdb-final-podium-after-materialization", "visual-consistency", "draw-combo",
   // Issue #258. Vai no shard A porque ele era o mais curto dos dois (10 contra 11) e este check e
   // rapido: quatro cargas de pagina contra rotas mockadas, sem matriz de larguras.
   "cdb-save-error-diagnosable",
@@ -69,7 +69,7 @@ const BROWSER_SHARD_A = [
 ];
 const BROWSER_SHARD_B = [
   "accessibility", "responsive-14-width", "live-prob-bars", "combo-visual", "multi-live-hero",
-  "structural-parity", "cdb-bracket-persistence", "cdb-entry-name-readonly", "combo-next-label",
+  "structural-parity", "cdb-bracket-persistence", "cdb-legacy-derived-pick-continuity", "cdb-entry-name-readonly", "combo-next-label",
   "combo-lifecycle", "aria-nav",
   // Issue #316. Vai no shard B porque o A ficou com 11 e o B com 11: este check e curto (8
   // viewports contra rotas mockadas, uma unica pagina) e nao desequilibra a divisao.
@@ -198,7 +198,7 @@ if (FAST) {
     { label: "3a/4  Suite canonica — grupos nao-browser" });
 
   // 3b. grupo `browser` — 2 shards em paralelo. Concorrencia MAXIMA = 2, nunca mais, e nunca ao
-  // mesmo tempo que 3a (que ja terminou). Nenhum dos 21 checks muta arquivo do repositorio nem
+  // mesmo tempo que 3a (que ja terminou). Nenhum dos 27 checks muta arquivo do repositorio nem
   // compartilha porta — sem necessidade de worktree isolada (diferente de M25/M26).
   line("\n▶ 3b/4  Suite canonica — grupo `browser`, 2 shards em paralelo (concorrencia max = 2)");
   rule();
