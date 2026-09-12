@@ -30,8 +30,10 @@ EPGShare BR1/BR2 (XMLTV) → sync_epg_broadcasts.mjs (workflow) → próximos jo
 
 Um programa só publica um canal quando **tudo** abaixo vale (`epg_broadcasts.mjs`):
 
-1. cita os **dois** clubes da partida no título/subtítulo, com identificação por alias e **sufixo de
-   estado como identidade** ("Botafogo-SP" não é Botafogo, "Atlético" sozinho não é Atlético-MG);
+1. cita os **dois** clubes da partida **como confronto** — num mesmo campo (título ou subtítulo), um
+   clube de cada lado de um único separador `x`/`×`/`vs` —, com identificação por alias e **sufixo de
+   estado como identidade** ("Botafogo-SP" não é Botafogo, "Atlético" sozinho não é Atlético-MG,
+   "Campeonato Mineiro" não é Atlético-MG). "Esporte Espetacular: Bahia e Remo" não é jogo;
 2. começa entre 60 min antes e 15 min depois do kickoff e continua no ar até pelo menos 45 min depois;
 3. não é replay, pré-jogo, feminino, base ou futsal (`VT`, `Pré-Hora`, `Aquecimento`, categoria
    `Futebol Feminino`…) — e um marcador desses em **qualquer** fonte veta o canal naquele horário;
@@ -69,8 +71,18 @@ operadora (`HD`, `³`) são descartados.
   `::warning::`.
 - **Fonte parcial** ou canal sem programa na grade: a entrada anterior é mantida
   (`KEPT_LAST_KNOWN_GOOD`). "Não sei" nunca vira "não é".
-- Um canal automático só sai quando a **mesma fonte** que o corroborou responde e mostra outro
-  programa no ar naquele canal 30 min após o kickoff (`REMOVED_CONTRADICTED`).
+- Um canal automático só sai quando **toda** evidência dele é contraditada no **mesmo `source` e
+  mesmo `epgChannelId`**: a fonte respondeu e, 30 min após o kickoff, naquele id está no ar um programa
+  real que não é este jogo ao vivo (`REMOVED_CONTRADICTED`). Outra praça da Globo, HD × SD, outra fonte
+  discordando, id renomeado e placeholder "Programação …" são "não sei" e mantêm.
+- **Adiamento/remarcação:** se o snapshot da ESPN diz que o jogo foi adiado, cancelado ou suspenso, ou
+  mudou de horário, a entrada automática antiga sai (`POSTPONED_DROPPED` / `RESCHEDULED_DROPPED`) —
+  inclusive com o EPG fora do ar. Canal de outra data é informação errada. Se a grade corroborar o
+  novo horário, entra uma entrada nova, só com a evidência nova.
+- **Curadoria sem `espnId`:** continua vencendo, mas o BR2026 casa por id e não a exibe. O relatório
+  marca `CURATED_OVERRIDE_WITHOUT_ESPNID` e o validador reprova curadoria sem id que colida com uma
+  entrada automática da mesma partida. Cure sempre com `espnId`.
+- O workflow falha se for disparado fora de `refs/heads/main` e só empurra para `main` explicitamente.
 - Entradas automáticas de jogos que passaram há mais de 7 dias são podadas; curadoria nunca.
 
 ### Operar o pipeline

@@ -34,7 +34,7 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
-import { EPG_SOURCES, isAutoChannelLabel, inKickoffWindow } from "./epg_broadcasts.mjs";
+import { EPG_SOURCES, isAutoChannelLabel, inKickoffWindow, resolveTeamKey } from "./epg_broadcasts.mjs";
 
 const EPG_SOURCE_IDS = new Set(EPG_SOURCES.map((s) => s.id));
 
@@ -201,6 +201,24 @@ export function validate(doc) {
         }
       }
     }
+  });
+
+  // Curadoria SEM espnId e registro automático da MESMA partida (minuto + clubes por alias). O
+  // BR2026 sempre casa por id: a curadoria ficaria invisível e o automático apareceria no lugar
+  // dela. A comparação exata por nome acima não pega "Vasco" × "Vasco da Gama" (revisão adversarial
+  // do PR #432, S4). Reprova — e como o workflow valida depois do rebase, a corrida também para aqui.
+  entries.forEach((c, i) => {
+    if (!c || typeof c !== "object" || c.origin === "epg") return;
+    if (typeof c.espnId === "string" && c.espnId.trim()) return;
+    const minute = utcMinute(c.kickoffUtc);
+    if (!minute) return;
+    entries.forEach((a, j) => {
+      if (!a || typeof a !== "object" || a.origin !== "epg" || utcMinute(a.kickoffUtc) !== minute) return;
+      if (resolveTeamKey(c.home) === resolveTeamKey(a.home) && resolveTeamKey(c.away) === resolveTeamKey(a.away)) {
+        errors.push(`entries[${i}]: curadoria sem 'espnId' é a mesma partida do registro automático ` +
+          `entries[${j}] (espnId=${a.espnId}) — acrescente o espnId à curadoria para ela vencer no navegador`);
+      }
+    });
   });
 
   return { ok: errors.length === 0, errors, warnings };

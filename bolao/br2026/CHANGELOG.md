@@ -30,6 +30,18 @@ no horário do kickoff.
   ficaram intocadas. Streaming sem grade (Prime Video) nunca é inventado.
 - EPG fora do ar deixa `broadcasts.json` byte-idêntico. Um canal automático só sai quando a mesma
   fonte que o corroborou mostra outro programa no ar naquele horário.
+- **Revisão adversarial do PR #432 (corrigido antes do merge):**
+  - **B1** — jogo remarcado ou adiado mantinha o canal da data antiga, e remarcação dentro da janela
+    travava o pipeline (fusão inválida). Agora a entrada antiga é descartada (`RESCHEDULED_DROPPED` /
+    `POSTPONED_DROPPED`), inclusive com o EPG fora do ar; partida adiada sai do escopo.
+  - **S1** — `workflow_dispatch` em outra ref publicava o commit do bot nessa ref (reproduzido com git
+    real). O workflow agora falha fora de `refs/heads/main` e empurra `HEAD:refs/heads/main`.
+  - **S2** — contradição passou a ser por item de evidência (mesmo `source` + `epgChannelId`),
+    ignorando placeholder e o próprio jogo: praça, HD/SD, fonte discordante e id renomeado não removem.
+  - **S3** — exige confronto "A x B" (os 249 programas reais com dois clubes já usam) e procura clube
+    por `fold()`, sem o alias quebrado "mineiro".
+  - **S4** — curadoria sem `espnId` é relatada como não exibida no BR2026, e o validador reprova
+    colisão dela com entrada automática da mesma partida.
 - **Não muda:** `where_to_watch.js` (só o comentário de cabeçalho), nenhum `app.js`, scoring,
   countdown, seleção de próxima partida, entries, pagamentos, persistence ou venue. Auditorias de
   scoring dos três apps passam.

@@ -71,6 +71,8 @@ export const MIN_COVER_AFTER_KICKOFF_MS = 45 * MIN;
 export const PROBE_AFTER_KICKOFF_MS = 30 * MIN;
 /** Entrada automática de jogo que já passou há mais que isso sai do arquivo (não afeta a UI). */
 export const AUTO_PRUNE_AFTER_MS = 7 * 24 * 60 * MIN;
+/** Status ESPN de partida que não vai acontecer no horário registrado (mesma lista de round_state.py). */
+export const INACTIVE_STATUS_NAMES = new Set(["STATUS_POSTPONED", "STATUS_CANCELED", "STATUS_SUSPENDED"]);
 
 // ─── normalização de clube (portada de FerrariTV packages/football/src/aliases.ts) ─────────────
 
@@ -153,6 +155,24 @@ export function resolveTeamKey(name) {
   return CANONICAL_BY_ALIAS.get(n) ?? n;
 }
 
+/**
+ * Grafias para procurar clube em TEXTO DE GRADE, dobradas com fold() — a mesma tokenização do texto.
+ * Não usa normalizeTeamName(): tirar a frase corporativa de "Clube Atlético Mineiro" deixa só
+ * "mineiro", e aí "Campeonato Mineiro: Cruzeiro x Tombense" virava Cruzeiro × Atlético-MG (revisão
+ * adversarial do PR #432, S3).
+ */
+const CANONICAL_BY_FOLDED_ALIAS = (() => {
+  const index = new Map();
+  for (const [key, aliases] of Object.entries(TEAM_ALIASES)) {
+    index.set(fold(key.replace(/-/g, " ")), key);
+    for (const alias of aliases) {
+      const f = fold(alias);
+      if (f) index.set(f, key);
+    }
+  }
+  return index;
+})();
+
 const UF = new Set(["ac", "al", "am", "ap", "ba", "ce", "df", "es", "go", "ma", "mg", "ms", "mt", "pa",
   "pb", "pe", "pi", "pr", "rj", "rn", "ro", "rr", "rs", "sc", "se", "sp", "to"]);
 
@@ -164,9 +184,9 @@ const UF = new Set(["ac", "al", "am", "ap", "ba", "ce", "df", "es", "go", "ma", 
  * ("Botafogo" + "SP", "Atlético" + "GO") e é registrada como desconhecida, nunca como o clube curto.
  */
 export function clubsMentioned(text, extra = []) {
-  const dict = new Map(CANONICAL_BY_ALIAS);
+  const dict = new Map(CANONICAL_BY_FOLDED_ALIAS);
   for (const name of extra) {
-    const n = normalizeTeamName(name);
+    const n = fold(name);
     if (n && !dict.has(n)) dict.set(n, resolveTeamKey(name));
   }
   const spellings = [...dict.keys()].map((s) => s.split(" ")).sort((a, b) => b.length - a.length);
@@ -381,6 +401,7 @@ export function corroborateFixture(fixture, programmes) {
       continue;
     }
     if (keys.size > 2) { rejections.push({ reason: "MORE_THAN_TWO_CLUBS", ...base }); continue; }
+    if (!namesFixture(p, fixture)) { rejections.push({ reason: "NO_MATCH_SEPARATOR", ...base }); continue; }
     if (!inKickoffWindow(p, k)) { rejections.push({ reason: "OUT_OF_KICKOFF_WINDOW", ...base }); continue; }
     if (!channel) { rejections.push({ reason: "CHANNEL_NOT_ALLOWLISTED", ...base }); continue; }
 
@@ -412,7 +433,7 @@ export function corroborateFixture(fixture, programmes) {
   for (const [label, slot] of byLabel) {
     if (slot.vetoedBy || !slot.evidence.length) continue;
     const dissent = nearby.find((p) => p.start <= probe && p.stop > probe &&
-      (resolveChannel(p.channelId) || {}).label === label && !namesBoth(p, fixture, home, away));
+      (resolveChannel(p.channelId) || {}).label === label && !namesBoth(p, fixture));
     if (dissent) {
       slot.vetoedBy = { reason: "SOURCE_DISAGREEMENT", source: dissent.source, epgChannelId: dissent.channelId,
         dissentTitle: [dissent.title, dissent.subTitle].filter(Boolean).join(" / "), start: isoSecond(dissent.start) };
@@ -444,9 +465,33 @@ export function corroborateFixture(fixture, programmes) {
   return { channels, rejections };
 }
 
-function namesBoth(p, fixture, home, away) {
-  const { keys } = clubsMentioned([p.title, p.subTitle].filter(Boolean).join(" "), [fixture.home, fixture.away]);
-  return keys.has(home) && keys.has(away);
+function namesBoth(p, fixture) {
+  return namesFixture(p, fixture);
+}
+
+const MATCH_SEPARATOR = /\s(?:x|×|vs\.?|versus)\s/i;
+
+/**
+ * A grade lista confronto como "A x B". Só conta quando UM campo (título ou subtítulo) tem um único
+ * separador com um clube de cada lado. "Esporte Espetacular: Bahia e Remo", "Remo: Brasileiro de
+ * Remo - Salvador, Bahia" e "Todos os Santos: Missa em São Paulo" citam os dois nomes e não são
+ * jogo nenhum (revisão adversarial do PR #432, S3). Na grade real de 2026-09-12, os 249 programas
+ * de canais monitorados que citam dois clubes usam o separador — a regra não perde cobertura.
+ */
+export function namesFixture(p, fixture) {
+  const home = resolveTeamKey(fixture.home);
+  const away = resolveTeamKey(fixture.away);
+  const extra = [fixture.home, fixture.away];
+  for (const field of [p.title, p.subTitle]) {
+    if (!field) continue;
+    const parts = String(field).split(MATCH_SEPARATOR);
+    if (parts.length !== 2) continue;
+    const left = clubsMentioned(parts[0], extra).keys;
+    const right = clubsMentioned(parts[1], extra).keys;
+    if ((left.has(home) && !left.has(away) && right.has(away) && !right.has(home)) ||
+        (left.has(away) && !left.has(home) && right.has(home) && !right.has(away))) return true;
+  }
+  return false;
 }
 
 /**
@@ -479,17 +524,27 @@ export function corroborateFixtures(fixtures, programmes) {
 }
 
 /**
- * A grade de uma fonte que respondeu CONTRADIZ o canal para esta partida? Só quando há programa
- * naquele canal no ar 30 min depois do kickoff (e ele não corroborou a partida — quem chama só
- * pergunta por canal que não corroborou). Sem programa (canal sumiu da grade, janela além do
- * horizonte) é "não sei", e "não sei" preserva.
+ * A grade CONTRADIZ positivamente o canal para esta partida? Avaliado POR ITEM DE EVIDÊNCIA, no
+ * MESMO `source` e no MESMO `epgChannelId` que corroboraram antes — nunca pelo rótulo. O canal só é
+ * contraditado quando TODA evidência dele é contraditada: a fonte respondeu e, naquele id, 30 min
+ * depois do kickoff, está no ar um programa real (não placeholder "Programação …") que não é este
+ * jogo ao vivo (não cita os dois clubes com separador, ou é replay/feminino/base).
+ *
+ * Tudo o mais é "não sei" e preserva (revisão adversarial do PR #432, S2): outra praça da Globo com
+ * outra grade, HD divergindo do SD, outra fonte discordando, id renomeado, placeholder, fonte fora
+ * do ar, grade que termina antes do jogo.
  */
-export function channelContradicted(label, fixture, programmes, okSources, previousEvidenceSources) {
-  const needed = [...new Set(previousEvidenceSources)];
-  if (!needed.length || !needed.every((s) => okSources.has(s))) return false;
+export function channelContradicted(label, fixture, programmes, okSources, previousEvidence) {
+  const items = (previousEvidence || []).filter((e) => e && e.channel === label);
+  if (!items.length) return false;
   const probe = fixture.kickoffMs + PROBE_AFTER_KICKOFF_MS;
-  return needed.every((source) => programmes.some((p) => p.source === source &&
-    p.start <= probe && p.stop > probe && (resolveChannel(p.channelId) || {}).label === label));
+  return items.every((ev) => okSources.has(ev.source) && programmes.some((p) =>
+    p.source === ev.source && p.channelId === ev.epgChannelId && p.start <= probe && p.stop > probe &&
+    !isPlaceholderTitle(p) && !(namesFixture(p, fixture) && !rejectMarker(p))));
+}
+
+function isPlaceholderTitle(p) {
+  return /^programacao\b/.test(fold(p.title));
 }
 
 // ─── merge com broadcasts.json ─────────────────────────────────────────────────────────────
@@ -531,7 +586,8 @@ function channelOrder(label) {
  * @param {object} existingDoc   broadcasts.json atual (já validado)
  * @param {Array}  fixtures      partidas em escopo: {id, kickoffMs, kickoffUtc, home, away}
  * @param {Map}    results       saída de corroborateFixtures()
- * @param {object} ctx           {now:Date, okSources:Set<string>, programmes:Array}
+ * @param {object} ctx           {now:Date, okSources:Set<string>, programmes:Array,
+ *                               snapshotIndex?:Map<espnId,{kickoffUtc,statusName}> — todas as partidas}
  */
 export function mergeBroadcasts(existingDoc, fixtures, results, ctx) {
   const now = ctx.now.getTime();
@@ -546,13 +602,21 @@ export function mergeBroadcasts(existingDoc, fixtures, results, ctx) {
 
   for (const f of [...fixtures].sort((a, b) => a.kickoffMs - b.kickoffMs)) {
     const r = results.get(f.id) || { channels: [], rejections: [] };
-    const prev = prevById.get(String(f.id)) || null;
+    const stored = prevById.get(String(f.id)) || null;
+    // Remarcação (B1 da revisão adversarial do PR #432): evidência colhida para OUTRO horário não
+    // prova nada sobre o novo. A entrada anterior é descartada inteira, nunca herdada.
+    const rescheduledFrom = stored && utcMinuteOf(stored.kickoffUtc) !== utcMinuteOf(f.kickoffUtc)
+      ? stored.kickoffUtc : null;
+    const prev = rescheduledFrom ? null : stored;
     const human = curatedEntryFor(f, curated);
     const row = { espnId: String(f.id), kickoffUtc: f.kickoffUtc, home: f.home, away: f.away, rejections: r.rejections };
+    if (rescheduledFrom) row.rescheduledFrom = rescheduledFrom;
 
     if (human) {
-      report.push({ ...row, status: "CURATED_OVERRIDE", channels: human.channels,
-        epgAlsoSaw: r.channels.map((c) => c.label), evidence: [] });
+      // Curadoria vence sempre. Sem espnId, porém, o BR2026 (que casa por id) não a exibe: o humano
+      // continua suprimindo o automático, mas o relatório avisa em vez de contar como cobertura.
+      report.push({ ...row, status: human.espnId ? "CURATED_OVERRIDE" : "CURATED_OVERRIDE_WITHOUT_ESPNID",
+        channels: human.channels, epgAlsoSaw: r.channels.map((c) => c.label), evidence: [] });
       continue; // entrada automática anterior (se houver) sai: o humano venceu
     }
 
@@ -564,8 +628,7 @@ export function mergeBroadcasts(existingDoc, fixtures, results, ctx) {
     if (prev) {
       for (const label of prev.channels || []) {
         if (byChannel.has(label)) continue;
-        const sources = prevEvidence.filter((e) => e.channel === label).map((e) => e.source);
-        if (channelContradicted(label, f, ctx.programmes, ctx.okSources, sources)) {
+        if (channelContradicted(label, f, ctx.programmes, ctx.okSources, prevEvidence)) {
           dropped.push(label);
         } else {
           byChannel.set(label, prevEvidence.filter((e) => e.channel === label));
@@ -575,7 +638,8 @@ export function mergeBroadcasts(existingDoc, fixtures, results, ctx) {
     }
 
     if (!byChannel.size) {
-      if (prev) report.push({ ...row, status: "REMOVED_CONTRADICTED", channels: [], dropped, evidence: [] });
+      if (rescheduledFrom) report.push({ ...row, status: "RESCHEDULED_DROPPED", channels: [], evidence: [] });
+      else if (prev) report.push({ ...row, status: "REMOVED_CONTRADICTED", channels: [], dropped, evidence: [] });
       else report.push({ ...row, status: "MISSING", channels: [], evidence: [] });
       continue;
     }
@@ -622,6 +686,17 @@ export function mergeBroadcasts(existingDoc, fixtures, results, ctx) {
     if (Number.isFinite(kickoff) && kickoff < now - AUTO_PRUNE_AFTER_MS) {
       report.push({ espnId: String(e.espnId), kickoffUtc: e.kickoffUtc, home: e.home, away: e.away,
         status: "PRUNED_PAST", channels: e.channels, evidence: [], rejections: [] });
+      continue;
+    }
+    // B1 (revisão adversarial do PR #432): o snapshot diz que o jogo foi adiado/cancelado/suspenso
+    // ou mudou de horário. Canal de outra data é informação errada — sai, com ou sem EPG no ar.
+    const snap = ctx.snapshotIndex ? ctx.snapshotIndex.get(String(e.espnId)) : undefined;
+    if (snap && (INACTIVE_STATUS_NAMES.has(snap.statusName) || utcMinuteOf(snap.kickoffUtc) !== utcMinuteOf(e.kickoffUtc))) {
+      const postponed = INACTIVE_STATUS_NAMES.has(snap.statusName);
+      report.push({ espnId: String(e.espnId), kickoffUtc: e.kickoffUtc, home: e.home, away: e.away, outOfScope: true,
+        status: postponed ? "POSTPONED_DROPPED" : "RESCHEDULED_DROPPED", statusName: snap.statusName,
+        rescheduledFrom: postponed ? undefined : e.kickoffUtc, rescheduledTo: postponed ? undefined : snap.kickoffUtc,
+        channels: e.channels, evidence: [], rejections: [] });
       continue;
     }
     if (curated.some((c) => c.espnId && String(c.espnId) === String(e.espnId))) continue;

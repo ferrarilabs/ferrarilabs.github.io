@@ -290,12 +290,12 @@ test("curadoria humana vence a evidência automática (por espnId) — e o relat
   A(report[0].status === "CURATED_OVERRIDE" && J(report[0].epgAlsoSaw) === J(["SporTV"]), J(report));
 });
 
-test("curadoria SEM espnId também vence, casada por minuto + clubes via alias (Vasco ↔ Vasco da Gama)", () => {
+test("curadoria SEM espnId também vence (minuto + clubes via alias), mas é relatada como NÃO exibida no BR2026", () => {
   const f = fixture("401841236", "2026-09-12T19:00:00Z", "Grêmio", "Vasco da Gama");
   const human = curated({ espnId: undefined, kickoffUtc: "2026-09-12T19:00Z", home: "Grêmio", away: "Vasco", channels: ["Premiere"] });
   const p = prog("SporTV.br", "2026-09-12T19:00:00Z", "2026-09-12T21:00:00Z", "Grêmio x Vasco - Ao Vivo");
   const { doc, report } = runMerge({ ...BASE, entries: [human] }, [f], [p]);
-  A(doc.entries.length === 1 && report[0].status === "CURATED_OVERRIDE", J(report));
+  A(doc.entries.length === 1 && report[0].status === "CURATED_OVERRIDE_WITHOUT_ESPNID", J(report));
 });
 
 test("curadoria adicionada DEPOIS de uma entrada automática a substitui (sem duplicata)", () => {
@@ -377,6 +377,135 @@ test("origin=epg com um clube só em matchedTeams ⇒ erro", () => {
 test("origin desconhecido ⇒ erro", () => A(!validate({ entries: [curated({ origin: "scraper" })] }).ok, "aceitou origin desconhecido"));
 
 // ─────────────────────────────────────────────────────────────────────────────────────────────
+console.log("\nG. Revisão adversarial do PR #432 — B1, S1–S4");
+
+const LATER = new Date("2026-09-12T21:00:00Z");
+const firstSC = () => runMerge(BASE, [SANTOS_CRUZEIRO], [LIVE_SC]).doc;
+
+test("B1 remarcação dentro do escopo: entrada antiga descartada, nunca herdada, e o documento valida", () => {
+  const moved = fixture("401841233", "2026-09-14T22:00:00Z", "Santos", "Cruzeiro");
+  const { doc, report } = runMerge(firstSC(), [moved], [LIVE_SC], { now: LATER });
+  A(report[0].status === "RESCHEDULED_DROPPED" && !doc.entries.some((e) => e.origin === "epg"), J(report));
+  A(validate(doc).ok, J(validate(doc).errors));
+});
+
+test("B1 remarcação com a grade nova corroborando: entra só com a evidência do NOVO horário", () => {
+  const moved = fixture("401841233", "2026-09-14T22:00:00Z", "Santos", "Cruzeiro");
+  const live2 = prog("Premiere.Clubes.br", "2026-09-14T21:30:00Z", "2026-09-15T00:10:00Z", "Santos x Cruzeiro - Ao Vivo");
+  const { doc, report } = runMerge(firstSC(), [moved], [LIVE_SC, live2], { now: LATER });
+  const auto = doc.entries.find((e) => e.origin === "epg");
+  A(report[0].status === "ADDED" && report[0].rescheduledFrom === "2026-09-13T00:00Z", J(report));
+  A(auto.kickoffUtc === "2026-09-14T22:00Z" && J(auto.channels) === J(["Premiere"]) && auto.evidence.length === 1, J(auto));
+  A(validate(doc).ok, J(validate(doc).errors));
+});
+
+const idx = (kickoffUtc, statusName) => new Map([["401841233", { kickoffUtc, statusName }]]);
+const outOfScope = (doc, snapshotIndex) => mergeBroadcasts(doc, [], new Map(),
+  { now: new Date("2026-09-13T04:00:00Z"), okSources: new Set(), programmes: [], snapshotIndex });
+
+test("B1 jogo ADIADO (fora do escopo): canal da data antiga sai, mesmo com o EPG fora do ar", () => {
+  const { doc, report, changed } = outOfScope(firstSC(), idx("2026-09-13T00:00Z", "STATUS_POSTPONED"));
+  A(changed && !doc.entries.some((e) => e.origin === "epg") && report.some((r) => r.status === "POSTPONED_DROPPED"), J(report));
+});
+
+test("B1 jogo REMARCADO para fora da janela: canal da data antiga sai", () => {
+  const { doc, report } = outOfScope(firstSC(), idx("2026-09-24T22:00Z", "STATUS_SCHEDULED"));
+  A(!doc.entries.some((e) => e.origin === "epg") && report.some((r) => r.status === "RESCHEDULED_DROPPED" && r.rescheduledTo === "2026-09-24T22:00Z"), J(report));
+});
+
+test("B1 snapshot confirma o mesmo horário: entrada fora do escopo continua (last-known-good)", () => {
+  const { doc, changed } = outOfScope(firstSC(), idx("2026-09-13T00:00Z", "STATUS_SCHEDULED"));
+  A(!changed && doc.entries.some((e) => e.origin === "epg"), J(doc.entries));
+});
+
+test("S1 workflow só publica a partir de refs/heads/main e empurra explicitamente para main", () => {
+  const wf = readFileSync(join(ROOT, ".github/workflows/br2026_broadcast_epg.yml"), "utf8");
+  const guard = wf.indexOf("So publica a partir de main");
+  const checkout = wf.indexOf("uses: actions/checkout@v4");
+  A(guard > 0 && guard < checkout, "a guarda de ref precisa vir antes do checkout");
+  A(/"\$\{GITHUB_REF\}" != "refs\/heads\/main"/.test(wf) && /exit 1/.test(wf.slice(guard, checkout)), "guarda de ref ausente ou sem falha");
+  A(/git push origin HEAD:refs\/heads\/main/.test(wf) && !/git push(\s*;|\s*$|\s+then)/m.test(wf), "push sem destino explícito");
+});
+
+const keptAfter = (first, programmes) => runMerge(first, [SANTOS_CRUZEIRO], programmes, { now: LATER });
+const hasAuto = (doc) => doc.entries.some((e) => e.origin === "epg");
+
+test("S2 outra praça da Globo com outra programação NÃO remove a Globo corroborada", () => {
+  const globoSP = prog("São.Paulo/SP..Globo.br", "2026-09-12T23:45:00Z", "2026-09-13T02:00:00Z", "Santos x Cruzeiro", { sub: "Ao Vivo", source: "epgshare-br1" });
+  const first = runMerge(BASE, [SANTOS_CRUZEIRO], [globoSP]).doc;
+  const rio = prog("Globo.br", "2026-09-12T23:30:00Z", "2026-09-13T01:00:00Z", "Altas Horas");
+  const r = keptAfter(first, [globoSP, rio]);
+  A(r.report[0].status === "KEPT_LAST_KNOWN_GOOD" && hasAuto(r.doc), J(r.report));
+});
+
+test("S2 outra fonte discordando NÃO remove o canal que a fonte original ainda mostra", () => {
+  const other = prog("São.Paulo/SP..SporTV.br", "2026-09-12T23:30:00Z", "2026-09-13T01:00:00Z", "sportv News", { sub: "Ao Vivo", source: "epgshare-br1" });
+  const r = keptAfter(firstSC(), [LIVE_SC, other]);
+  A(r.report[0].status === "KEPT_LAST_KNOWN_GOOD" && hasAuto(r.doc), J(r.report));
+});
+
+test("S2 placeholder 'Programação ESPN' no mesmo id é 'não sei' ⇒ mantém", () => {
+  const espn = prog("ESPN.br", "2026-09-13T00:00:00Z", "2026-09-13T02:00:00Z", "Santos x Cruzeiro - Ao Vivo");
+  const first = runMerge(BASE, [SANTOS_CRUZEIRO], [espn]).doc;
+  const r = keptAfter(first, [prog("ESPN.br", "2026-09-12T23:00:00Z", "2026-09-13T02:00:00Z", "Programação ESPN")]);
+  A(r.report[0].status === "KEPT_LAST_KNOWN_GOOD" && hasAuto(r.doc), J(r.report));
+});
+
+test("S2 SporTV HD divergindo do SD que corroborou ⇒ mantém", () => {
+  const sd = prog("São.Paulo/SP..SporTV.br", "2026-09-13T00:00:00Z", "2026-09-13T02:00:00Z", "Santos x Cruzeiro", { sub: "Ao Vivo", source: "epgshare-br1" });
+  const first = runMerge(BASE, [SANTOS_CRUZEIRO], [sd]).doc;
+  const hd = prog("São.Paulo/SP..SporTV.HD.³.br", "2026-09-12T23:30:00Z", "2026-09-13T01:30:00Z", "Sportv Repórter", { source: "epgshare-br1" });
+  const r = keptAfter(first, [sd, hd]);
+  A(r.report[0].status === "KEPT_LAST_KNOWN_GOOD" && hasAuto(r.doc), J(r.report));
+});
+
+test("S2 canal que muda de id (id antigo sem programa) ⇒ mantém", () => {
+  const r = keptAfter(firstSC(), [prog("SporTV.FHD.br", "2026-09-12T23:00:00Z", "2026-09-13T03:00:00Z", "Programação Sportv")]);
+  A(r.report[0].status === "KEPT_LAST_KNOWN_GOOD" && hasAuto(r.doc), J(r.report));
+});
+
+test("S2 contradição REAL no mesmo id (replay no horário do jogo) ⇒ remove", () => {
+  const r = keptAfter(firstSC(), [prog("SporTV.br", "2026-09-12T23:30:00Z", "2026-09-13T01:00:00Z", "VT - Santos x Cruzeiro")]);
+  A(r.report[0].status === "REMOVED_CONTRADICTED" && !hasAuto(r.doc), J(r.report));
+});
+
+test("S3 os dois nomes SEM confronto 'A x B' não publicam", () => {
+  const at = (id, home, away) => fixture(id, "2026-09-20T14:00:00Z", home, away);
+  const slot = (ch, title) => prog(ch, "2026-09-20T13:30:00Z", "2026-09-20T16:00:00Z", title);
+  const cases = [
+    [at("s1", "Bahia", "Remo"), slot("Globo.br", "Esporte Espetacular: Bahia e Remo")],
+    [at("s2", "Bahia", "Remo"), slot("SporTV.2.br", "Remo: Brasileiro de Remo - Salvador, Bahia")],
+    [at("s3", "Santos", "São Paulo"), slot("Globo.br", "Todos os Santos: Missa em São Paulo")],
+    [at("s4", "Vitória", "Bahia"), slot("Record.TV.br", "Vitória em Cristo - Bahia")],
+  ];
+  for (const [f, p] of cases) {
+    const r = corroborateFixture(f, [p]);
+    A(r.channels.length === 0 && r.rejections.some((x) => x.reason === "NO_MATCH_SEPARATOR"), `${p.title}: ${J(r)}`);
+  }
+});
+
+test("S3 'Mineiro' não é Atlético-MG; 'Atlético Mineiro' continua sendo", () => {
+  const f = fixture("m1", "2026-09-20T21:30:00Z", "Cruzeiro", "Atlético-MG");
+  const at = (title) => [prog("SporTV.br", "2026-09-20T21:30:00Z", "2026-09-20T23:30:00Z", title)];
+  for (const t of ["Campeonato Mineiro: Cruzeiro x Tombense", "Cruzeiro x América Mineiro"]) {
+    A(corroborateFixture(f, at(t)).channels.length === 0, `${t} publicou`);
+  }
+  A(!clubsMentioned("Campeonato Mineiro").keys.has("atletico-mg"), "'mineiro' ainda resolve para o Atlético-MG");
+  A(corroborateFixture(f, at("Cruzeiro x Atlético Mineiro - Ao Vivo")).channels.length === 1, "alias legítimo quebrou");
+});
+
+test("S4 validador reprova curadoria sem espnId + registro automático da mesma partida (corrida pós-rebase)", () => {
+  const f = fixture("401841236", "2026-09-12T19:00:00Z", "Grêmio", "Vasco da Gama");
+  const p = prog("SporTV.br", "2026-09-12T19:00:00Z", "2026-09-12T21:00:00Z", "Grêmio x Vasco - Ao Vivo");
+  const withAuto = runMerge(BASE, [f], [p]).doc;
+  const noId = curated({ espnId: undefined, kickoffUtc: "2026-09-12T19:00Z", home: "Grêmio", away: "Vasco", channels: ["Premiere"] });
+  const v = validate({ ...withAuto, entries: [...withAuto.entries, noId] });
+  A(!v.ok && v.errors.some((m) => m.includes("curadoria sem 'espnId'")), J(v.errors));
+  const withId = curated({ espnId: "401841236", kickoffUtc: "2026-09-12T19:00Z", home: "Grêmio", away: "Vasco", channels: ["Premiere"] });
+  const ok2 = validate({ ...withAuto, entries: [...withAuto.entries.filter((e) => e.origin !== "epg"), withId] });
+  A(ok2.ok, J(ok2.errors));
+});
+
 console.log("\nE. CLI de ponta a ponta (grade de disco, sem rede)");
 
 const CLI = join(HERE, "sync_epg_broadcasts.mjs");
@@ -476,6 +605,20 @@ test("sem --write é dry-run: relata, não grava", () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────────────────────
+test("CLI: jogo ADIADO no snapshot tira a entrada automática antiga, mesmo com o EPG fora do ar (B1)", () => {
+  const s = sandbox();
+  try {
+    writeFileSync(s.file, serializeDoc(firstSC()));
+    const snap = JSON.parse(readFileSync(s.snapshot, "utf8"));
+    snap.matches[0] = { ...snap.matches[0], state: "post", statusName: "STATUS_POSTPONED" };
+    writeFileSync(s.snapshot, J(snap));
+    const r = cli(s, [`--epg-dir=${s.epg}`, "--write"]);
+    const doc = JSON.parse(readFileSync(s.file, "utf8"));
+    A(r.status === 0 && !doc.entries.some((e) => e.origin === "epg") && /POSTPONED_DROPPED/.test(r.stdout), r.stdout + r.stderr);
+    A(J(doc.entries.filter((e) => e.origin !== "epg")) === J(BASE.entries), "curadoria mudou");
+  } finally { rmSync(s.dir, { recursive: true, force: true }); }
+});
+
 console.log("\nF. Isolamento — scoring, apps e navegador intocados");
 
 test("o navegador nunca busca XMLTV: where_to_watch.js só conhece broadcasts.json", () => {

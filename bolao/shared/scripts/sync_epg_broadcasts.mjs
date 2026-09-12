@@ -30,8 +30,8 @@ import { gunzipSync } from "node:zlib";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import {
-  EPG_SOURCES, EPG_ALLOWED_HOSTS, SOURCE_MODEL, PROBE_AFTER_KICKOFF_MS, parseXmltv, corroborateFixtures,
-  mergeBroadcasts, serializeDoc, isAutoEntry, resolveChannel,
+  EPG_SOURCES, EPG_ALLOWED_HOSTS, SOURCE_MODEL, PROBE_AFTER_KICKOFF_MS, INACTIVE_STATUS_NAMES, parseXmltv,
+  corroborateFixtures, mergeBroadcasts, serializeDoc, isAutoEntry, resolveChannel,
 } from "./epg_broadcasts.mjs";
 import { validate } from "./validate_broadcasts.mjs";
 
@@ -115,13 +115,23 @@ export function fixturesInScope(snapshot, now, days) {
   const to = now.getTime() + days * 86400000;
   const out = [];
   for (const m of Array.isArray(snapshot.matches) ? snapshot.matches : []) {
-    if (m.completed || m.state === "post") continue;
+    if (m.completed || m.state === "post" || INACTIVE_STATUS_NAMES.has(m.statusName)) continue;
     const kickoffMs = Date.parse(m.date || "");
     if (!Number.isFinite(kickoffMs) || kickoffMs < from || kickoffMs > to) continue;
     if (!m.id || !m.homeTeam || !m.awayTeam) continue;
     out.push({ id: String(m.id), kickoffMs, kickoffUtc: m.date, home: m.homeTeam, away: m.awayTeam });
   }
   return out.sort((a, b) => a.kickoffMs - b.kickoffMs);
+}
+
+/** espnId → estado atual de TODAS as partidas do snapshot (inclusive adiadas e fora da janela). */
+export function snapshotIndex(snapshot) {
+  const idx = new Map();
+  for (const m of Array.isArray(snapshot.matches) ? snapshot.matches : []) {
+    if (!m || !m.id) continue;
+    idx.set(String(m.id), { kickoffUtc: m.date || null, statusName: m.statusName || null });
+  }
+  return idx;
 }
 
 const REASON_TEXT = {
@@ -131,12 +141,16 @@ const REASON_TEXT = {
   VETOED_BY_MARKER_IN_OTHER_SOURCE: "outra fonte marca o mesmo horário como replay/feminino/base",
   CHANNEL_NOT_ALLOWLISTED: "canal fora da allowlist",
   MORE_THAN_TWO_CLUBS: "programa cita mais de dois clubes (ambíguo)",
+  NO_MATCH_SEPARATOR: "cita os dois nomes mas não como confronto \"A x B\"",
   SOURCE_DISAGREEMENT: "fontes divergem sobre o que passa neste canal",
   PROGRAMME_MATCHES_MULTIPLE_FIXTURES: "programa casa com mais de uma partida (ambíguo)",
   AMBIGUOUS_FIXTURE_IDENTITY: "identidade da partida ambígua",
 };
 
 function hhmm(iso) { return iso ? iso.slice(11, 16) + "Z" : "?"; }
+
+/** Status de partida em escopo que NÃO resulta em linha "Onde assistir" no BR2026. */
+const UNCOVERED_STATUSES = new Set(["MISSING", "REMOVED_CONTRADICTED", "CURATED_OVERRIDE_WITHOUT_ESPNID", "RESCHEDULED_DROPPED"]);
 
 function describeRejection(r) {
   const what = REASON_TEXT[r.reason] || r.reason;
@@ -213,21 +227,29 @@ function renderReport({ now, guides, report, changed, wrote, dryRun, curatedCoun
       detail = "registro humano vence" + (r.epgAlsoSaw && r.epgAlsoSaw.length ? ` (EPG também viu: ${r.epgAlsoSaw.join(" · ")})` : "");
     } else if (r.status === "REMOVED_CONTRADICTED") detail = `grade contradiz: ${(r.dropped || []).join(" · ")}`;
     else if (r.status === "PRUNED_PAST") detail = "jogo passado há mais de 7 dias";
+    else if (r.status === "CURATED_OVERRIDE_WITHOUT_ESPNID") {
+      detail = "registro humano SEM espnId: suprime a grade, mas o BR2026 casa por id e NÃO exibe esta curadoria — acrescente o espnId";
+    } else if (r.status === "RESCHEDULED_DROPPED") {
+      detail = `jogo remarcado (${r.rescheduledFrom || "?"} → ${r.rescheduledTo || r.kickoffUtc}): evidência de outro horário descartada`;
+    } else if (r.status === "POSTPONED_DROPPED") detail = `jogo ${r.statusName}: canal da data antiga descartado`;
     else {
       detail = (r.evidence || []).map((e) =>
         `"${[e.programmeTitle, e.programmeSubTitle].filter(Boolean).join(" / ")}" ${e.channel} [${e.source} ${e.epgChannelId}] ${hhmm(e.programmeStart)}–${hhmm(e.programmeStop)}`).join("; ");
       if (r.kept && r.kept.length) detail += ` · mantido (last-known-good): ${r.kept.join(" · ")}`;
       if (r.dropped && r.dropped.length) detail += ` · removido (grade contradiz): ${r.dropped.join(" · ")}`;
+      if (r.rescheduledFrom) detail += ` · remarcado de ${r.rescheduledFrom} (evidência antiga descartada)`;
     }
-    const mark = r.status === "MISSING" || r.status === "REMOVED_CONTRADICTED" ? "✗" : "✓";
+    const mark = UNCOVERED_STATUSES.has(r.status) || r.status === "POSTPONED_DROPPED" ? "✗" : "✓";
     text.push(`  ${mark} ${r.kickoffUtc}  ${String(r.espnId).padEnd(10)} ${match}  — ${r.status}${channels ? ` → ${channels}` : ""}`);
     text.push(`      ${detail}`);
     md.push(`| ${r.kickoffUtc} | ${r.espnId} | ${match} | ${r.status} | ${channels || "—"} | ${detail.replace(/\|/g, "/")} |`);
   }
   const count = (s) => report.filter((r) => r.status === s).length;
   const covered = report.filter((r) => ["ADDED", "UPDATED", "UNCHANGED", "KEPT_LAST_KNOWN_GOOD", "CURATED_OVERRIDE"].includes(r.status)).length;
-  const inWindow = report.filter((r) => r.status !== "PRUNED_PAST").length;
-  const tail = `partidas: ${inWindow} · cobertas: ${covered} (curadoria ${count("CURATED_OVERRIDE")}, EPG ${covered - count("CURATED_OVERRIDE")}) · sem cobertura: ${count("MISSING") + count("REMOVED_CONTRADICTED")} · registros curados no arquivo: ${curatedCount}`;
+  const inWindow = report.filter((r) => r.status !== "PRUNED_PAST" && !r.outOfScope).length;
+  const uncovered = report.filter((r) => !r.outOfScope && UNCOVERED_STATUSES.has(r.status)).length;
+  const droppedByDate = report.filter((r) => r.status === "POSTPONED_DROPPED" || r.status === "RESCHEDULED_DROPPED").length;
+  const tail = `partidas: ${inWindow} · cobertas: ${covered} (curadoria ${count("CURATED_OVERRIDE")}, EPG ${covered - count("CURATED_OVERRIDE")}) · sem cobertura: ${uncovered} · descartadas por adiamento/remarcação: ${droppedByDate} · registros curados no arquivo: ${curatedCount}`;
   const writeLine = dryRun ? `dry-run — arquivo NÃO gravado (mudaria: ${changed ? "sim" : "não"})`
     : wrote ? "broadcasts.json GRAVADO" : "broadcasts.json inalterado";
   text.push("-".repeat(78), `  ${tail}`, `  ${writeLine}`, "=".repeat(78));
@@ -254,28 +276,34 @@ async function main() {
   const programmes = guides.flatMap((g) => g.programmes);
   const curatedCount = (existing.entries || []).filter((e) => !isAutoEntry(e)).length;
 
-  let doc = existing, changed = false, report;
+  const warn = (note) => console.log(process.env.GITHUB_ACTIONS ? `::warning::${note}` : `⚠ ${note}`);
+  const results = corroborateFixtures(fixtures, programmes);
+  let { doc, changed, report } = mergeBroadcasts(existing, fixtures, results,
+    { now, okSources, programmes, snapshotIndex: snapshotIndex(snapshot) });
   if (!okSources.size) {
-    // Nenhuma fonte: não há o que fundir. O arquivo fica exatamente como está (last-known-good).
-    report = fixtures.map((f) => ({ espnId: f.id, kickoffUtc: f.kickoffUtc, home: f.home, away: f.away,
-      status: "MISSING", channels: [], evidence: [], rejections: [] }));
-    const note = "EPG indisponível (todas as fontes falharam) — broadcasts.json preservado sem alteração";
-    console.log(process.env.GITHUB_ACTIONS ? `::warning::${note}` : `⚠ ${note}`);
-  } else {
-    const results = corroborateFixtures(fixtures, programmes);
-    ({ doc, changed, report } = mergeBroadcasts(existing, fixtures, results, { now, okSources, programmes }));
+    // Nenhuma fonte: nada novo entra e nada é contraditado (last-known-good). Só sai o que o SNAPSHOT
+    // invalida sozinho — jogo adiado ou remarcado —, porque canal de outra data é informação errada
+    // (B1 da revisão adversarial do PR #432). Sem isso, o arquivo fica byte-idêntico.
+    if (JSON.stringify(doc.entries) === JSON.stringify(existing.entries)) {
+      doc = existing;
+      changed = false;
+    }
+    warn("EPG indisponível (todas as fontes falharam) — nenhuma evidência nova; só adiamento/remarcação altera o arquivo");
+  }
+  for (const r of report.filter((x) => x.status === "CURATED_OVERRIDE_WITHOUT_ESPNID")) {
+    warn(`curadoria sem espnId para ${r.home} × ${r.away} (${r.espnId}) suprime a grade, mas o BR2026 casa por id e não a exibe — acrescente o espnId`);
+  }
 
-    const beforeCurated = JSON.stringify((existing.entries || []).filter((e) => !isAutoEntry(e)));
-    const afterCurated = JSON.stringify(doc.entries.filter((e) => !isAutoEntry(e)));
-    if (beforeCurated !== afterCurated) {
-      console.error("🛑 a fusão alterou registros curados — recusado, nada será gravado");
-      process.exit(1);
-    }
-    const post = validate(doc);
-    if (!post.ok) {
-      console.error(`🛑 resultado da fusão é inválido — nada será gravado:\n  ${post.errors.join("\n  ")}`);
-      process.exit(1);
-    }
+  const beforeCurated = JSON.stringify((existing.entries || []).filter((e) => !isAutoEntry(e)));
+  const afterCurated = JSON.stringify(doc.entries.filter((e) => !isAutoEntry(e)));
+  if (beforeCurated !== afterCurated) {
+    console.error("🛑 a fusão alterou registros curados — recusado, nada será gravado");
+    process.exit(1);
+  }
+  const post = validate(doc);
+  if (!post.ok) {
+    console.error(`🛑 resultado da fusão é inválido — nada será gravado:\n  ${post.errors.join("\n  ")}`);
+    process.exit(1);
   }
 
   let wrote = false;
