@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-09-12T00:37:48Z",
-  "sourceUpdatedAt": "2026-09-12T00:37:48Z",
+  "generatedAt": "2026-09-12T05:06:13Z",
+  "sourceUpdatedAt": "2026-09-12T05:06:13Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "b5d28746a845a10dc8c7250309abfc7992d74dc1468608d50220d246ac51effa",
+  "payloadHash": "203752cbe9161190ff38b64f3dd34a29698317b52a75ac33300dc5af997932c8",
   "matches": [
     {
       "id": "401840808",
@@ -43554,25 +43554,25 @@
     {
       "id": "401841232",
       "date": "2026-09-12T00:00Z",
-      "state": "in",
-      "statusName": "STATUS_FIRST_HALF",
-      "statusDescription": "First Half",
-      "statusShortDetail": "29'",
-      "statusDetail": "29'",
-      "completed": false,
+      "state": "post",
+      "statusName": "STATUS_FULL_TIME",
+      "statusDescription": "Full Time",
+      "statusShortDetail": "FT",
+      "statusDetail": "FT",
+      "completed": true,
       "homeTeam": "Coritiba",
       "awayTeam": "Athletico Paranaense",
       "homeTeamId": "3456",
       "awayTeamId": "3458",
-      "homeScore": 0,
-      "awayScore": 1,
+      "homeScore": 3,
+      "awayScore": 3,
       "homeWinner": false,
       "awayWinner": false,
       "venue": "Couto Pereira",
       "city": "Curitiba",
-      "clockSec": 1740.0,
-      "clockStr": "29'",
-      "period": 1,
+      "clockSec": 5400.0,
+      "clockStr": "90'+10'",
+      "period": 2,
       "details": [
         {
           "type": {
@@ -43590,6 +43590,272 @@
             {
               "displayName": "Luiz Gustavo",
               "shortName": "Luiz Gustavo"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "3456"
+          },
+          "clock": {
+            "value": 1649.0,
+            "displayValue": "28'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Joaquín Lavega",
+              "shortName": "J. Lavega"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Goal"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "3458"
+          },
+          "clock": {
+            "value": 1780.0,
+            "displayValue": "30'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Arthur Dias",
+              "shortName": "A. Dias"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "3456"
+          },
+          "clock": {
+            "value": 1995.0,
+            "displayValue": "34'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Jacy Maranhão",
+              "shortName": "J. Maranhão"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "3458"
+          },
+          "clock": {
+            "value": 2006.0,
+            "displayValue": "34'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Kevin Viveros",
+              "shortName": "K. Viveros"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "3458"
+          },
+          "clock": {
+            "value": 2528.0,
+            "displayValue": "43'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "João Cruz",
+              "shortName": "João Cruz"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Red Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "3456"
+          },
+          "clock": {
+            "value": 2700.0,
+            "displayValue": "45'+1'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Breno",
+              "shortName": "Breno"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Goal"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "3456"
+          },
+          "clock": {
+            "value": 2700.0,
+            "displayValue": "45'+2'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Tiago",
+              "shortName": "Tiago"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "3458"
+          },
+          "clock": {
+            "value": 2700.0,
+            "displayValue": "45'+5'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Dantas",
+              "shortName": "Dantas"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "3456"
+          },
+          "clock": {
+            "value": 2700.0,
+            "displayValue": "45'+9'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "João Pedro Chermont",
+              "shortName": "J. Chermont"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "3456"
+          },
+          "clock": {
+            "value": 2700.0,
+            "displayValue": "45'+12'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Pedro Rocha",
+              "shortName": "P. Rocha"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Penalty - Scored"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "3458"
+          },
+          "clock": {
+            "value": 3739.0,
+            "displayValue": "63'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Kevin Viveros",
+              "shortName": "K. Viveros"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Goal - Header"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "3456"
+          },
+          "clock": {
+            "value": 5400.0,
+            "displayValue": "90'+1'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Rodrigo Moledo",
+              "shortName": "R. Moledo"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "3458"
+          },
+          "clock": {
+            "value": 5400.0,
+            "displayValue": "90'+3'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Luiz Gustavo",
+              "shortName": "Luiz Gustavo"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Goal - Header"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "3456"
+          },
+          "clock": {
+            "value": 5400.0,
+            "displayValue": "90'+7'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Rodrigo Moledo",
+              "shortName": "R. Moledo"
             }
           ]
         }
