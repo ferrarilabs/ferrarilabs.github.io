@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-09-12T20:57:02Z",
-  "sourceUpdatedAt": "2026-09-12T20:57:02Z",
+  "generatedAt": "2026-09-12T22:57:09Z",
+  "sourceUpdatedAt": "2026-09-12T22:57:09Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "fe99c8b6ab2be027ec82e2771a36173236aba3718c70bfbc6bd20cc7b23260af",
+  "payloadHash": "6584a493e91c31ef89ad294d64c60b108f869bfd27cfd18c54740dbcda950e6f",
   "matches": [
     {
       "name": "Flamengo",
@@ -251,14 +251,14 @@
       "abbr": "INT",
       "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/1936.png",
       "rank": 18.0,
-      "points": 25.0,
-      "played": 26.0,
-      "wins": 5.0,
+      "points": 28.0,
+      "played": 27.0,
+      "wins": 6.0,
       "draws": 10.0,
       "losses": 11.0,
-      "gf": 28.0,
-      "ga": 34.0,
-      "gd": -6.0
+      "gf": 30.0,
+      "ga": 35.0,
+      "gd": -5.0
     },
     {
       "name": "Remo",
@@ -280,13 +280,13 @@
       "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/9318.png",
       "rank": 20.0,
       "points": 17.0,
-      "played": 25.0,
+      "played": 26.0,
       "wins": 3.0,
       "draws": 8.0,
-      "losses": 14.0,
-      "gf": 27.0,
-      "ga": 50.0,
-      "gd": -23.0
+      "losses": 15.0,
+      "gf": 28.0,
+      "ga": 52.0,
+      "gd": -24.0
     }
   ]
 }
