@@ -2519,6 +2519,15 @@ preenche (`usa.1`, `eng.1`) o valor é do **mercado americano** (`region: "us"` 
 broadcast no pipeline, porque um estágio que só produz `[]` é peso morto. O caminho para revisitar
 (um só ponto de entrada) está documentado no cabeçalho de `bolao/shared/js/where_to_watch.js`.
 
+> **Atualização 2026-09-12 (#431, BR2026 v1.137): decisão superada.** A ESPN continua vazia, mas a
+> grade de TV brasileira (EPGShare BR1/BR2) passou a ser a fonte: `EPG_CORROBORATED_WITH_CURATED_OVERRIDE`.
+> O estágio de broadcast existe agora **fora** do navegador (`sync_epg_broadcasts.mjs`, workflow
+> `br2026_broadcast_epg.yml`) e grava o mesmo `broadcasts.json`. A curadoria vence. O módulo
+> compartilhado e a chave de associação nos dois apps **não mudaram**.
+> **`INTENTIONALLY_DIFFERENT` (temporário):** o pipeline só corrobora fixtures do **BR2026**. O
+> CDB2026 exibe as entradas do arquivo como sempre, mas os jogos dele continuam dependendo de
+> curadoria até um passo próprio. Ver `docs/bolao/BROADCAST_OPERATIONS.md`.
+
 **`INTENTIONALLY_DIFFERENT` — copa2026 fora do "Onde assistir".** A Copa do Mundo está arquivada
 (`CONFIG.archived`) e não exibe card de próxima partida; ela não carrega `where_to_watch.js` e não
 deve carregá-lo. É essa assimetria que o `APP_SHARED_FILES` do `cachebust.mjs` passou a modelar (ver

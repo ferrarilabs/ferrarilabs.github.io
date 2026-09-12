@@ -1,6 +1,8 @@
 {
   "schemaVersion": 1,
-  "_comment": "Fonte de dados de 'Onde assistir' (bolao/shared/js/where_to_watch.js). Curadoria manual, evidência por partida. Ver docs/bolao/BROADCAST_OPERATIONS.md para o processo operacional completo antes de editar este arquivo.",
+  "sourceModel": "EPG_CORROBORATED_WITH_CURATED_OVERRIDE",
+  "_comment": "Fonte de dados de 'Onde assistir' (bolao/shared/js/where_to_watch.js). Modelo EPG_CORROBORATED_WITH_CURATED_OVERRIDE (#431): registros sem 'origin' são curadoria humana e sempre vencem; registros 'origin: epg' são gerados por bolao/shared/scripts/sync_epg_broadcasts.mjs a partir da grade de TV — não edite esses à mão. Ver docs/bolao/BROADCAST_OPERATIONS.md antes de editar este arquivo.",
+  "updatedAt": "2026-09-12T19:06:37Z",
   "entries": [
     {
       "espnId": "401909114",
@@ -38,6 +40,165 @@
       "channels": ["Globo (TV aberta — consulte sua região)", "sportv", "Premiere", "Amazon Prime Video"],
       "confirmedAt": "2026-09-02",
       "source": "maquinadoesporte.com.br + cnnbrasil.com.br + vavel.com (Globo regional: RJ, BA, ES, SE, RN, PB, MA, Santarém-PA, Juiz de Fora-MG)"
+    },
+    {
+      "espnId": "401841228",
+      "kickoffUtc": "2026-09-12T20:00Z",
+      "home": "Chapecoense",
+      "away": "Internacional",
+      "channels": ["Record (TV aberta — consulte sua região)"],
+      "origin": "epg",
+      "source": "EPG XMLTV epgshare01 (BR1/BR2) — corroboração automática: programa cita os dois clubes no horário do kickoff",
+      "confirmedAt": "2026-09-12",
+      "collectedAt": "2026-09-12T19:06:37Z",
+      "evidence": [
+        {
+          "channel": "Record (TV aberta — consulte sua região)",
+          "source": "epgshare-br2",
+          "epgChannelId": "Record.TV.br",
+          "programmeTitle": "Chapecoense x Internacional - Ao Vivo",
+          "programmeSubTitle": null,
+          "programmeCategories": ["Esporte", "Futebol"],
+          "programmeStart": "2026-09-12T19:50:00Z",
+          "programmeStop": "2026-09-12T22:00:00Z",
+          "matchedTeams": ["chapecoense", "internacional"],
+          "collectedAt": "2026-09-12T19:06:37Z"
+        }
+      ]
+    },
+    {
+      "espnId": "401841234",
+      "kickoffUtc": "2026-09-12T21:30Z",
+      "home": "Palmeiras",
+      "away": "São Paulo",
+      "channels": ["Premiere"],
+      "origin": "epg",
+      "source": "EPG XMLTV epgshare01 (BR1/BR2) — corroboração automática: programa cita os dois clubes no horário do kickoff",
+      "confirmedAt": "2026-09-12",
+      "collectedAt": "2026-09-12T19:06:37Z",
+      "evidence": [
+        {
+          "channel": "Premiere",
+          "source": "epgshare-br2",
+          "epgChannelId": "Premiere.Clubes.br",
+          "programmeTitle": "Palmeiras x São Paulo - Ao Vivo",
+          "programmeSubTitle": null,
+          "programmeCategories": ["Esporte", "Futebol"],
+          "programmeStart": "2026-09-12T21:30:00Z",
+          "programmeStop": "2026-09-12T23:40:00Z",
+          "matchedTeams": ["palmeiras", "sao-paulo"],
+          "collectedAt": "2026-09-12T19:06:37Z"
+        }
+      ]
+    },
+    {
+      "espnId": "401841233",
+      "kickoffUtc": "2026-09-13T00:00Z",
+      "home": "Santos",
+      "away": "Cruzeiro",
+      "channels": ["SporTV"],
+      "origin": "epg",
+      "source": "EPG XMLTV epgshare01 (BR1/BR2) — corroboração automática: programa cita os dois clubes no horário do kickoff",
+      "confirmedAt": "2026-09-12",
+      "collectedAt": "2026-09-12T19:06:37Z",
+      "evidence": [
+        {
+          "channel": "SporTV",
+          "source": "epgshare-br1",
+          "epgChannelId": "São.Paulo/SP..SporTV.br",
+          "programmeTitle": "Santos x Cruzeiro",
+          "programmeSubTitle": "Ao Vivo",
+          "programmeStart": "2026-09-13T00:00:00Z",
+          "programmeStop": "2026-09-13T02:00:00Z",
+          "matchedTeams": ["santos", "cruzeiro"],
+          "collectedAt": "2026-09-12T19:06:37Z"
+        },
+        {
+          "channel": "SporTV",
+          "source": "epgshare-br2",
+          "epgChannelId": "SporTV.br",
+          "programmeTitle": "Santos x Cruzeiro - Ao Vivo",
+          "programmeSubTitle": null,
+          "programmeCategories": ["Esporte", "Futebol"],
+          "programmeStart": "2026-09-13T00:00:00Z",
+          "programmeStop": "2026-09-13T02:00:00Z",
+          "matchedTeams": ["santos", "cruzeiro"],
+          "collectedAt": "2026-09-12T19:06:37Z"
+        }
+      ]
+    },
+    {
+      "espnId": "401841237",
+      "kickoffUtc": "2026-09-13T20:30Z",
+      "home": "Flamengo",
+      "away": "Corinthians",
+      "channels": ["Premiere"],
+      "origin": "epg",
+      "source": "EPG XMLTV epgshare01 (BR1/BR2) — corroboração automática: programa cita os dois clubes no horário do kickoff",
+      "confirmedAt": "2026-09-12",
+      "collectedAt": "2026-09-12T19:06:37Z",
+      "evidence": [
+        {
+          "channel": "Premiere",
+          "source": "epgshare-br2",
+          "epgChannelId": "Premiere.Clubes.br",
+          "programmeTitle": "Flamengo x Corinthians - Ao Vivo",
+          "programmeSubTitle": null,
+          "programmeCategories": ["Esporte", "Futebol"],
+          "programmeStart": "2026-09-13T20:00:00Z",
+          "programmeStop": "2026-09-13T22:40:00Z",
+          "matchedTeams": ["flamengo", "corinthians"],
+          "collectedAt": "2026-09-12T19:06:37Z"
+        }
+      ]
+    },
+    {
+      "espnId": "401841230",
+      "kickoffUtc": "2026-09-14T23:00Z",
+      "home": "Bahia",
+      "away": "Remo",
+      "channels": ["SporTV", "Premiere"],
+      "origin": "epg",
+      "source": "EPG XMLTV epgshare01 (BR1/BR2) — corroboração automática: programa cita os dois clubes no horário do kickoff",
+      "confirmedAt": "2026-09-12",
+      "collectedAt": "2026-09-12T19:06:37Z",
+      "evidence": [
+        {
+          "channel": "SporTV",
+          "source": "epgshare-br1",
+          "epgChannelId": "São.Paulo/SP..SporTV.br",
+          "programmeTitle": "Bahia x Remo",
+          "programmeSubTitle": "Ao Vivo",
+          "programmeStart": "2026-09-14T23:00:00Z",
+          "programmeStop": "2026-09-15T01:00:00Z",
+          "matchedTeams": ["bahia", "remo"],
+          "collectedAt": "2026-09-12T19:06:37Z"
+        },
+        {
+          "channel": "SporTV",
+          "source": "epgshare-br2",
+          "epgChannelId": "SporTV.br",
+          "programmeTitle": "Bahia x Remo - Ao Vivo",
+          "programmeSubTitle": null,
+          "programmeCategories": ["Esporte", "Futebol"],
+          "programmeStart": "2026-09-14T23:00:00Z",
+          "programmeStop": "2026-09-15T01:00:00Z",
+          "matchedTeams": ["bahia", "remo"],
+          "collectedAt": "2026-09-12T19:06:37Z"
+        },
+        {
+          "channel": "Premiere",
+          "source": "epgshare-br2",
+          "epgChannelId": "Premiere.Clubes.br",
+          "programmeTitle": "Bahia x Remo - Ao Vivo",
+          "programmeSubTitle": null,
+          "programmeCategories": ["Esporte", "Futebol"],
+          "programmeStart": "2026-09-14T22:30:00Z",
+          "programmeStop": "2026-09-15T01:10:00Z",
+          "matchedTeams": ["bahia", "remo"],
+          "collectedAt": "2026-09-12T19:06:37Z"
+        }
+      ]
     }
   ]
 }

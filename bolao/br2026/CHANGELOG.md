@@ -1,5 +1,55 @@
 # Bolão Brasileirão 2026 — CHANGELOG
 
+## v1.137 — "Onde assistir" pela grade de TV, com override curado (2026-09-12, #431)
+
+`BROADCAST_SOURCE_MODEL` passa de `CURATED_ONLY` para **`EPG_CORROBORATED_WITH_CURATED_OVERRIDE`**.
+A #425 descartou fonte automática porque nenhuma era específica por partida e do mercado
+brasileiro. A grade de TV brasileira (EPG XMLTV do EPGShare, BR1/BR2) é essa fonte, e não tinha
+sido avaliada. O repositório irmão `ferrarilabs/FerrariTV` já a usa com a regra adotada aqui: a
+ESPN identifica a partida, e a grade só prova transmissão quando o programa cita **os dois clubes**
+no horário do kickoff.
+
+- `bolao/shared/scripts/epg_broadcasts.mjs` (novo): parser XMLTV, aliases de clube com sufixo de
+  estado como identidade, allowlist e nome apresentado dos canais (Globo, Record, Band, SporTV,
+  Premiere com número preservado, BandSports, ESPN, CazéTV), corroboração e fusão com last-known-good.
+  É mais conservador que o FerrariTV: recusa replay/pré-jogo/feminino/base (inclusive por
+  categoria em outra fonte), fontes divergentes, programa com 3+ clubes e programa que casa com
+  duas partidas.
+- `bolao/shared/scripts/sync_epg_broadcasts.mjs` (novo): baixa BR1/BR2 (host na allowlist, com
+  limites de tamanho e tempo), corrobora contra o snapshot ESPN já commitado (próximos 7 dias) e
+  grava `broadcasts.json` só quando o dado muda. Emite relatório por partida: texto da grade que
+  corroborou, ou o motivo de não haver cobertura.
+- `.github/workflows/br2026_broadcast_epg.yml` (novo): a cada 3h + `workflow_dispatch` (dry-run por
+  padrão). Autoteste antes, validação antes e depois do rebase, e deploy do Pages pedido quando o
+  arquivo muda.
+- `validate_broadcasts.mjs`: registros `origin: "epg"` são revalidados contra a própria evidência
+  (janela, allowlist, dois clubes, proveniência). Nenhuma regra existente afrouxou.
+- `check_broadcast_coverage.mjs`: a linha coberta diz `[EPG]` ou `[curadoria]`.
+- `test_epg_broadcasts.mjs` (novo, `npm test` + gate `epg-broadcasts`).
+- Curadoria humana continua sendo override explícito e sempre vence. As 4 entradas curadas
+  ficaram intocadas. Streaming sem grade (Prime Video) nunca é inventado.
+- EPG fora do ar deixa `broadcasts.json` byte-idêntico. Um canal automático só sai quando a mesma
+  fonte que o corroborou mostra outro programa no ar naquele horário.
+- **Revisão adversarial do PR #432 (corrigido antes do merge):**
+  - **B1** — jogo remarcado ou adiado mantinha o canal da data antiga, e remarcação dentro da janela
+    travava o pipeline (fusão inválida). Agora a entrada antiga é descartada (`RESCHEDULED_DROPPED` /
+    `POSTPONED_DROPPED`), inclusive com o EPG fora do ar; partida adiada sai do escopo.
+  - **S1** — `workflow_dispatch` em outra ref publicava o commit do bot nessa ref (reproduzido com git
+    real). O workflow agora falha fora de `refs/heads/main` e empurra `HEAD:refs/heads/main`.
+  - **S2** — contradição passou a ser por item de evidência (mesmo `source` + `epgChannelId`),
+    ignorando placeholder e o próprio jogo: praça, HD/SD, fonte discordante e id renomeado não removem.
+  - **S3** — exige confronto "A x B" (os 249 programas reais com dois clubes já usam) e procura clube
+    por `fold()`, sem o alias quebrado "mineiro".
+  - **S4** — curadoria sem `espnId` é relatada como não exibida no BR2026, e o validador reprova
+    colisão dela com entrada automática da mesma partida.
+- **Não muda:** `where_to_watch.js` (só o comentário de cabeçalho), nenhum `app.js`, scoring,
+  countdown, seleção de próxima partida, entries, pagamentos, persistence ou venue. Auditorias de
+  scoring dos três apps passam.
+- **Propagação:** CDB2026 lê o mesmo `broadcasts.json` e o mesmo módulo, sem mudança de código. O
+  pipeline cobre só fixtures do BR2026 por enquanto, de propósito ("BR2026 primeiro", #431). Os
+  jogos do CDB2026 seguem por curadoria até um passo próprio. Copa2026 arquivado, não carrega o
+  módulo.
+
 ## v1.136 — "Onde assistir": dado sai do código, detector de lacunas automatizado (2026-09-07, #425)
 
 Correção de escopo: #391/#392 entregaram só a apresentação de "Onde assistir"; a ingestão

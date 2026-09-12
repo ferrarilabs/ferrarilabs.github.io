@@ -553,6 +553,9 @@
     "bolao/shared/scripts/test_broadcast_operations.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
     },
+    "bolao/shared/scripts/test_epg_broadcasts.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
     "bolao/shared/scripts/test_cache_poisoning.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
     },
