@@ -75,7 +75,10 @@ export function upcomingWithoutCoverage(fixtures, broadcasts, { now = new Date()
       kickoff: m.date,
       home: m.homeTeam,
       away: m.awayTeam,
-      status: covered ? `OK (${covered.channels.join(" · ")})` : "MISSING",
+      // Issue #431: diz de onde veio a cobertura — curadoria humana ou grade de TV (origin=epg).
+      status: covered
+        ? `OK [${covered.origin === "epg" ? "EPG" : "curadoria"}] (${covered.channels.join(" · ")})`
+        : "MISSING",
       covered: !!covered,
     });
   }

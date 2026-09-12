@@ -1,0 +1,112 @@
+# "Onde assistir" do BR2026 a partir da grade de TV (Issue #431).
+#
+# Modelo: EPG_CORROBORATED_WITH_CURATED_OVERRIDE (substitui CURATED_ONLY da #425).
+#
+#   EPGShare BR1/BR2 (XMLTV) → sync_epg_broadcasts.mjs → bolao/shared/data/broadcasts.json
+#
+# Backend:      nenhum. Leitura pública da grade (host na allowlist) + snapshot ESPN já commitado +
+#               escrita de UM arquivo JSON. Sem Supabase, sem credencial, sem dado de participante,
+#               sem e-mail. Não toca scoring, countdown, seleção de partida, entries ou pagamento.
+# Cadência:     a cada 3h — a grade muda ao longo do dia e um jogo às 16h BRT precisa estar coberto
+#               antes do kickoff. Sem janela: o passo só commita quando o dado MUDA, então run sem
+#               novidade não gera commit nem deploy.
+# Segurança:    o autoteste do corroborador roda ANTES; vermelho não publica. O arquivo resultante é
+#               validado antes e depois do rebase. EPG fora do ar deixa o arquivo intocado
+#               (last-known-good) e o run fica verde com ::warning:: — terceiro instável não pinta a
+#               main de vermelho nem apaga dado.
+# Commit:       GITHUB_TOKEN não acorda outros workflows; o deploy do Pages é pedido explicitamente,
+#               como em bolao_provider_snapshot.yml.
+name: BR2026 — "Onde assistir" via grade de TV (EPG)
+
+on:
+  schedule:
+    - cron: "17 */3 * * *"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Dry run — corrobora e mostra o relatório, mas NÃO grava nem commita"
+        required: false
+        type: boolean
+        default: true
+
+concurrency:
+  group: br2026-broadcast-epg
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+
+      - name: Resolve dry-run
+        id: cfg
+        run: |
+          if [ "${{ github.event_name }}" = "schedule" ]; then DRY="false"; else DRY="${{ github.event.inputs.dry_run }}"; fi
+          echo "dry=$DRY" >> "$GITHUB_OUTPUT"
+          echo "dry_run=$DRY"
+
+      - name: Autoteste do corroborador (vermelho não publica)
+        run: node bolao/shared/scripts/test_epg_broadcasts.mjs
+
+      - name: Corroborar grade × próximos jogos do BR2026
+        run: |
+          if [ "${{ steps.cfg.outputs.dry }}" = "true" ]; then MODE=""; else MODE="--write"; fi
+          node bolao/shared/scripts/sync_epg_broadcasts.mjs $MODE --days=7 --summary="$GITHUB_STEP_SUMMARY"
+
+      - name: Validar broadcasts.json
+        run: node bolao/shared/scripts/validate_broadcasts.mjs
+
+      - name: Commit
+        id: commit
+        if: steps.cfg.outputs.dry != 'true'
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add bolao/shared/data/broadcasts.json
+          if git diff --cached --quiet; then
+            echo "broadcasts.json inalterado — nada a commitar."
+            echo "committed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          git commit -m "chore(br2026): Onde assistir atualizado pela grade de TV"
+          empurrou=false
+          for tentativa in 1 2 3 4 5; do
+            git pull --rebase --autostash origin main
+            # Um humano pode ter curado a mesma partida entre o checkout e o push: revalida o
+            # resultado do rebase antes de publicar.
+            if ! node bolao/shared/scripts/validate_broadcasts.mjs; then
+              echo "::error::broadcasts.json inválido depois do rebase; nada foi publicado."
+              exit 1
+            fi
+            if git push; then
+              empurrou=true
+              break
+            fi
+            echo "push rejeitado (tentativa ${tentativa}/5) — rebaseando de novo."
+            sleep $(( tentativa * 3 ))
+          done
+          if [ "$empurrou" != "true" ]; then
+            echo "::error::push rejeitado 5 vezes seguidas; broadcasts.json NAO foi persistido."
+            exit 1
+          fi
+          echo "committed=true" >> "$GITHUB_OUTPUT"
+
+      - name: Trigger Pages deploy
+        if: steps.commit.outputs.committed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh workflow run "Deploy GitHub Pages" --ref main
+          echo "Deploy GitHub Pages dispatched for the refreshed broadcasts.json."

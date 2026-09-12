@@ -239,6 +239,19 @@ const EXPECTED = [
     hourWindows: { evening: [0, 23], overnight: [0, 23] },
   },
   {
+    // Issue #431: "Onde assistir" do BR2026 a partir da grade de TV (EPG). Grava SO
+    // bolao/shared/data/broadcasts.json, sem e-mail e sem estado de participante. Jogo do
+    // Brasileirao acontece em qualquer dia e em horarios de 11h a 22h BRT, entao a exigencia e
+    // cobrir TODO dia e o dia inteiro -- um cron que parasse de disparar deixaria a linha de TV dos
+    // proximos jogos sem atualizar, sem erro nenhum (a ausencia e a falha). Nunca afeta scoring,
+    // ranking, entries ou pagamentos.
+    file: "br2026_broadcast_epg.yml",
+    why: "sem esta coleta a linha \"Onde assistir\" dos proximos jogos volta a depender de curadoria " +
+         "manual partida a partida",
+    events: [0, 1, 2, 3, 4, 5, 6].map((d) => ({ label: `UTC dow ${d}`, utcDows: [d] })),
+    hourWindows: { evening: [0, 23], overnight: [0, 23] },
+  },
+  {
     // Coleta do resultado oficial das duas loterias. Nao envia e-mail e nao credita premio: e o
     // passo que REGISTRA o que a fonte publicou. Se ele nao rodar, todo o resto do pipeline
     // (e-mail de resultado, saldo, elegibilidade) fica sem insumo.

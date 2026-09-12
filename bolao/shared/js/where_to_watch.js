@@ -54,8 +54,8 @@
  * Outras fontes avaliadas na Issue #425 (API-Football, API oficial da CBF, scraping de emissora,
  * APIs não-oficiais tipo SofaScore) foram descartadas por falta de evidência de cobertura,
  * indisponibilidade de API pública, ou risco legal/de manutenção incompatível com "informação
- * errada é pior que ausência". CURADORIA continua sendo a fonte autoritativa. O que MUDOU não é
- * a fonte do dado — é a operação em volta dela: ver "MODELO OPERACIONAL" abaixo.
+ * errada é pior que ausência". A fonte que a #425 NÃO avaliou — a grade de TV brasileira (EPG
+ * XMLTV) — é a que a Issue #431 adotou: ver "CONTRATO OPERACIONAL" abaixo.
  *
  * PARA REVISITAR (a decisão é reversível e tem um ponto de entrada só): se a ESPN passar a
  * publicar `geoBroadcasts` com `region: "br"`, normalize esse campo em
@@ -65,19 +65,26 @@
  * nada. Só aceite entrada com região brasileira; qualquer outra é o mercado errado. Nenhuma
  * mudança de UI é necessária para isso: `lineHtml()` já é o único ponto de saída.
  *
- * ─── CONTRATO OPERACIONAL: BROADCAST_SOURCE_MODEL = CURATED_ONLY ────────────────────────────
+ * ─── CONTRATO OPERACIONAL: BROADCAST_SOURCE_MODEL = EPG_CORROBORATED_WITH_CURATED_OVERRIDE ──
  *
- * A DESCOBERTA da transmissão continua sendo confirmada por humano — isso não é automático, e
- * não deve ser descrito como se fosse:
+ * (Issue #431; substitui CURATED_ONLY da #425.) `broadcasts.json` tem dois tipos de registro, e
+ * este módulo NÃO distingue os dois — ele só exibe `channels`, igual a antes:
  *
- *   - uma pessoa acrescenta um registro POR PARTIDA, com evidência específica daquela partida, em
- *     `bolao/shared/data/broadcasts.json`;
+ *   - HUMANO (sem `origin`): uma pessoa cadastra com evidência específica da partida. Sempre vence
+ *     e nunca é tocado pelo pipeline. É o único caminho para streaming sem grade (Prime Video).
+ *   - AUTOMÁTICO (`origin: "epg"`): gerado FORA do navegador por
+ *     `bolao/shared/scripts/sync_epg_broadcasts.mjs` (workflow agendado), a partir da grade
+ *     EPGShare BR1/BR2, só quando um programa cita os DOIS clubes e está no horário do kickoff.
+ *     Guarda a proveniência (fonte, título do programa, horário da grade, coleta).
  *   - sem registro, não existe linha — nunca se adivinha, nunca se infere do contrato da
  *     competição, nunca se reaproveita o canal do outro jogo ou do outro turno do mesmo confronto;
  *   - a ausência é o comportamento correto e seguro, não uma falha — o card fica idêntico ao de
  *     antes e nada mais na página muda.
  *
- * O que É automático agora (Issue #425): a COMPLETUDE da cobertura. `check_broadcast_coverage.mjs`
+ * Nada de XMLTV passa por aqui: o navegador continua buscando só o JSON pequeno. Regras de
+ * evidência e last-known-good: `bolao/shared/scripts/epg_broadcasts.mjs`.
+ *
+ * O que também é automático (Issue #425): a COMPLETUDE da cobertura. `check_broadcast_coverage.mjs`
  * roda em CI e lista, por rodada, quais partidas do BR2026 ainda não têm registro — ninguém
  * precisa lembrar de conferir a tabela à mão. `validate_broadcasts.mjs` reprova o arquivo se um
  * registro vier com identidade ambígua, canal vazio, duplicata/conflito de partida, ou dado velho

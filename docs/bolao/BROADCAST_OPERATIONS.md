@@ -1,20 +1,100 @@
 # Modelo operacional — "Onde assistir" (BR2026 / CDB2026)
 
-Issue de origem: [#425](https://github.com/ferrarilabs/ferrarilabs.github.io/issues/425).
-`#391`/`#392` entregaram a apresentação; este documento é o modelo operacional que faltava.
+Issues de origem: [#425](https://github.com/ferrarilabs/ferrarilabs.github.io/issues/425) (modelo
+operacional, `CURATED_ONLY`) e [#431](https://github.com/ferrarilabs/ferrarilabs.github.io/issues/431)
+(grade de TV, `EPG_CORROBORATED_WITH_CURATED_OVERRIDE`). `#391`/`#392` entregaram a apresentação.
 
-## O que é automático e o que não é
+## Modelo atual: `EPG_CORROBORATED_WITH_CURATED_OVERRIDE` (desde a #431)
 
-> **A descoberta da fonte continua confirmada por humano; a completude da cobertura e a
-> detecção operacional são automatizadas.**
+```
+EPGShare BR1/BR2 (XMLTV) → sync_epg_broadcasts.mjs (workflow) → próximos jogos do BR2026
+  (snapshot ESPN já commitado) → bolao/shared/data/broadcasts.json → where_to_watch.js (inalterado)
+```
 
-- **Automático:** saber QUAIS partidas próximas ainda não têm transmissão cadastrada
-  (`check_broadcast_coverage.mjs`), e recusar um arquivo de dados corrompido, ambíguo ou
-  conflitante antes que ele chegue a produção (`validate_broadcasts.mjs`).
-- **Não automático, de propósito:** decidir QUAL é a emissora de uma partida específica. Não
-  existe hoje uma fonte confiável, específica por partida e de mercado brasileiro (ver a
-  investigação completa na Issue #425 e no cabeçalho de `where_to_watch.js`). Informação errada é
-  pior que ausência — por isso a fonte continua sendo curadoria humana com evidência registrada.
+> **A emissora de cada partida vem da grade de TV brasileira, só com evidência forte. Curadoria
+> humana continua possível como override explícito — e sempre vence — mas deixou de ser necessária
+> para cada partida.**
+
+- **Automático:** `.github/workflows/br2026_broadcast_epg.yml` (a cada 3h + `workflow_dispatch`)
+  baixa a grade EPGShare BR1/BR2, corrobora contra os jogos do BR2026 dos próximos 7 dias e grava
+  `broadcasts.json` só quando o dado muda. Filosofia portada do repositório irmão
+  `ferrarilabs/FerrariTV` (`packages/football/src/corroborate.ts`).
+- **Também automático (#425):** saber quais partidas ainda não têm cobertura
+  (`check_broadcast_coverage.mjs`, agora marcando `[EPG]` ou `[curadoria]`) e recusar arquivo
+  corrompido, ambíguo ou conflitante (`validate_broadcasts.mjs`).
+- **Continua humano, de propósito:** streaming sem presença na grade (Prime Video, CazéTV só no
+  YouTube) e qualquer correção do que a grade disse. Nada disso é inventado pelo pipeline.
+- A ESPN identifica a PARTIDA (id, kickoff, clubes). Ela nunca é fonte de transmissão.
+
+### Quando a grade vira transmissão (evidência forte)
+
+Um programa só publica um canal quando **tudo** abaixo vale (`epg_broadcasts.mjs`):
+
+1. cita os **dois** clubes da partida no título/subtítulo, com identificação por alias e **sufixo de
+   estado como identidade** ("Botafogo-SP" não é Botafogo, "Atlético" sozinho não é Atlético-MG);
+2. começa entre 60 min antes e 15 min depois do kickoff e continua no ar até pelo menos 45 min depois;
+3. não é replay, pré-jogo, feminino, base ou futsal (`VT`, `Pré-Hora`, `Aquecimento`, categoria
+   `Futebol Feminino`…) — e um marcador desses em **qualquer** fonte veta o canal naquele horário;
+4. as fontes não divergem sobre o que está no ar naquele canal 30 min depois do kickoff;
+5. não cita três ou mais clubes, e não corrobora mais de uma partida;
+6. o canal está na allowlist.
+
+Um clube só, título genérico ("Futebol", "Programação Globo", "Brasileirão"), identidade ambígua ou
+programa fora da janela: **rejeita**. O relatório do workflow diz qual regra barrou cada jogo.
+
+### Canais (allowlist e nome apresentado)
+
+| Na grade | Apresentado |
+|---|---|
+| `Globo.br`, `…Globo.HD` | Globo (TV aberta — consulte sua região) |
+| `Record.TV.br` | Record (TV aberta — consulte sua região) |
+| `Band.br` | Band (TV aberta — consulte sua região) |
+| `SporTV`, `SporTV 2`, `SporTV 3` | SporTV / SporTV 2 / SporTV 3 |
+| `Premiere.Clubes`, `Premiere 2`…`Premiere 9` | Premiere / Premiere N (número preservado) |
+| `Band.Sports` | BandSports |
+| `ESPN`, `ESPN 2`…`ESPN 6` | ESPN / ESPN N |
+| CazéTV | CazéTV (hoje ausente da grade EPGShare) |
+
+TV aberta leva a ressalva regional porque a grade é de uma praça (SP/RJ). GloboNews, Record News,
+TNT, Combate e qualquer canal desconhecido nunca viram transmissão. Sufixos de qualidade da
+operadora (`HD`, `³`) são descartados.
+
+### Precedência e last-known-good
+
+- **Registro humano** (sem `origin`) nunca é tocado pelo pipeline. Havendo registro humano para a
+  partida (por `espnId`, ou minuto + clubes por alias), a evidência automática é descartada e só
+  aparece no relatório (`CURATED_OVERRIDE`, "EPG também viu: …"). Curar uma partida que já tinha
+  entrada automática substitui a automática no run seguinte.
+- **EPG fora do ar** (as duas fontes): o arquivo fica byte-idêntico; o run fica verde com
+  `::warning::`.
+- **Fonte parcial** ou canal sem programa na grade: a entrada anterior é mantida
+  (`KEPT_LAST_KNOWN_GOOD`). "Não sei" nunca vira "não é".
+- Um canal automático só sai quando a **mesma fonte** que o corroborou responde e mostra outro
+  programa no ar naquele canal 30 min após o kickoff (`REMOVED_CONTRADICTED`).
+- Entradas automáticas de jogos que passaram há mais de 7 dias são podadas; curadoria nunca.
+
+### Operar o pipeline
+
+```bash
+# relatório contra a grade ao vivo, sem gravar
+node bolao/shared/scripts/sync_epg_broadcasts.mjs
+# reproduzir um run com grade salva em disco e relógio fixo
+node bolao/shared/scripts/sync_epg_broadcasts.mjs --epg-dir=/caminho/BR --now=2026-09-12T17:44:00Z --json-report=relatorio.json
+# gravar (é o que o workflow faz)
+node bolao/shared/scripts/sync_epg_broadcasts.mjs --write
+```
+
+No Actions, `workflow_dispatch` tem `dry_run` ligado por padrão. O relatório (fonte por fonte,
+partida por partida, com o texto da grade que corroborou ou o motivo da rejeição) aparece no resumo
+do run. O autoteste `test_epg_broadcasts.mjs` roda antes; se ele falhar nada é gravado.
+
+## Histórico: `CURATED_ONLY` (#425, 2026-09-07 → #431)
+
+O texto abaixo descreve o modelo anterior. As regras de curadoria continuam valendo para os
+registros humanos.
+
+> A descoberta da fonte continua confirmada por humano; a completude da cobertura e a detecção
+> operacional são automatizadas.
 
 ## Onde o dado mora
 
@@ -28,9 +108,17 @@ Issue de origem: [#425](https://github.com/ferrarilabs/ferrarilabs.github.io/iss
 | `source` | sim | de onde veio a confirmação (URL(s) da(s) fonte(s)) |
 | `confirmedAt` | sim | data (YYYY-MM-DD) em que a fonte foi checada |
 | `note` | não | contexto adicional (ex.: por que só streaming, cobertura regional) |
+| `origin` | não | ausente/`"curated"` = humano; `"epg"` = gerado pelo pipeline (não editar à mão) |
 
 \* é preciso ter `espnId` OU os três campos de fallback completos — `validate_broadcasts.mjs`
 reprova identidade ambígua.
+
+Registros `origin: "epg"` carregam ainda `collectedAt` e `evidence[]`, uma entrada por programa
+que corroborou: `channel`, `source` (`epgshare-br1`/`epgshare-br2`), `epgChannelId`,
+`programmeTitle`, `programmeSubTitle`, `programmeStart`/`programmeStop` (UTC),
+`programmeCategories` (quando a grade tem), `matchedTeams` e `collectedAt`. O validador refaz a
+checagem de janela e de allowlist em cima dessa evidência, e reprova canal automático sem
+evidência própria ou fora da allowlist (ex.: "Amazon Prime Video" com `origin: "epg"`).
 
 **Nunca** adicione um registro baseado no direito geral de transmissão da competição — só com
 confirmação específica daquela partida. Na dúvida, não publique.
@@ -56,9 +144,9 @@ confirmação específica daquela partida. Na dúvida, não publique.
    em `APP_SHARED_FILES`; o dado (`broadcasts.json`) é buscado com `{cache: "no-cache"}` e nunca
    fica preso em cache do navegador — ver o cabeçalho de `where_to_watch.js`.
 
-## Por que não é 100% automático
+## Por que não era automático na #425
 
-Investigado na Issue #425: ESPN (schema tem o campo, vem vazio para `bra.1`/`bra.copa_do_brazil`),
+Investigado na Issue #425 (a grade de TV não foi avaliada ali — foi a #431 que a adotou): ESPN (schema tem o campo, vem vazio para `bra.1`/`bra.copa_do_brazil`),
 API-Football (sem evidência de cobertura de transmissão), API oficial da CBF (não existe
 publicamente), scraping de site de emissora (risco legal/manutenção alto, rejeitado
 explicitamente) e APIs não-oficiais (instáveis, sem garantia de mercado BR). Nenhuma atende
@@ -71,8 +159,7 @@ necessária.
 
 ## Curated override
 
-A curadoria (`broadcasts.json`) é hoje a ÚNICA fonte, então ela não "vence" ninguém por enquanto —
-mas o desenho já reserva essa precedência: se um dia um provedor automatizado for integrado, a
-ordem de resolução em `findBroadcast()` deve continuar checando a curadoria PRIMEIRO, o provedor
-DEPOIS, e "nada" por último. Isso é o que já está descrito no cabeçalho do módulo como o ponto de
-revisão único — não redesenhar essa ordem sem atualizar este documento.
+Desde a #431 a precedência é real: curadoria vence a grade. Ela é aplicada **na geração do arquivo**
+(`mergeBroadcasts()` nunca cria entrada automática para partida com registro humano), e o validador
+reprova duas entradas para a mesma partida — então `findBroadcast()` no navegador continua com uma
+só resposta por partida e não precisou mudar. Não redesenhar essa ordem sem atualizar este documento.

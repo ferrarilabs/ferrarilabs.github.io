@@ -1,10 +1,20 @@
 #!/usr/bin/env node
 /**
- * validate_broadcasts.mjs — valida bolao/shared/data/broadcasts.json (Issue #425).
+ * validate_broadcasts.mjs — valida bolao/shared/data/broadcasts.json (Issue #425, #431).
  *
- * A fonte de "Onde assistir" continua sendo curadoria humana (BROADCAST_SOURCE_MODEL =
- * CURATED_ONLY, ver bolao/shared/js/where_to_watch.js). O que este script garante é que o
- * ARQUIVO em si não pode entrar corrompido, ambíguo ou conflitante em produção:
+ * Desde a #431 o modelo é BROADCAST_SOURCE_MODEL = EPG_CORROBORATED_WITH_CURATED_OVERRIDE (antes
+ * CURATED_ONLY): o arquivo mistura registros HUMANOS (sem `origin`, ou `origin: "curated"`) e
+ * registros gerados pela grade de TV (`origin: "epg"`, ver epg_broadcasts.mjs). Registro automático
+ * é revalidado aqui contra a própria evidência — não basta o pipeline dizer que corroborou:
+ *
+ *   - `espnId` obrigatório, `evidence[]` não vazio, fonte de EPG conhecida, título do programa,
+ *     horários legíveis e `collectedAt`;
+ *   - todo canal é um rótulo que o pipeline sabe publicar (streaming sem grade, como Prime Video,
+ *     nunca pode vir de `origin: "epg"`) e tem pelo menos uma evidência própria;
+ *   - toda evidência cita os dois clubes e está na janela do kickoff.
+ *
+ * O que vale para os dois tipos: o ARQUIVO em si não pode entrar corrompido, ambíguo ou
+ * conflitante em produção:
  *
  *   - identidade específica de partida (espnId, ou kickoffUtc+home+away completos);
  *   - `channels` não vazio e `source` preenchido — sem isso o registro não serve de evidência;
@@ -24,6 +34,54 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
+import { EPG_SOURCES, isAutoChannelLabel, inKickoffWindow } from "./epg_broadcasts.mjs";
+
+const EPG_SOURCE_IDS = new Set(EPG_SOURCES.map((s) => s.id));
+
+/** Regras extras de um registro `origin: "epg"`. Acrescenta em `errors`; nunca afrouxa as comuns. */
+function validateAutoEntry(e, tag, errors) {
+  if (!(typeof e.espnId === "string" && e.espnId.trim())) {
+    errors.push(`${tag}: registro automático (origin=epg) exige 'espnId'`);
+  }
+  if (!Number.isFinite(Date.parse(e.collectedAt))) {
+    errors.push(`${tag}: registro automático exige 'collectedAt' legível`);
+  }
+  const kickoffMs = Date.parse(e.kickoffUtc);
+  if (!Number.isFinite(kickoffMs)) {
+    errors.push(`${tag}: registro automático exige 'kickoffUtc' legível`);
+  }
+  if (!Array.isArray(e.evidence) || e.evidence.length === 0) {
+    errors.push(`${tag}: registro automático sem 'evidence' — sem proveniência não publica`);
+    return;
+  }
+  const channels = Array.isArray(e.channels) ? e.channels : [];
+  for (const label of channels) {
+    if (!isAutoChannelLabel(label)) {
+      errors.push(`${tag}: canal "${label}" não pode vir do EPG (fora da allowlist — streaming sem grade só por curadoria)`);
+    }
+    if (!e.evidence.some((ev) => ev && ev.channel === label)) {
+      errors.push(`${tag}: canal "${label}" sem evidência própria`);
+    }
+  }
+  e.evidence.forEach((ev, j) => {
+    const etag = `${tag}.evidence[${j}]`;
+    if (!ev || typeof ev !== "object") { errors.push(`${etag}: não é objeto`); return; }
+    if (!channels.includes(ev.channel)) errors.push(`${etag}: canal "${ev.channel}" não está em 'channels'`);
+    if (!EPG_SOURCE_IDS.has(ev.source)) errors.push(`${etag}: fonte desconhecida "${ev.source}"`);
+    if (typeof ev.epgChannelId !== "string" || !ev.epgChannelId) errors.push(`${etag}: 'epgChannelId' ausente`);
+    if (typeof ev.programmeTitle !== "string" || !ev.programmeTitle.trim()) errors.push(`${etag}: 'programmeTitle' ausente`);
+    if (!Array.isArray(ev.matchedTeams) || ev.matchedTeams.length !== 2 || ev.matchedTeams[0] === ev.matchedTeams[1]) {
+      errors.push(`${etag}: 'matchedTeams' precisa nomear os DOIS clubes`);
+    }
+    if (!Number.isFinite(Date.parse(ev.collectedAt))) errors.push(`${etag}: 'collectedAt' ilegível`);
+    const start = Date.parse(ev.programmeStart), stop = Date.parse(ev.programmeStop);
+    if (!Number.isFinite(start) || !Number.isFinite(stop) || stop <= start) {
+      errors.push(`${etag}: horário do programa ilegível`);
+    } else if (Number.isFinite(kickoffMs) && !inKickoffWindow({ start, stop }, kickoffMs)) {
+      errors.push(`${etag}: programa ${ev.programmeStart}–${ev.programmeStop} fora da janela do kickoff ${e.kickoffUtc}`);
+    }
+  });
+}
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const DEFAULT_FILE = join(HERE, "..", "data", "broadcasts.json");
@@ -97,6 +155,11 @@ export function validate(doc) {
     if (typeof e.source !== "string" || !e.source.trim()) {
       errors.push(`${tag}: 'source' é obrigatório — sem evidência registrada não é curadoria`);
     }
+
+    if (e.origin !== undefined && e.origin !== "curated" && e.origin !== "epg") {
+      errors.push(`${tag}: 'origin' desconhecido "${e.origin}" — use "curated" (ou omita) ou "epg"`);
+    }
+    if (e.origin === "epg") validateAutoEntry(e, tag, errors);
 
     let confirmedMs = NaN;
     if (typeof e.confirmedAt !== "string" || !Number.isFinite(confirmedMs = Date.parse(e.confirmedAt))) {

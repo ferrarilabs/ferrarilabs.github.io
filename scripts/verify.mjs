@@ -429,6 +429,8 @@ const CHECKS = [
     why: "Issue #425: broadcasts.json e a fonte curada de \"Onde assistir\" — este gate reprova identidade incompleta, canais vazios, duplicata/conflito de partida e dado obsoleto antes que chegue a produção" },
   { id: "broadcast-operations", group: "app", cmd: ["node", "bolao/shared/scripts/test_broadcast_operations.mjs"],
     why: "Issue #425: modelo operacional final (descoberta humana, completude automatizada) — prova match correto, match errado nao casa, jogo sem cobertura aparece no detector e desaparece quando coberto, duplicata/cruzamento de turno reprova, e paridade de identidade com o modulo do navegador" },
+  { id: "epg-broadcasts", group: "app", cmd: ["node", "bolao/shared/scripts/test_epg_broadcasts.mjs"],
+    why: "Issue #431: EPG_CORROBORATED_WITH_CURATED_OVERRIDE — transmissao automatica so com os DOIS clubes no horario do kickoff; um clube, titulo generico, homonimo com sufixo de estado, replay/feminino, fontes divergentes e canal fora da allowlist nao publicam; curadoria humana vence; EPG fora do ar preserva o last-known-good byte a byte; e as tres auditorias de scoring continuam passando" },
   { id: "cachebust-cdb", group: "app", cmd: ["node", "bolao/cdb2026/scripts/check_cachebust.test.mjs"], why: "CDB cache-bust" },
   { id: "money-interop", group: "app", cmd: ["node", "bolao/shared/scripts/test_money_interop.mjs"], why: "money interop py<->js" },
 
