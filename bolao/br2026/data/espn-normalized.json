@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-09-13T00:50:35Z",
-  "sourceUpdatedAt": "2026-09-13T00:50:35Z",
+  "generatedAt": "2026-09-13T05:53:45Z",
+  "sourceUpdatedAt": "2026-09-13T05:53:45Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "d505b4048a0940b79bec8a764ab0cc8240670ac5db8e7111b0ef8d3f16ec908f",
+  "payloadHash": "cf53fb978faea2ffd9a2b30bd811a70ea6fc1e724e055bf627f55bdc4dd220c1",
   "matches": [
     {
       "id": "401840808",
@@ -44623,12 +44623,12 @@
     {
       "id": "401841229",
       "date": "2026-09-12T23:30Z",
-      "state": "in",
-      "statusName": "STATUS_SECOND_HALF",
-      "statusDescription": "Second Half",
-      "statusShortDetail": "58'",
-      "statusDetail": "58'",
-      "completed": false,
+      "state": "post",
+      "statusName": "STATUS_FULL_TIME",
+      "statusDescription": "Full Time",
+      "statusShortDetail": "FT",
+      "statusDetail": "FT",
+      "completed": true,
       "homeTeam": "Botafogo",
       "awayTeam": "Red Bull Bragantino",
       "homeTeamId": "6086",
@@ -44639,8 +44639,8 @@
       "awayWinner": false,
       "venue": "Joao Havelange Stadium",
       "city": "Rio de Janeiro",
-      "clockSec": 3480.0,
-      "clockStr": "58'",
+      "clockSec": 5400.0,
+      "clockStr": "90'+8'",
       "period": 2,
       "details": [
         {
@@ -44699,31 +44699,126 @@
               "shortName": "Vitinho"
             }
           ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "6086"
+          },
+          "clock": {
+            "value": 3859.0,
+            "displayValue": "65'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Lucas Monzón",
+              "shortName": "L. Monzón"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "6086"
+          },
+          "clock": {
+            "value": 4157.0,
+            "displayValue": "70'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Nahuel Ferraresi",
+              "shortName": "N. Ferraresi"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "6079"
+          },
+          "clock": {
+            "value": 4369.0,
+            "displayValue": "73'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Tiago Volpi",
+              "shortName": "T. Volpi"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "6086"
+          },
+          "clock": {
+            "value": 4379.0,
+            "displayValue": "73'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "José Kadir",
+              "shortName": "J. Kadir"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "6079"
+          },
+          "clock": {
+            "value": 4600.0,
+            "displayValue": "77'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Juninho Capixaba",
+              "shortName": "J. Capixaba"
+            }
+          ]
         }
       ]
     },
     {
       "id": "401841233",
       "date": "2026-09-13T00:00Z",
-      "state": "in",
-      "statusName": "STATUS_FIRST_HALF",
-      "statusDescription": "First Half",
-      "statusShortDetail": "45'+4'",
-      "statusDetail": "45'+4'",
-      "completed": false,
+      "state": "post",
+      "statusName": "STATUS_FULL_TIME",
+      "statusDescription": "Full Time",
+      "statusShortDetail": "FT",
+      "statusDetail": "FT",
+      "completed": true,
       "homeTeam": "Santos",
       "awayTeam": "Cruzeiro",
       "homeTeamId": "2674",
       "awayTeamId": "2022",
       "homeScore": 2,
-      "awayScore": 0,
-      "homeWinner": false,
+      "awayScore": 1,
+      "homeWinner": true,
       "awayWinner": false,
       "venue": "Estádio Vila Belmiro (Urbano Caldeira)",
       "city": "Santos",
-      "clockSec": 2700.0,
-      "clockStr": "45'+4'",
-      "period": 1,
+      "clockSec": 5400.0,
+      "clockStr": "90'+6'",
+      "period": 2,
       "details": [
         {
           "type": {
@@ -44755,6 +44850,120 @@
           "clock": {
             "value": 1906.0,
             "displayValue": "32'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Fabrício Bruno",
+              "shortName": "F. Bruno"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "2022"
+          },
+          "clock": {
+            "value": 2700.0,
+            "displayValue": "45'+5'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Kaio Jorge",
+              "shortName": "Kaio Jorge"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "2674"
+          },
+          "clock": {
+            "value": 3876.0,
+            "displayValue": "65'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Everton",
+              "shortName": "Everton"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "2022"
+          },
+          "clock": {
+            "value": 4684.0,
+            "displayValue": "79'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "João Marcelo",
+              "shortName": "João Marcelo"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "2674"
+          },
+          "clock": {
+            "value": 4880.0,
+            "displayValue": "82'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Gabriel Brazão",
+              "shortName": "G. Brazão"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Goal"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "2022"
+          },
+          "clock": {
+            "value": 5383.0,
+            "displayValue": "90'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Matheus Pereira",
+              "shortName": "M. Pereira"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "2022"
+          },
+          "clock": {
+            "value": 5400.0,
+            "displayValue": "90'+4'"
           },
           "athletesInvolved": [
             {
