@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "sourceModel": "EPG_CORROBORATED_WITH_CURATED_OVERRIDE",
   "_comment": "Fonte de dados de 'Onde assistir' (bolao/shared/js/where_to_watch.js). Modelo EPG_CORROBORATED_WITH_CURATED_OVERRIDE (#431): registros sem 'origin' são curadoria humana e sempre vencem; registros 'origin: epg' são gerados por bolao/shared/scripts/sync_epg_broadcasts.mjs a partir da grade de TV — não edite esses à mão. Ver docs/bolao/BROADCAST_OPERATIONS.md antes de editar este arquivo.",
-  "updatedAt": "2026-09-12T19:06:37Z",
+  "updatedAt": "2026-09-13T23:11:53Z",
   "entries": [
     {
       "espnId": "401909114",
@@ -132,12 +132,24 @@
       "kickoffUtc": "2026-09-13T20:30Z",
       "home": "Flamengo",
       "away": "Corinthians",
-      "channels": ["Premiere"],
+      "channels": ["Globo (TV aberta — consulte sua região)", "Premiere"],
       "origin": "epg",
       "source": "EPG XMLTV epgshare01 (BR1/BR2) — corroboração automática: programa cita os dois clubes no horário do kickoff",
       "confirmedAt": "2026-09-12",
       "collectedAt": "2026-09-12T19:06:37Z",
       "evidence": [
+        {
+          "channel": "Globo (TV aberta — consulte sua região)",
+          "source": "epgshare-br2",
+          "epgChannelId": "Globo.br",
+          "programmeTitle": "Flamengo x Corinthians - Ao Vivo",
+          "programmeSubTitle": null,
+          "programmeCategories": ["Esporte", "Futebol"],
+          "programmeStart": "2026-09-13T20:15:00Z",
+          "programmeStop": "2026-09-13T22:35:00Z",
+          "matchedTeams": ["flamengo", "corinthians"],
+          "collectedAt": "2026-09-13T23:11:53Z"
+        },
         {
           "channel": "Premiere",
           "source": "epgshare-br2",
@@ -197,6 +209,31 @@
           "programmeStop": "2026-09-15T01:10:00Z",
           "matchedTeams": ["bahia", "remo"],
           "collectedAt": "2026-09-12T19:06:37Z"
+        }
+      ]
+    },
+    {
+      "espnId": "401841176",
+      "kickoffUtc": "2026-09-16T22:30Z",
+      "home": "Botafogo",
+      "away": "Grêmio",
+      "channels": ["Premiere"],
+      "origin": "epg",
+      "source": "EPG XMLTV epgshare01 (BR1/BR2) — corroboração automática: programa cita os dois clubes no horário do kickoff",
+      "confirmedAt": "2026-09-13",
+      "collectedAt": "2026-09-13T23:11:53Z",
+      "evidence": [
+        {
+          "channel": "Premiere",
+          "source": "epgshare-br2",
+          "epgChannelId": "Premiere.Clubes.br",
+          "programmeTitle": "Botafogo x Grêmio - Ao Vivo",
+          "programmeSubTitle": null,
+          "programmeCategories": ["Esporte", "Futebol"],
+          "programmeStart": "2026-09-16T22:00:00Z",
+          "programmeStop": "2026-09-17T00:40:00Z",
+          "matchedTeams": ["botafogo", "gremio"],
+          "collectedAt": "2026-09-13T23:11:53Z"
         }
       ]
     }
