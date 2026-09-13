@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-09-13T20:56:48Z",
-  "sourceUpdatedAt": "2026-09-13T20:56:48Z",
+  "generatedAt": "2026-09-13T23:05:04Z",
+  "sourceUpdatedAt": "2026-09-13T23:05:04Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "654aafb47e02b7d2739cd2fa8c703c92660029fb4d120d64922d57e584930550",
+  "payloadHash": "e83e7eb28ae6d84bd7ade9e0bb6c28733c43a40dc393de31cb86c16a513f32c4",
   "matches": [
     {
       "id": "401840808",
@@ -44978,24 +44978,24 @@
       "id": "401841235",
       "date": "2026-09-13T19:00Z",
       "state": "in",
-      "statusName": "STATUS_IN_PROGRESS",
-      "statusDescription": "In Progress",
-      "statusShortDetail": "90'+1'",
-      "statusDetail": "90'+1'",
+      "statusName": "STATUS_HALFTIME",
+      "statusDescription": "Halftime",
+      "statusShortDetail": "HT",
+      "statusDetail": "HT",
       "completed": false,
       "homeTeam": "Mirassol",
       "awayTeam": "Vitória",
       "homeTeamId": "9169",
       "awayTeamId": "3457",
-      "homeScore": 1,
+      "homeScore": 0,
       "awayScore": 2,
       "homeWinner": false,
       "awayWinner": false,
       "venue": "Estadio Municipal José Maria de Campos Maia",
       "city": "Mirassol",
-      "clockSec": 5400.0,
-      "clockStr": "90'+1'",
-      "period": 2,
+      "clockSec": 2700.0,
+      "clockStr": "45'+9'",
+      "period": 1,
       "details": [
         {
           "type": {
@@ -45018,7 +45018,7 @@
         },
         {
           "type": {
-            "text": "Goal"
+            "text": "Goal - Volley"
           },
           "scoringPlay": true,
           "team": {
@@ -45091,112 +45091,17 @@
               "shortName": "Caique"
             }
           ]
-        },
-        {
-          "type": {
-            "text": "Yellow Card"
-          },
-          "scoringPlay": false,
-          "team": {
-            "id": "9169"
-          },
-          "clock": {
-            "value": 3402.0,
-            "displayValue": "57'"
-          },
-          "athletesInvolved": [
-            {
-              "displayName": "Wallison Luiz",
-              "shortName": "Wallison Luiz"
-            }
-          ]
-        },
-        {
-          "type": {
-            "text": "Yellow Card"
-          },
-          "scoringPlay": false,
-          "team": {
-            "id": "9169"
-          },
-          "clock": {
-            "value": 3804.0,
-            "displayValue": "64'"
-          },
-          "athletesInvolved": [
-            {
-              "displayName": "Willian Machado",
-              "shortName": "W. Machado"
-            }
-          ]
-        },
-        {
-          "type": {
-            "text": "Goal"
-          },
-          "scoringPlay": true,
-          "team": {
-            "id": "9169"
-          },
-          "clock": {
-            "value": 4025.0,
-            "displayValue": "68'"
-          },
-          "athletesInvolved": [
-            {
-              "displayName": "Bruno Santos",
-              "shortName": "Bruno Santos"
-            }
-          ]
-        },
-        {
-          "type": {
-            "text": "Yellow Card"
-          },
-          "scoringPlay": false,
-          "team": {
-            "id": "3457"
-          },
-          "clock": {
-            "value": 5316.0,
-            "displayValue": "89'"
-          },
-          "athletesInvolved": [
-            {
-              "displayName": "Marinho",
-              "shortName": "Marinho"
-            }
-          ]
-        },
-        {
-          "type": {
-            "text": "Goal"
-          },
-          "scoringPlay": true,
-          "team": {
-            "id": "9169"
-          },
-          "clock": {
-            "value": 5400.0,
-            "displayValue": "90'"
-          },
-          "athletesInvolved": [
-            {
-              "displayName": "Edson Carioca",
-              "shortName": "E. Carioca"
-            }
-          ]
         }
       ]
     },
     {
       "id": "401841237",
       "date": "2026-09-13T20:30Z",
-      "state": "in",
-      "statusName": "STATUS_FIRST_HALF",
-      "statusDescription": "First Half",
-      "statusShortDetail": "27'",
-      "statusDetail": "27'",
+      "state": "pre",
+      "statusName": "STATUS_SCHEDULED",
+      "statusDescription": "Scheduled",
+      "statusShortDetail": "Scheduled",
+      "statusDetail": "Sun, September 13th at 4:30 PM EDT",
       "completed": false,
       "homeTeam": "Flamengo",
       "awayTeam": "Corinthians",
@@ -45208,9 +45113,9 @@
       "awayWinner": false,
       "venue": "Estadio do Maracana",
       "city": "Rio de Janeiro",
-      "clockSec": 1620.0,
-      "clockStr": "27'",
-      "period": 1,
+      "clockSec": 0.0,
+      "clockStr": "0'",
+      "period": null,
       "details": []
     },
     {
