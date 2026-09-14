@@ -1,0 +1,17 @@
+# www.ferrarilabs.com
+#
+# The professional pages are crawlable. The /bolao/ apps are deliberately NOT blocked here:
+# they carry <meta name="robots" content="noindex,nofollow">, and a crawler has to be able to
+# fetch a page to see that tag. The paths below are repository tooling and internal docs that
+# GitHub Pages happens to serve; no page needs any of them to render.
+# Guarded by scripts/site/check_public_pages.mjs (Issue #434).
+
+User-agent: *
+Disallow: /docs/
+Disallow: /scripts/
+Disallow: /supabase/
+Disallow: /workers/
+Disallow: /model/
+Disallow: /memory/
+
+Sitemap: https://www.ferrarilabs.com/sitemap.xml

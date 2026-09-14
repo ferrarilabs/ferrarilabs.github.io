@@ -2,6 +2,12 @@
   "schemaVersion": 1,
   "purpose": "Registro canonico de gates. Existe porque 17 gates existiam sem nunca rodar (N11), incluindo gates de seguranca de email e PII. Ver audit_gate_registry.mjs.",
   "entries": {
+    "scripts/site/check_public_pages.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "scripts/site/test_check_public_pages.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
     "bolao/br2026/scripts/audit_scoring.py": {
       "classification": "REGISTERED_AND_EXECUTED"
     },

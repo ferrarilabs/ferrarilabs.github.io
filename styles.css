@@ -569,3 +569,86 @@ nav a:hover, .nav-active { color: var(--text); }
   .perspective-link { white-space: normal; }
   .insight-row { padding: 22px 20px; }
 }
+
+/* ============================================================
+   Site hardening (Issue #434): footer links, focus, form status,
+   analytics consent, legal and status pages
+   ============================================================ */
+
+/* Keyboard focus — inputs keep their own focus ring above */
+a:focus-visible,
+button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
+/* Footer: third item (Privacy / Terms) */
+.site-footer { flex-wrap: wrap; gap: 10px 24px; }
+.footer-links { display: flex; gap: 18px; }
+.footer-links a {
+  font-size: 0.76rem;
+  color: var(--muted);
+  transition: color 0.12s;
+}
+.footer-links a:hover { color: var(--text); }
+
+/* Contact form: sending state */
+.button-submit:disabled { opacity: 0.7; cursor: progress; }
+.form-status {
+  min-height: 1.4em;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+/* Analytics consent banner (built by site.js) */
+.consent-banner {
+  position: fixed;
+  left: 16px;
+  right: 16px;
+  bottom: 16px;
+  z-index: 30;
+  max-width: 760px;
+  margin: 0 auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 20px;
+  padding: 14px 18px;
+  background: var(--surface);
+  border: 1px solid var(--border-2);
+  border-radius: 6px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+}
+[data-theme="light"] .consent-banner { box-shadow: 0 10px 30px rgba(0,0,0,0.12); }
+.consent-text {
+  flex: 1 1 280px;
+  font-size: 0.85rem;
+  line-height: 1.6;
+  color: var(--muted);
+}
+.consent-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.consent-actions .button { height: 36px; padding: 0 14px; font-size: 0.82rem; }
+
+/* Privacy / Terms */
+.legal-page { max-width: 760px; }
+.legal-page .section-title { margin-bottom: 12px; }
+.legal-updated { font-size: 0.8rem; color: var(--muted-2); margin-bottom: 36px; }
+.legal-page h2 {
+  font-family: var(--sans);
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--white);
+  margin: 40px 0 12px;
+}
+.legal-page ul { list-style: disc; padding-left: 20px; margin-top: 12px; }
+.legal-page ul + p { margin-top: 16px; }
+.legal-page li + li { margin-top: 6px; }
+.consent-controls { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
+.consent-controls .button[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--accent); }
+.consent-status { margin-top: 12px; font-size: 0.87rem; color: var(--muted); }
+
+/* 404 / thank-you */
+.status-page { padding: 104px 0 128px; }
+.status-page .section-title { margin-bottom: 18px; max-width: 760px; }
+.status-text { max-width: 600px; }
