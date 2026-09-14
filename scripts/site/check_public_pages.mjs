@@ -41,15 +41,38 @@ const INDEXABLE = {
   "index.jp.html": "ja",
   "insights.html": "en",
   "privacy.html": "en",
+  "privacy.pt.html": "pt-BR",
+  "privacy.es.html": "es",
+  "privacy.jp.html": "ja",
   "terms.html": "en",
+  "terms.pt.html": "pt-BR",
+  "terms.es.html": "es",
+  "terms.jp.html": "ja",
 };
 /** Paginas utilitarias na raiz: existem, mas nunca sao SEO publico. */
 const NOINDEX = { "404.html": "en", "thanks.html": "en" };
-/** Traducoes da mesma pagina: hreflang reciproco + x-default. */
-const HREFLANG_GROUP = ["index.html", "index.pt.html", "index.es.html", "index.jp.html"];
-const FOOTER_LINKS = ["privacy.html", "terms.html"];
+/**
+ * Traducoes da mesma pagina. Cada grupo exige hreflang reciproco EN/PT-BR/ES/JA + x-default
+ * apontando para a versao inglesa, e um seletor de idioma que troca DENTRO do grupo.
+ */
+const HREFLANG_GROUPS = [
+  ["index.html", "index.pt.html", "index.es.html", "index.jp.html"],
+  ["privacy.html", "privacy.pt.html", "privacy.es.html", "privacy.jp.html"],
+  ["terms.html", "terms.pt.html", "terms.es.html", "terms.jp.html"],
+];
+const groupOf = (file) => HREFLANG_GROUPS.find((g) => g.includes(file));
+/** Links legais do footer, no idioma da propria pagina. */
+const LEGAL_LINKS = {
+  en: ["privacy.html", "terms.html"],
+  "pt-BR": ["privacy.pt.html", "terms.pt.html"],
+  es: ["privacy.es.html", "terms.es.html"],
+  ja: ["privacy.jp.html", "terms.jp.html"],
+};
+const OG_LOCALE = { en: "en_US", "pt-BR": "pt_BR", es: "es_ES", ja: "ja_JP" };
 /** Paginas com formulario de contato (Formspree). */
-const CONTACT_PAGES = HREFLANG_GROUP;
+const CONTACT_PAGES = HREFLANG_GROUPS[0];
+/** Paginas que precisam oferecer a revisao da escolha de analytics. */
+const PRIVACY_PAGES = HREFLANG_GROUPS[1];
 
 const errors = [];
 const fail = (where, msg) => errors.push(`${where}: ${msg}`);
@@ -205,15 +228,36 @@ function indexableChecks(file, raw, html) {
     }
   }
 
+  const lang = INDEXABLE[file];
+  if (locale && OG_LOCALE[lang] && locale !== OG_LOCALE[lang]) {
+    fail(file, `og:locale "${locale}" must be ${OG_LOCALE[lang]} for lang="${lang}"`);
+  }
+
+  // Links legais sempre no idioma da pagina: um rotulo localizado nao pode levar em silencio
+  // para o documento em ingles.
   const footer = (html.match(/<footer\b[\s\S]*?<\/footer>/i) || [""])[0];
-  for (const link of FOOTER_LINKS) {
+  for (const link of LEGAL_LINKS[lang] || []) {
     if (!tags(footer, "a").some((a) => a.href && resolveLocal(file, a.href)?.file === link)) {
       fail(file, `footer must link to ${link}`);
     }
   }
 
+  const group = groupOf(file);
+  if (group) {
+    const switcher = (html.match(/<div class="lang-switcher">[\s\S]*?<\/div>/i) || [""])[0];
+    const links = tags(switcher, "a");
+    const targets = links.map((a) => (a.href && resolveLocal(file, a.href)?.file) || "?");
+    if (JSON.stringify([...targets].sort()) !== JSON.stringify([...group].sort())) {
+      fail(file, `lang-switcher must link to exactly ${group.join(", ")}, found ${targets.join(", ")}`);
+    }
+    const active = links.filter((a) => (a.class || "").split(/\s+/).includes("lang-active"));
+    if (active.length !== 1 || resolveLocal(file, active[0].href || "")?.file !== file) {
+      fail(file, "lang-switcher must mark this page (and only this page) as lang-active");
+    }
+  }
+
   const alternates = tags(html, "link").filter((a) => relTokens(a).includes("alternate") && a.hreflang);
-  if (!HREFLANG_GROUP.includes(file) && alternates.length) {
+  if (!group && alternates.length) {
     fail(file, "declares hreflang alternates but has no translated versions (hreflang must point at equivalent pages)");
   }
 
@@ -228,21 +272,25 @@ function noindexChecks(file, html) {
 }
 
 function hreflangChecks() {
-  const expected = {};
-  for (const f of HREFLANG_GROUP) if (canonicals[f]) expected[INDEXABLE[f]] = canonicals[f];
-  expected["x-default"] = ORIGIN + "/";
-  const want = JSON.stringify(Object.entries(expected).sort());
-  for (const f of HREFLANG_GROUP) {
-    if (!existsSync(join(ROOT, f))) continue;
-    const got = {};
-    for (const a of tags(markup(read(f)), "link")) {
-      if (relTokens(a).includes("alternate") && a.hreflang) {
-        if (a.hreflang in got) fail(f, `duplicate hreflang="${a.hreflang}"`);
-        got[a.hreflang] = a.href;
+  for (const group of HREFLANG_GROUPS) {
+    // O esperado sai dos NOMES dos arquivos, nao dos canonicals lidos: uma traducao ausente ou com
+    // canonical quebrado nao pode encolher o conjunto esperado e fazer o resto do grupo "passar".
+    const expected = {};
+    for (const f of group) expected[INDEXABLE[f]] = `${ORIGIN}/${f === "index.html" ? "" : f}`;
+    expected["x-default"] = expected.en; // x-default = versao inglesa do grupo
+    const want = JSON.stringify(Object.entries(expected).sort());
+    for (const f of group) {
+      if (!existsSync(join(ROOT, f))) continue;
+      const got = {};
+      for (const a of tags(markup(read(f)), "link")) {
+        if (relTokens(a).includes("alternate") && a.hreflang) {
+          if (a.hreflang in got) fail(f, `duplicate hreflang="${a.hreflang}"`);
+          got[a.hreflang] = a.href;
+        }
       }
-    }
-    if (JSON.stringify(Object.entries(got).sort()) !== want) {
-      fail(f, `hreflang alternates must be exactly ${want}, found ${JSON.stringify(Object.entries(got).sort())}`);
+      if (JSON.stringify(Object.entries(got).sort()) !== want) {
+        fail(f, `hreflang alternates must be exactly ${want}, found ${JSON.stringify(Object.entries(got).sort())}`);
+      }
     }
   }
 }
@@ -370,9 +418,12 @@ function consentChecks() {
       fail("site.js", `[${s.name}] dataLayer received ${run.ctx.dataLayer.length} entries before consent`);
     }
   }
-  const privacy = existsSync(join(ROOT, "privacy.html")) ? read("privacy.html") : "";
-  for (const needle of ['data-consent-choice="granted"', 'data-consent-choice="denied"', "data-consent-status"]) {
-    if (!privacy.includes(needle)) fail("privacy.html", `must offer the analytics choice controls (${needle})`);
+  for (const page of PRIVACY_PAGES) {
+    if (!existsSync(join(ROOT, page))) continue; // ausencia ja reprovada como "missing"
+    const privacy = read(page);
+    for (const needle of ['data-consent-choice="granted"', 'data-consent-choice="denied"', "data-consent-status"]) {
+      if (!privacy.includes(needle)) fail(page, `must offer the analytics choice controls (${needle})`);
+    }
   }
 }
 

@@ -9,7 +9,8 @@ Issue #434. Este documento cobre só o site profissional na raiz do repositório
 |---|---|---|---|
 | `index.html`, `index.pt.html`, `index.es.html`, `index.jp.html` | indexável, traduções entre si (hreflang recíproco + `x-default` → `/`) | sim | opt-in via `site.js` |
 | `insights.html` | indexável, só inglês (sem hreflang) | sim | opt-in via `site.js` |
-| `privacy.html`, `terms.html` | indexável, só inglês | sim | opt-in via `site.js` |
+| `privacy.html`, `privacy.pt.html`, `privacy.es.html`, `privacy.jp.html` | indexável, traduções entre si (hreflang recíproco + `x-default` → `privacy.html`); seletor de idioma troca dentro do grupo | sim | opt-in via `site.js` |
+| `terms.html`, `terms.pt.html`, `terms.es.html`, `terms.jp.html` | indexável, traduções entre si (hreflang recíproco + `x-default` → `terms.html`); seletor de idioma troca dentro do grupo | sim | opt-in via `site.js` |
 | `404.html` | noindex — GitHub Pages serve para qualquer caminho inexistente; por isso todo link é absoluto (`/…`) | não | nenhum |
 | `thanks.html` | noindex — confirmação do formulário (ver pendência abaixo) | não | nenhum |
 
@@ -32,7 +33,9 @@ diretórios de ferramenta/documentação que o Pages serve por acidente (`/docs/
 - `gtag.js` só é requisitado depois de "Allow analytics" (ou numa visita em que o aceite já está
   salvo em `localStorage.analytics_consent`).
 - "Decline" persiste a recusa, liga `ga-disable-G-KF98YDJNK7` e apaga cookies `_ga*`.
-- A escolha pode ser revista em `privacy.html` (botões `data-consent-choice`).
+- A escolha pode ser revista em qualquer versão da Privacy (botões `data-consent-choice`; o texto
+  do status vem do `site.js` pelo `lang` da página). O link "Privacy policy" do banner aponta para a
+  Privacy no idioma da página.
 - Não é Consent Mode "advanced": com recusa não há nem ping sem cookie, porque a biblioteca nem
   carrega.
 
@@ -55,8 +58,6 @@ disparado no submit (não é "lead concluído").
 - **Favicon / apple-touch-icon / `og:image`:** não existe asset oficial de marca no repositório.
   Nada foi improvisado; `twitter:card` usa `summary` (sem imagem). O gate aceita `og:image` apenas
   apontando para um arquivo que exista.
-- **Privacy/Terms traduzidos:** hoje só em inglês; os footers PT/ES/JA apontam para eles com
-  `hreflang="en"`.
 
 ## Gate
 

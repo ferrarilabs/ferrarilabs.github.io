@@ -122,7 +122,8 @@
     text.className = 'consent-text';
     text.appendChild(document.createTextNode(t.banner + ' '));
     var link = document.createElement('a');
-    link.href = '/privacy.html';
+    // Same language as the page: privacy.html / privacy.pt.html / privacy.es.html / privacy.jp.html.
+    link.href = '/privacy' + ({ pt: '.pt', es: '.es', ja: '.jp' }[lang] || '') + '.html';
     link.textContent = t.privacy;
     text.appendChild(link);
     var actions = document.createElement('div');
