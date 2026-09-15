@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-09-15T00:36:38Z",
-  "sourceUpdatedAt": "2026-09-15T00:36:38Z",
+  "generatedAt": "2026-09-15T05:22:30Z",
+  "sourceUpdatedAt": "2026-09-15T05:22:30Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "b08546640262608a06b8a69337e397ee6a20cc17c44e5ad7908fd42c9fb4a0cd",
+  "payloadHash": "7d919d8df295683d74979a9c34fd12e6dcaeb3b57bf653ac94d3f5d6b317c036",
   "matches": [
     {
       "id": "401840808",
@@ -45483,24 +45483,24 @@
     {
       "id": "401841230",
       "date": "2026-09-14T23:00Z",
-      "state": "in",
-      "statusName": "STATUS_SECOND_HALF",
-      "statusDescription": "Second Half",
-      "statusShortDetail": "73'",
-      "statusDetail": "73'",
-      "completed": false,
+      "state": "post",
+      "statusName": "STATUS_FULL_TIME",
+      "statusDescription": "Full Time",
+      "statusShortDetail": "FT",
+      "statusDetail": "FT",
+      "completed": true,
       "homeTeam": "Bahia",
       "awayTeam": "Remo",
       "homeTeamId": "9967",
       "awayTeamId": "4936",
-      "homeScore": 1,
-      "awayScore": 0,
-      "homeWinner": false,
+      "homeScore": 2,
+      "awayScore": 1,
+      "homeWinner": true,
       "awayWinner": false,
       "venue": "Arena Fonte Nova",
       "city": "Salvador",
-      "clockSec": 4380.0,
-      "clockStr": "73'",
+      "clockSec": 5400.0,
+      "clockStr": "90'+7'",
       "period": 2,
       "details": [
         {
@@ -45557,6 +45557,63 @@
             {
               "displayName": "Matheus Piauí",
               "shortName": "Matheus Piauí"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Penalty - Scored"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "9967"
+          },
+          "clock": {
+            "value": 5400.0,
+            "displayValue": "90'+1'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Luciano Juba",
+              "shortName": "Luciano Juba"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Penalty - Scored"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "4936"
+          },
+          "clock": {
+            "value": 5400.0,
+            "displayValue": "90'+6'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Vitor Bueno",
+              "shortName": "V. Bueno"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "9967"
+          },
+          "clock": {
+            "value": 5400.0,
+            "displayValue": "90'+7'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Cristian Olivera",
+              "shortName": "C. Olivera"
             }
           ]
         }
