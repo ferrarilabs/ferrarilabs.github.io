@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-09-14T01:01:51Z",
-  "sourceUpdatedAt": "2026-09-14T01:01:51Z",
+  "generatedAt": "2026-09-15T00:36:38Z",
+  "sourceUpdatedAt": "2026-09-15T00:36:38Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "f33f0a0eb8d4371648b680efcf1fe2e049d3d581ed6224107f74b16e988d5e15",
+  "payloadHash": "b08546640262608a06b8a69337e397ee6a20cc17c44e5ad7908fd42c9fb4a0cd",
   "matches": [
     {
       "id": "401840808",
@@ -45483,26 +45483,84 @@
     {
       "id": "401841230",
       "date": "2026-09-14T23:00Z",
-      "state": "pre",
-      "statusName": "STATUS_SCHEDULED",
-      "statusDescription": "Scheduled",
-      "statusShortDetail": "Scheduled",
-      "statusDetail": "Mon, September 14th at 7:00 PM EDT",
+      "state": "in",
+      "statusName": "STATUS_SECOND_HALF",
+      "statusDescription": "Second Half",
+      "statusShortDetail": "73'",
+      "statusDetail": "73'",
       "completed": false,
       "homeTeam": "Bahia",
       "awayTeam": "Remo",
       "homeTeamId": "9967",
       "awayTeamId": "4936",
-      "homeScore": 0,
+      "homeScore": 1,
       "awayScore": 0,
       "homeWinner": false,
       "awayWinner": false,
       "venue": "Arena Fonte Nova",
       "city": "Salvador",
-      "clockSec": 0.0,
-      "clockStr": "0'",
-      "period": null,
-      "details": []
+      "clockSec": 4380.0,
+      "clockStr": "73'",
+      "period": 2,
+      "details": [
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "9967"
+          },
+          "clock": {
+            "value": 440.0,
+            "displayValue": "8'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Nicolás Acevedo",
+              "shortName": "N. Acevedo"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Goal"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "9967"
+          },
+          "clock": {
+            "value": 1170.0,
+            "displayValue": "20'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Jean Lucas",
+              "shortName": "Jean Lucas"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "4936"
+          },
+          "clock": {
+            "value": 4146.0,
+            "displayValue": "70'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Matheus Piauí",
+              "shortName": "Matheus Piauí"
+            }
+          ]
+        }
+      ]
     },
     {
       "id": "401841176",
