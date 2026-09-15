@@ -29,6 +29,10 @@
     "bolao/br2026/scripts/visual/check_live_hero_width.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
     },
+    "bolao/br2026/scripts/test_post_match_state_transition.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED",
+      "coverage": "Transicao pre/in/post de 'Jogos de hoje' (Issue #436): um jogo cujo kickoff ja passou sem g.state confirmar post/postponed nao pode cair no widget de contagem regressiva (que renderiza 'Em andamento' para qualquer diffMs<=0) -- precisa de estado neutro fail-closed. Cobre pre com countdown, in no card ao vivo sem duplicar, post confirmado com placar/Encerrado, post SEM confirmacao (reproducao exata do defeito de producao, Bahia x Remo 2026-09-14), e gateway indisponivel preservando o contrato existente."
+    },
     "bolao/br2026/scripts/visual/check_standings_layout.mjs": {
       "classification": "REGISTERED_AND_EXECUTED",
       "coverage": "Geometria da tabela de classificacao do BR2026 em 8 viewports (320-1728): contiguidade das colunas, alinhamento header/corpo, ordem PTS<J<V<E<D<GP<GC<SG, limites da tabela, largura da coluna TIME, zero overflow horizontal de pagina, offsets sticky sob scroll maximo e continuidade de cor da linha de faixa por pixel amostrado. Nasceu da correcao de 2026-08-16 (v1.121): .td-team era display:flex, deixava de ser celula, e a celula anonima gerada em volta dela era a unica coluna auto sob table-layout:fixed -- engolia 506px de largura sobrando entre TIME e PTS no desktop e colapsava para 0px no mobile."

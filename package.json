@@ -81,7 +81,8 @@
     "test:multi-live-hero-responsive": "node bolao/scripts/audit_multi_live_hero_responsive.mjs",
     "test:copa-app-routing": "node bolao/copa2026/scripts/test_app_routing.mjs",
     "test:copa-operator-cli": "python3 bolao/copa2026/scripts/test_operator_cli.py",
-    "test:copa-private-readers": "python3 bolao/copa2026/scripts/test_private_readers.py"
+    "test:copa-private-readers": "python3 bolao/copa2026/scripts/test_private_readers.py",
+    "test:br-post-match-state": "node bolao/br2026/scripts/test_post_match_state_transition.mjs"
   },
   "devDependencies": {
     "playwright": "^1.56.0"
