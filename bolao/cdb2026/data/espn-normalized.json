@@ -4,8 +4,8 @@
   "provider": "espn",
   "generatedAt": "2026-09-10T16:40:14Z",
   "sourceUpdatedAt": "2026-09-10T16:40:14Z",
-  "stale": false,
-  "staleReason": null,
+  "stale": true,
+  "staleReason": "fetch failed: HTTP Error 400: Bad Request",
   "payloadHash": "698c468babe20e3c137a3c5ead2f46151bf9e771fc7d19e27f839d30dea13c2c",
   "matches": [
     {
