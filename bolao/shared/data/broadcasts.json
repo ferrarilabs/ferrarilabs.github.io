@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "sourceModel": "EPG_CORROBORATED_WITH_CURATED_OVERRIDE",
   "_comment": "Fonte de dados de 'Onde assistir' (bolao/shared/js/where_to_watch.js). Modelo EPG_CORROBORATED_WITH_CURATED_OVERRIDE (#431): registros sem 'origin' são curadoria humana e sempre vencem; registros 'origin: epg' são gerados por bolao/shared/scripts/sync_epg_broadcasts.mjs a partir da grade de TV — não edite esses à mão. Ver docs/bolao/BROADCAST_OPERATIONS.md antes de editar este arquivo.",
-  "updatedAt": "2026-09-17T04:56:35Z",
+  "updatedAt": "2026-09-18T04:48:04Z",
   "entries": [
     {
       "espnId": "401909114",
@@ -270,8 +270,8 @@
       "channels": ["Premiere"],
       "origin": "epg",
       "source": "EPG XMLTV epgshare01 (BR1/BR2) — corroboração automática: programa cita os dois clubes no horário do kickoff",
-      "confirmedAt": "2026-09-17",
-      "collectedAt": "2026-09-17T04:56:35Z",
+      "confirmedAt": "2026-09-18",
+      "collectedAt": "2026-09-18T04:48:04Z",
       "evidence": [
         {
           "channel": "Premiere",
@@ -280,10 +280,60 @@
           "programmeTitle": "São Paulo x Internacional - Ao Vivo",
           "programmeSubTitle": null,
           "programmeCategories": ["Esporte", "Futebol"],
-          "programmeStart": "2026-09-19T23:00:00Z",
+          "programmeStart": "2026-09-20T00:00:00Z",
           "programmeStop": "2026-09-20T02:10:00Z",
           "matchedTeams": ["sao-paulo", "internacional"],
-          "collectedAt": "2026-09-17T04:56:35Z"
+          "collectedAt": "2026-09-18T04:48:04Z"
+        }
+      ]
+    },
+    {
+      "espnId": "401841246",
+      "kickoffUtc": "2026-09-20T14:00Z",
+      "home": "Grêmio",
+      "away": "Palmeiras",
+      "channels": ["Premiere"],
+      "origin": "epg",
+      "source": "EPG XMLTV epgshare01 (BR1/BR2) — corroboração automática: programa cita os dois clubes no horário do kickoff",
+      "confirmedAt": "2026-09-18",
+      "collectedAt": "2026-09-18T04:48:04Z",
+      "evidence": [
+        {
+          "channel": "Premiere",
+          "source": "epgshare-br2",
+          "epgChannelId": "Premiere.Clubes.br",
+          "programmeTitle": "Grêmio x Palmeiras - Ao Vivo",
+          "programmeSubTitle": null,
+          "programmeCategories": ["Esporte", "Futebol"],
+          "programmeStart": "2026-09-20T14:00:00Z",
+          "programmeStop": "2026-09-20T16:10:00Z",
+          "matchedTeams": ["gremio", "palmeiras"],
+          "collectedAt": "2026-09-18T04:48:04Z"
+        }
+      ]
+    },
+    {
+      "espnId": "401841241",
+      "kickoffUtc": "2026-09-20T21:30Z",
+      "home": "Flamengo",
+      "away": "Red Bull Bragantino",
+      "channels": ["Premiere"],
+      "origin": "epg",
+      "source": "EPG XMLTV epgshare01 (BR1/BR2) — corroboração automática: programa cita os dois clubes no horário do kickoff",
+      "confirmedAt": "2026-09-18",
+      "collectedAt": "2026-09-18T04:48:04Z",
+      "evidence": [
+        {
+          "channel": "Premiere",
+          "source": "epgshare-br2",
+          "epgChannelId": "Premiere.Clubes.br",
+          "programmeTitle": "Flamengo x Bragantino - Ao Vivo",
+          "programmeSubTitle": null,
+          "programmeCategories": ["Esporte", "Futebol"],
+          "programmeStart": "2026-09-20T21:30:00Z",
+          "programmeStop": "2026-09-20T23:40:00Z",
+          "matchedTeams": ["flamengo", "bragantino"],
+          "collectedAt": "2026-09-18T04:48:04Z"
         }
       ]
     }
