@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "sourceModel": "EPG_CORROBORATED_WITH_CURATED_OVERRIDE",
   "_comment": "Fonte de dados de 'Onde assistir' (bolao/shared/js/where_to_watch.js). Modelo EPG_CORROBORATED_WITH_CURATED_OVERRIDE (#431): registros sem 'origin' são curadoria humana e sempre vencem; registros 'origin: epg' são gerados por bolao/shared/scripts/sync_epg_broadcasts.mjs a partir da grade de TV — não edite esses à mão. Ver docs/bolao/BROADCAST_OPERATIONS.md antes de editar este arquivo.",
-  "updatedAt": "2026-09-18T04:48:04Z",
+  "updatedAt": "2026-09-18T11:20:15Z",
   "entries": [
     {
       "espnId": "401909114",
@@ -267,12 +267,35 @@
       "kickoffUtc": "2026-09-20T00:00Z",
       "home": "São Paulo",
       "away": "Internacional",
-      "channels": ["Premiere"],
+      "channels": ["SporTV", "Premiere"],
       "origin": "epg",
       "source": "EPG XMLTV epgshare01 (BR1/BR2) — corroboração automática: programa cita os dois clubes no horário do kickoff",
       "confirmedAt": "2026-09-18",
       "collectedAt": "2026-09-18T04:48:04Z",
       "evidence": [
+        {
+          "channel": "SporTV",
+          "source": "epgshare-br1",
+          "epgChannelId": "São.Paulo/SP..SporTV.br",
+          "programmeTitle": "São Paulo x Internacional",
+          "programmeSubTitle": "Ao Vivo",
+          "programmeStart": "2026-09-20T00:00:00Z",
+          "programmeStop": "2026-09-20T02:00:00Z",
+          "matchedTeams": ["sao-paulo", "internacional"],
+          "collectedAt": "2026-09-18T11:20:15Z"
+        },
+        {
+          "channel": "SporTV",
+          "source": "epgshare-br2",
+          "epgChannelId": "SporTV.br",
+          "programmeTitle": "São Paulo x Internacional - Ao Vivo",
+          "programmeSubTitle": null,
+          "programmeCategories": ["Esporte", "Futebol"],
+          "programmeStart": "2026-09-20T00:00:00Z",
+          "programmeStop": "2026-09-20T02:00:00Z",
+          "matchedTeams": ["sao-paulo", "internacional"],
+          "collectedAt": "2026-09-18T11:20:15Z"
+        },
         {
           "channel": "Premiere",
           "source": "epgshare-br2",
@@ -317,12 +340,35 @@
       "kickoffUtc": "2026-09-20T21:30Z",
       "home": "Flamengo",
       "away": "Red Bull Bragantino",
-      "channels": ["Premiere"],
+      "channels": ["SporTV", "Premiere"],
       "origin": "epg",
       "source": "EPG XMLTV epgshare01 (BR1/BR2) — corroboração automática: programa cita os dois clubes no horário do kickoff",
       "confirmedAt": "2026-09-18",
       "collectedAt": "2026-09-18T04:48:04Z",
       "evidence": [
+        {
+          "channel": "SporTV",
+          "source": "epgshare-br1",
+          "epgChannelId": "São.Paulo/SP..SporTV.br",
+          "programmeTitle": "Flamengo x Bragantino",
+          "programmeSubTitle": "Ao Vivo",
+          "programmeStart": "2026-09-20T21:30:00Z",
+          "programmeStop": "2026-09-20T23:30:00Z",
+          "matchedTeams": ["flamengo", "bragantino"],
+          "collectedAt": "2026-09-18T11:20:15Z"
+        },
+        {
+          "channel": "SporTV",
+          "source": "epgshare-br2",
+          "epgChannelId": "SporTV.br",
+          "programmeTitle": "Flamengo x Bragantino - Ao Vivo",
+          "programmeSubTitle": null,
+          "programmeCategories": ["Esporte", "Futebol"],
+          "programmeStart": "2026-09-20T21:30:00Z",
+          "programmeStop": "2026-09-20T23:30:00Z",
+          "matchedTeams": ["flamengo", "bragantino"],
+          "collectedAt": "2026-09-18T11:20:15Z"
+        },
         {
           "channel": "Premiere",
           "source": "epgshare-br2",
