@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-09-17T04:44:19Z",
-  "sourceUpdatedAt": "2026-09-17T04:44:19Z",
+  "generatedAt": "2026-09-19T21:45:39Z",
+  "sourceUpdatedAt": "2026-09-19T21:45:39Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "2421602541588e721be1bc03f57f212b83f3ece9e815e02dc1a252287461b909",
+  "payloadHash": "6273859926bbdfea2d1f2621535532b63779e6510b6395413c27bdf1470b1471",
   "matches": [
     {
       "name": "Flamengo",
@@ -97,13 +97,13 @@
       "abbr": "CAM",
       "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/7632.png",
       "rank": 7.0,
-      "points": 39.0,
-      "played": 26.0,
+      "points": 40.0,
+      "played": 27.0,
       "wins": 11.0,
-      "draws": 6.0,
+      "draws": 7.0,
       "losses": 9.0,
-      "gf": 35.0,
-      "ga": 31.0,
+      "gf": 36.0,
+      "ga": 32.0,
       "gd": 4.0
     },
     {
@@ -279,13 +279,13 @@
       "abbr": "CHA",
       "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/9318.png",
       "rank": 20.0,
-      "points": 17.0,
-      "played": 26.0,
+      "points": 18.0,
+      "played": 27.0,
       "wins": 3.0,
-      "draws": 8.0,
+      "draws": 9.0,
       "losses": 15.0,
-      "gf": 28.0,
-      "ga": 52.0,
+      "gf": 29.0,
+      "ga": 53.0,
       "gd": -24.0
     }
   ]
