@@ -966,6 +966,12 @@
     "scripts/sentinel/test_supabase_migrations_api.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
     },
+    "scripts/site/check_public_pages.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "scripts/site/test_check_public_pages.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
     "scripts/test_audit_commit_message_closure_keywords.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
     },
