@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "sourceModel": "EPG_CORROBORATED_WITH_CURATED_OVERRIDE",
   "_comment": "Fonte de dados de 'Onde assistir' (bolao/shared/js/where_to_watch.js). Modelo EPG_CORROBORATED_WITH_CURATED_OVERRIDE (#431): registros sem 'origin' são curadoria humana e sempre vencem; registros 'origin: epg' são gerados por bolao/shared/scripts/sync_epg_broadcasts.mjs a partir da grade de TV — não edite esses à mão. Ver docs/bolao/BROADCAST_OPERATIONS.md antes de editar este arquivo.",
-  "updatedAt": "2026-09-18T11:20:15Z",
+  "updatedAt": "2026-09-19T11:04:03Z",
   "entries": [
     {
       "espnId": "401909114",
@@ -250,6 +250,17 @@
       "evidence": [
         {
           "channel": "Premiere",
+          "source": "epgshare-br1",
+          "epgChannelId": "São.Paulo/SP..Premiere.Clubes.br",
+          "programmeTitle": "Atlético-MG x Chapecoense",
+          "programmeSubTitle": "Ao Vivo",
+          "programmeStart": "2026-09-19T18:30:00Z",
+          "programmeStop": "2026-09-19T21:10:00Z",
+          "matchedTeams": ["atletico-mg", "chapecoense"],
+          "collectedAt": "2026-09-19T11:04:03Z"
+        },
+        {
+          "channel": "Premiere",
           "source": "epgshare-br2",
           "epgChannelId": "Premiere.Clubes.br",
           "programmeTitle": "Atlético-MG x Chapecoense - Ao Vivo",
@@ -259,6 +270,30 @@
           "programmeStop": "2026-09-19T21:10:00Z",
           "matchedTeams": ["atletico-mg", "chapecoense"],
           "collectedAt": "2026-09-17T04:56:35Z"
+        }
+      ]
+    },
+    {
+      "espnId": "401841244",
+      "kickoffUtc": "2026-09-19T21:30Z",
+      "home": "Remo",
+      "away": "Santos",
+      "channels": ["Premiere 2"],
+      "origin": "epg",
+      "source": "EPG XMLTV epgshare01 (BR1/BR2) — corroboração automática: programa cita os dois clubes no horário do kickoff",
+      "confirmedAt": "2026-09-19",
+      "collectedAt": "2026-09-19T11:04:03Z",
+      "evidence": [
+        {
+          "channel": "Premiere 2",
+          "source": "epgshare-br1",
+          "epgChannelId": "São.Paulo/SP..Premiere.HD.2.br",
+          "programmeTitle": "Remo x Santos",
+          "programmeSubTitle": "Ao Vivo",
+          "programmeStart": "2026-09-19T21:30:00Z",
+          "programmeStop": "2026-09-20T00:30:00Z",
+          "matchedTeams": ["remo", "santos"],
+          "collectedAt": "2026-09-19T11:04:03Z"
         }
       ]
     },
@@ -298,6 +333,17 @@
         },
         {
           "channel": "Premiere",
+          "source": "epgshare-br1",
+          "epgChannelId": "São.Paulo/SP..Premiere.Clubes.br",
+          "programmeTitle": "São Paulo x Internacional",
+          "programmeSubTitle": "Ao Vivo",
+          "programmeStart": "2026-09-20T00:00:00Z",
+          "programmeStop": "2026-09-20T02:10:00Z",
+          "matchedTeams": ["sao-paulo", "internacional"],
+          "collectedAt": "2026-09-19T11:04:03Z"
+        },
+        {
+          "channel": "Premiere",
           "source": "epgshare-br2",
           "epgChannelId": "Premiere.Clubes.br",
           "programmeTitle": "São Paulo x Internacional - Ao Vivo",
@@ -323,6 +369,17 @@
       "evidence": [
         {
           "channel": "Premiere",
+          "source": "epgshare-br1",
+          "epgChannelId": "São.Paulo/SP..Premiere.Clubes.br",
+          "programmeTitle": "Grêmio x Palmeiras",
+          "programmeSubTitle": "Ao Vivo",
+          "programmeStart": "2026-09-20T14:00:00Z",
+          "programmeStop": "2026-09-20T16:10:00Z",
+          "matchedTeams": ["gremio", "palmeiras"],
+          "collectedAt": "2026-09-19T11:04:03Z"
+        },
+        {
+          "channel": "Premiere",
           "source": "epgshare-br2",
           "epgChannelId": "Premiere.Clubes.br",
           "programmeTitle": "Grêmio x Palmeiras - Ao Vivo",
@@ -332,6 +389,30 @@
           "programmeStop": "2026-09-20T16:10:00Z",
           "matchedTeams": ["gremio", "palmeiras"],
           "collectedAt": "2026-09-18T04:48:04Z"
+        }
+      ]
+    },
+    {
+      "espnId": "401841240",
+      "kickoffUtc": "2026-09-20T19:00Z",
+      "home": "Corinthians",
+      "away": "Fluminense",
+      "channels": ["Premiere 4"],
+      "origin": "epg",
+      "source": "EPG XMLTV epgshare01 (BR1/BR2) — corroboração automática: programa cita os dois clubes no horário do kickoff",
+      "confirmedAt": "2026-09-19",
+      "collectedAt": "2026-09-19T11:04:03Z",
+      "evidence": [
+        {
+          "channel": "Premiere 4",
+          "source": "epgshare-br1",
+          "epgChannelId": "São.Paulo/SP..Premiere.4.br",
+          "programmeTitle": "Corinthians x Fluminense",
+          "programmeSubTitle": "Ao Vivo",
+          "programmeStart": "2026-09-20T19:00:00Z",
+          "programmeStop": "2026-09-20T22:00:00Z",
+          "matchedTeams": ["corinthians", "fluminense"],
+          "collectedAt": "2026-09-19T11:04:03Z"
         }
       ]
     },
@@ -371,6 +452,17 @@
         },
         {
           "channel": "Premiere",
+          "source": "epgshare-br1",
+          "epgChannelId": "São.Paulo/SP..Premiere.Clubes.br",
+          "programmeTitle": "Flamengo x Bragantino",
+          "programmeSubTitle": "Ao Vivo",
+          "programmeStart": "2026-09-20T21:30:00Z",
+          "programmeStop": "2026-09-20T23:40:00Z",
+          "matchedTeams": ["flamengo", "bragantino"],
+          "collectedAt": "2026-09-19T11:04:03Z"
+        },
+        {
+          "channel": "Premiere",
           "source": "epgshare-br2",
           "epgChannelId": "Premiere.Clubes.br",
           "programmeTitle": "Flamengo x Bragantino - Ao Vivo",
@@ -380,6 +472,30 @@
           "programmeStop": "2026-09-20T23:40:00Z",
           "matchedTeams": ["flamengo", "bragantino"],
           "collectedAt": "2026-09-18T04:48:04Z"
+        }
+      ]
+    },
+    {
+      "espnId": "401841238",
+      "kickoffUtc": "2026-09-20T22:30Z",
+      "home": "Athletico Paranaense",
+      "away": "Bahia",
+      "channels": ["Premiere 2"],
+      "origin": "epg",
+      "source": "EPG XMLTV epgshare01 (BR1/BR2) — corroboração automática: programa cita os dois clubes no horário do kickoff",
+      "confirmedAt": "2026-09-19",
+      "collectedAt": "2026-09-19T11:04:03Z",
+      "evidence": [
+        {
+          "channel": "Premiere 2",
+          "source": "epgshare-br1",
+          "epgChannelId": "São.Paulo/SP..Premiere.HD.2.br",
+          "programmeTitle": "Athletico-PR x Bahia",
+          "programmeSubTitle": "Ao Vivo",
+          "programmeStart": "2026-09-20T22:30:00Z",
+          "programmeStop": "2026-09-21T01:30:00Z",
+          "matchedTeams": ["athletico-pr", "bahia"],
+          "collectedAt": "2026-09-19T11:04:03Z"
         }
       ]
     }
