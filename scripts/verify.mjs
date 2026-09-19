@@ -610,6 +610,8 @@ const CHECKS = [
   // descreve: estar numa lista e nao na outra e um orfao com outro nome.
   { id: "live-hero-width", group: "browser", cmd: ["node", "bolao/br2026/scripts/visual/check_live_hero_width.mjs"],
     why: "o aviso de atraso da #296 alargava a linha do hero e o nome do time escapava da coluna: 320px rolava na horizontal (Issue #316)" },
+  { id: "br-post-match-state", group: "browser", cmd: ["node", "bolao/br2026/scripts/test_post_match_state_transition.mjs"],
+    why: "um jogo que terminou (Bahia 2x1 Remo, 2026-09-14) voltava a mostrar 'Em andamento' sem placar quando g.state ficava obsoleto (produtor fora da janela de rastreio, snapshot nao resincronizado) — nunca mais pode regredir a contagem regressiva para um kickoff ja passado sem confirmacao (Issue #436)", requires: "browser" },
   { id: "snapshot-publication-guard", group: "app", cmd: ["node", "bolao/scripts/test_snapshot_publication_guard.mjs"],
     why: "commit de bot com GITHUB_TOKEN nao dispara CI; o contrato de gates afetados tem de continuar honesto e rodar ANTES do commit (Issue #316-B)" },
   { id: "br-standings-layout", group: "browser", cmd: ["node", "bolao/br2026/scripts/visual/check_standings_layout.mjs"],

@@ -66,6 +66,9 @@ const BROWSER_SHARD_A = [
   // viewports + oito mutacoes, ~40 cargas de pagina), entao equilibrar aqui e o que impede o
   // shard B de virar o caminho critico do npm run check.
   "critical-functionality",
+  // Issue #436. Vai no shard A porque o A tinha 13 e o B 14 nesse ponto; este check e curto (tres
+  // paginas contra rotas mockadas, sem matriz de viewports) e nao desequilibra a divisao.
+  "br-post-match-state",
 ];
 const BROWSER_SHARD_B = [
   "accessibility", "responsive-14-width", "live-prob-bars", "combo-visual", "multi-live-hero",

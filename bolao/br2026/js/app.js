@@ -2800,6 +2800,23 @@ function renderNextGameCard() {
           <div class="today-game-teams muted">${esc(g.homeTeam)} ${teamLogoImg(g.homeTeam, "team-logo")} <span>${g.homeScore ?? 0} – ${g.awayScore ?? 0}</span> ${teamLogoImg(g.awayTeam, "team-logo")} ${esc(g.awayTeam)}</div>
           <span class="today-game-time muted">${esc(t("gameFinal"))}</span>
         </div>`;
+      } else if (new Date(g.dateISO).getTime() - Date.now() <= 0) {
+        // #436: kickoff já passou, mas nem isFinalMatch() nem isPostponedMatch() confirmam --
+        // `g.state` está OBSOLETO (overlay do gateway ao vivo não chegou a tempo, ou a partida já
+        // saiu da janela de rastreio do produtor -- ver WINDOW_LOOKBACK_MS em
+        // produce_live_cache.mjs -- e o snapshot estático do calendário ainda não foi atualizado).
+        // SEM esta guarda, cai no ramo de contagem regressiva abaixo com `diffMs` negativo, que
+        // sempre renderiza "Em andamento" -- exatamente o defeito relatado (Bahia × Remo,
+        // 2026-09-14/15: o jogo tinha terminado 2×1 havia horas e reapareceu como se estivesse
+        // rolando, sem o placar que o gateway já tinha). Horário passado aqui só prova que o
+        // ESTADO QUE TEMOS é suspeito -- nunca prova nem placar nem "encerrado"; por isso nem
+        // countdown (que afirmaria "em andamento", falso) nem `gameFinal` (que afirmaria um
+        // resultado não confirmado) -- estado neutro, fail-closed, igual ao resto do app quando a
+        // fonte não confirma algo (ver `liveDataUnavailable`).
+        return `<div class="today-game today-game-post">
+          <div class="today-game-teams muted">${esc(g.homeTeam)} ${teamLogoImg(g.homeTeam, "team-logo")} <span>—</span> ${teamLogoImg(g.awayTeam, "team-logo")} ${esc(g.awayTeam)}</div>
+          <span class="today-game-time muted">${esc(t("gameStatusUnconfirmed"))}</span>
+        </div>`;
       } else {
         const timeStr = `${estTimeStr(g.dateISO)} · ${brtTimeStr(g.dateISO)}`;
         const now     = Date.now();
@@ -2808,6 +2825,11 @@ function renderNextGameCard() {
         // -- não texto solto. Eduardo: "A contagem regressiva tem que ser igual copa meu!"
         // (2026-07-17), depois de uma primeira tentativa em texto inline ("· em 10h 05m") que não
         // era o mesmo widget visual da Copa, só um resumo em palavras.
+        //
+        // Este ramo só é alcançado com `diffMs > 0` (kickoff futuro) -- o guard acima intercepta
+        // todo kickoff já passado sem confirmação, então countdownTimerHtml() aqui nunca mais
+        // recebe um diffMs negativo (#436). countdownTimerHtml() em si continua sem saber nada de
+        // "post"/provedor -- só decide o WIDGET do valor que já chega correto.
         const timerHtml = countdownTimerHtml(diffMs);
         const mpKey = `${g.homeTeam}|${g.awayTeam}`;
         if (!_matchProbs[mpKey] && _standings.length >= 20) {
