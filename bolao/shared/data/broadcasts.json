@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "sourceModel": "EPG_CORROBORATED_WITH_CURATED_OVERRIDE",
   "_comment": "Fonte de dados de 'Onde assistir' (bolao/shared/js/where_to_watch.js). Modelo EPG_CORROBORATED_WITH_CURATED_OVERRIDE (#431): registros sem 'origin' são curadoria humana e sempre vencem; registros 'origin: epg' são gerados por bolao/shared/scripts/sync_epg_broadcasts.mjs a partir da grade de TV — não edite esses à mão. Ver docs/bolao/BROADCAST_OPERATIONS.md antes de editar este arquivo.",
-  "updatedAt": "2026-09-19T20:44:07Z",
+  "updatedAt": "2026-09-19T23:09:34Z",
   "entries": [
     {
       "espnId": "401909114",
@@ -40,31 +40,6 @@
       "channels": ["Globo (TV aberta — consulte sua região)", "sportv", "Premiere", "Amazon Prime Video"],
       "confirmedAt": "2026-09-02",
       "source": "maquinadoesporte.com.br + cnnbrasil.com.br + vavel.com (Globo regional: RJ, BA, ES, SE, RN, PB, MA, Santarém-PA, Juiz de Fora-MG)"
-    },
-    {
-      "espnId": "401841234",
-      "kickoffUtc": "2026-09-12T21:30Z",
-      "home": "Palmeiras",
-      "away": "São Paulo",
-      "channels": ["Premiere"],
-      "origin": "epg",
-      "source": "EPG XMLTV epgshare01 (BR1/BR2) — corroboração automática: programa cita os dois clubes no horário do kickoff",
-      "confirmedAt": "2026-09-12",
-      "collectedAt": "2026-09-12T19:06:37Z",
-      "evidence": [
-        {
-          "channel": "Premiere",
-          "source": "epgshare-br2",
-          "epgChannelId": "Premiere.Clubes.br",
-          "programmeTitle": "Palmeiras x São Paulo - Ao Vivo",
-          "programmeSubTitle": null,
-          "programmeCategories": ["Esporte", "Futebol"],
-          "programmeStart": "2026-09-12T21:30:00Z",
-          "programmeStop": "2026-09-12T23:40:00Z",
-          "matchedTeams": ["palmeiras", "sao-paulo"],
-          "collectedAt": "2026-09-12T19:06:37Z"
-        }
-      ]
     },
     {
       "espnId": "401841233",
