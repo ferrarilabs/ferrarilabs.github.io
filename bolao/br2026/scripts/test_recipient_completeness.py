@@ -42,7 +42,20 @@ MANIFESTO = MANIFEST.load()
 # preocupacoes.
 RODADA_TESTE = 22
 RODADA_DEF = next(r for r in MANIFESTO["rounds"] if r["roundNumber"] == RODADA_TESTE)
-AGORA = datetime.now(timezone.utc)
+# AGORA precisa ser CONGELADO, nao `datetime.now(timezone.utc)` real -- achado ao rodar este
+# arquivo de novo em 2026-09-20 (5 dias depois do commit que passou): a rodada 22 comecou em
+# 2026-08-08, e `RECONCILE_WINDOW=6` (send_round_email.py) so mantem as ULTIMAS 6 rodadas ja
+# comecadas relativas a `now`. Rodadas 23-28 ja tinham comecado antes de 2026-09-19 -- a sexta
+# rodada depois da 22 -- e nesse instante real a 22 caiu fora da janela por conta propria, sem
+# nenhuma mudanca de codigo: `out["candidates"]` ficou vazio e a asserção
+# `assertIn(RODADA_TESTE, out["candidates"], ...)` passou a falhar. O teste sempre ia quebrar
+# assim que 6 rodadas reais avancassem, nao importa quando fosse rodado -- uma bomba-relogio, nao
+# um defeito de producao (send_round_email.py usar hora real e o comportamento CORRETO ali).
+# Congelar `now` num instante fixo, alguns dias depois do inicio da propria rodada 22, torna o
+# teste imune ao avanco real do tempo -- ver `Harness.install()` abaixo, que substitui `S.datetime`
+# por esse instante fixo (mesmo padrao ja usado aqui para `S.time.sleep`/
+# `S.EARLIEST_DURABLE_LEDGER_ROUND`).
+AGORA = datetime.fromisoformat(RODADA_DEF["dateRangeUtc"][0]) + timedelta(days=3)
 
 
 def _game(fid, completed=True):
@@ -66,6 +79,16 @@ def _entry(eid, email):
 
 
 STANDINGS = [{"name": f"T{i:02}", "rank": i, "gd": 20 - i, "gf": 30 - i} for i in range(1, 21)]
+
+
+class _FrozenDatetime(datetime):
+    """Substitui `datetime` INTEIRO dentro de `send_round_email` (nao so `.now()`) -- toda leitura
+    de "agora" no modulo sob teste (a janela de reconciliacao, `RECONCILE_WINDOW`) passa a ver o
+    mesmo instante fixo (`AGORA`) que os fixtures deste arquivo foram construidos com, em vez do
+    relogio real da maquina. Ver o comentario de `AGORA` acima para o incidente que isto evita."""
+    @classmethod
+    def now(cls, tz=None):
+        return AGORA
 
 
 class Harness:
@@ -106,6 +129,10 @@ class Harness:
         # historica, o que testaria o guardiao (ja coberto em outro arquivo) em vez do que este
         # arquivo existe para testar.
         S.EARLIEST_DURABLE_LEDGER_ROUND = 0
+        # Relogio congelado -- ver _FrozenDatetime/AGORA acima. Sem isto, `run_auto()` calcula a
+        # janela de reconciliacao contra a hora REAL da maquina, e a rodada 22 sai da janela
+        # sozinha assim que 6 rodadas reais avancarem (ja aconteceu uma vez -- 2026-09-20).
+        S.datetime = _FrozenDatetime
 
         def transport(url, body, headers):
             self.provider_calls.append(body)
@@ -135,7 +162,7 @@ class RecipientCompleteness(unittest.TestCase):
         self._orig = {k: getattr(S, k) for k in
                       ["sb_fetch", *_escritores, "fetch_scoreboard_window", "fetch_standings",
                        "_TRANSPORT", "_ROUND_RPC_CALLER", "notification_states_from_atomic",
-                       "EARLIEST_DURABLE_LEDGER_ROUND"]}
+                       "EARLIEST_DURABLE_LEDGER_ROUND", "datetime"]}
         self._sleep = S.time.sleep
 
     def tearDown(self):
