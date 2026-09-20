@@ -1,5 +1,44 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.153 — campeão previsto preserva a identidade do TIME, não só o lado A/B (#440)
+
+Eduardo encontrou um caso real: uma entrada escolheu **Internacional** nas quartas, depois lado A da
+semifinal e lado A da final, portanto Internacional campeão. Depois que a semifinal real foi
+materializada com **Grêmio** no lado A, "Ver palpites" passou a mostrar Grêmio campeão — sem que o
+palpite salvo tivesse mudado.
+
+**Causa raiz: SIDE vs TEAM.** `virtualDerivedTies("semifinal")` devolvia os confrontos REAIS assim
+que eles existiam. Isso preservava o id real, mas descartava os times previstos pelo bracket da
+própria entrada. O `"A"` histórico da semifinal era então reaplicado ao novo `teamA` real. É a
+mesma classe de defeito já corrigida na Copa do Mundo: lado é estrutura do bracket; identidade do
+time precisa ser resolvida percorrendo os palpites do participante.
+
+**Correção estrutural:**
+- semifinal prevista sempre resolve os TIMES por topologia + picks da própria entrada;
+- quando há materialização, conserva-se só o **id real** do confronto para continuidade das chaves;
+- `predictedPodium()` nunca mais usa os finalistas reais para calcular campeão/vice previstos;
+- materializar até a final real não pode reescrever o pódio previsto;
+- todas as linhas materializadas de fase derivada seguem o padrão visual da Copa:
+  `Real (Palpite)`, por exemplo **Grêmio (Internacional) × Atlético-MG (Cruzeiro)**;
+- `finalSideLabels()` separa as duas fontes: time previsto vem do bracket do participante; time
+  factual vem do confronto real, sem contaminar o resumo de campeão/vice;
+- o `+5 Classificado` em fase derivada agora compara **identidade do time**, nunca mera coincidência
+  de lado A/B; Internacional previsto não ganha +5 se Grêmio real ocupa/v vence o lado A;
+- o renderizador de comprovante aplica a mesma regra de identidade: pódio previsto é sempre
+  derivado do snapshot dos palpites, mesmo se a final real já existir.
+
+O gate existente `test_final_podium_after_materialization.mjs` era **falso-verde** para esta classe:
+ele testava divergência no RESULTADO da semifinal, mas não divergência na IDENTIDADE de quem entrou
+na semifinal. O fixture agora reproduz explicitamente: Internacional previsto, Grêmio real; exige
+Internacional campeão antes/depois do resultado da semifinal e também depois da materialização da
+final. Também rejeita bônus de campeão por mera coincidência de side A. `test_receipt.py` ganhou a
+mesma regressão para o comprovante.
+
+Nenhum pick, resultado, topologia, pagamento ou dado de produção é alterado por esta versão. A
+mudança é de resolução/leitura e protege também o bônus futuro de campeão/vice, porque
+`scoreEntry()` consome `predictedPodium()`.
+
+
 ## v3.152 — legenda "Final prevista" na linha de confronto previsto da final, em "Ver palpites"
 
 Eduardo reportou um "ranking suspeito" com print de produção (2026-09-11). Investigação forense

@@ -310,6 +310,54 @@ def main():
     checa("sem topologia registrada NADA é derivado (não inventa chaveamento)",
           "🏆 CAMPEÃO" not in html_sem and "ainda não está completa" in html_sem)
 
+    # ═══ 13. SIDE vs TEAM — FINAL REAL NÃO REESCREVE O PALPITE ═══════════════════════════════
+    print("\n13. SIDE vs TEAM — materialização real não muda o campeão previsto")
+    side_vs_team = json.loads(json.dumps(SNAP_A))
+    side_vs_team["picks"]["qualified"].update({
+        "espn-gremio_internacional": "A",  # Internacional previsto
+        "espn-atletico-mg_cruzeiro": "A", # Cruzeiro previsto
+        "espn-vasco_vitoria": "B",         # Vitória prevista
+        "espn-palmeiras_santos": "A",      # Palmeiras previsto
+        "sf-1": "A",                       # Internacional finalista
+        "sf-2": "B",                       # Palmeiras finalista
+        "final-1": "A",                    # Internacional campeão
+    })
+    side_vs_team["phases"]["semifinal"]["ties"] = {
+        "espn-atletico-mg_gremio": {
+            "teamA": "Grêmio", "teamB": "Atlético-MG", "qualifiedTeamId": "A", "matches": {}
+        },
+        "espn-palmeiras_vasco": {
+            "teamA": "Vasco", "teamB": "Palmeiras", "qualifiedTeamId": "B", "matches": {}
+        },
+    }
+    side_vs_team["phases"]["final"] = {
+        "ties": {
+            "espn-gremio_palmeiras": {
+                "teamA": "Grêmio", "teamB": "Palmeiras",
+                "qualifiedTeamId": "A", "matches": {}
+            }
+        },
+        "topology": {
+            "slots": {
+                "final-1": {
+                    "sideA": {"winnerOf": "espn-atletico-mg_gremio"},
+                    "sideB": {"winnerOf": "espn-palmeiras_vasco"},
+                }
+            },
+            "provenance": {
+                "authority": "CBF", "source": "fixture",
+                "ingestedAt": "2026-01-01T00:00:00Z",
+                "validatedAt": "2026-01-01T00:00:00Z",
+            },
+        },
+    }
+    camp_st, vice_st = R.podio(side_vs_team)
+    checa("campeão previsto continua Internacional", camp_st == "Internacional",
+          f"campeão={camp_st}")
+    checa("vice previsto continua Palmeiras", vice_st == "Palmeiras", f"vice={vice_st}")
+    checa("campeão real Grêmio não sequestra o side A histórico", camp_st != "Grêmio",
+          f"campeão={camp_st}")
+
     print("\n" + "=" * 78)
     if falhas:
         print(f"FALHOU — {len(falhas)}: {falhas}")

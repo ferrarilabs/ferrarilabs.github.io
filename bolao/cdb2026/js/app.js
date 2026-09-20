@@ -485,40 +485,71 @@ function pickByTieId(picksObj, tieId, legacyMap) {
 // tela mostra a dependencia ("Vencedor de X"), nunca um clube inventado.
 function virtualDerivedTies(s, phaseId, livePicks) {
   if (phaseId === "semifinal") {
-    // Fase JA materializada por time (materialize-derived-phase, #410): usa os confrontos REAIS,
-    // com os MESMOS ids que renderPickForm() usa para os palpites de verdade (espn-<time>_<time>),
-    // em vez de recalcular por topologia -- que produziria ids de slot (sf-1/sf-2) DIFERENTES dos
-    // ids reais. Achado real (#428, 2026-09-10): sem isto, `predictedPodium()` nunca resolvia
-    // campeão/vice de NENHUM participante, porque o palpite de qualificação real é sempre salvo
-    // sob o id real (o único caminho possível neste torneio -- a topologia só foi registrada
-    // 2026-09-05, DEPOIS do prazo original das quartas, então ninguém nunca palpitou pelo id de
-    // slot). O fallback por topologia abaixo continua existindo para quando a fase ainda não foi
-    // materializada por time.
-    const reais = Object.entries(s?.phases?.semifinal?.ties || {});
-    if (reais.length) return { topologyKnown: true, ties: reais, pendentes: [] };
+    // A identidade do CONFRONTO pode mudar quando a fase e materializada (sf-1 -> espn-time_time),
+    // mas a identidade do TIME que o participante previu NAO pode mudar junto.
+    //
+    // Issue #440: uma entrada real escolheu Internacional nas quartas, depois lado A da semifinal
+    // e lado A da final. Quando a semifinal real foi materializada com Gremio no lado A,
+    // retornar phases.semifinal.ties diretamente reinterpretou o mesmo "A" como Gremio e mudou
+    // o campeao exibido sem mudar um unico byte do palpite salvo. E a mesma classe SIDE vs TEAM
+    // que a Copa do Mundo ja precisou corrigir: lado e estrutura; time e identidade.
+    //
+    // Portanto:
+    //   1. os TIMES sempre saem da topologia + picks do proprio participante;
+    //   2. quando existe confronto real materializado, preservamos apenas o ID real para que
+    //      palpites salvos depois da materializacao continuem legiveis;
+    //   3. pickByTieId()/legacyDerivedTieIds() fazem a ponte bidirecional entre id real e slot.
     const view = derivedPhaseView(s, phaseId);
     if (!view.topologyKnown) return { topologyKnown: false, ties: [], pendentes: [] };
+
+    const realToSlot = legacyDerivedTieIds(s, "semifinal");
+    const slotToReal = Object.fromEntries(
+      Object.entries(realToSlot).map(([realId, slotId]) => [slotId, realId])
+    );
+
     const ties = [], pendentes = [];
     for (const slot of view.slots) {
       const a = resolveParticipantPredicted(s, slot.sideA, livePicks);
       const b = resolveParticipantPredicted(s, slot.sideB, livePicks);
+      const tieId = slotToReal[slot.slotId] || slot.slotId;
       if (a.resolved && b.resolved) {
-        ties.push([slot.slotId, { teamA: a.team, teamB: b.team, matches: {}, __virtual: true }]);
+        ties.push([tieId, {
+          teamA: a.team, teamB: b.team, matches: {}, __virtual: true, __slotId: slot.slotId,
+        }]);
       } else {
-        pendentes.push({ slotId: slot.slotId, a, b, sideA: slot.sideA, sideB: slot.sideB });
+        pendentes.push({
+          slotId: tieId, legacySlotId: slot.slotId,
+          a, b, sideA: slot.sideA, sideB: slot.sideB,
+        });
       }
     }
     return { topologyKnown: true, ties, pendentes };
   }
 
   if (phaseId === "final") {
-    // Os predecessores da final sao os confrontos VIRTUAIS da semifinal -- nao ties gravados.
+    // A final prevista e formada pelos vencedores PREVISTOS das semifinais, nunca pelos clubes
+    // que de fato chegaram la. Materializar semifinal/final pode trocar ids, nao o significado
+    // historico do palpite.
     const semi = virtualDerivedTies(s, "semifinal", livePicks);
     if (!semi.topologyKnown) return { topologyKnown: false, ties: [], pendentes: [] };
-    const slots = [...semi.ties.map(([id]) => id), ...semi.pendentes.map(p => p.slotId)].sort();
+
+    // A ordem estrutural da final, quando registrada, vence ordenacao lexical de ids.
+    const topFinal = s?.phases?.final?.topology?.slots?.["final-1"];
+    let slots;
+    if (topFinal?.sideA?.winnerOf && topFinal?.sideB?.winnerOf) {
+      const ids = [...semi.ties.map(([id]) => id), ...semi.pendentes.map(p => p.slotId)];
+      const legacySemi = legacyDerivedTieIds(s, "semifinal");
+      const realFor = wanted => {
+        if (ids.includes(wanted)) return wanted;
+        const found = Object.entries(legacySemi).find(([, slotId]) => slotId === wanted);
+        return found?.[0] || wanted;
+      };
+      slots = [realFor(topFinal.sideA.winnerOf), realFor(topFinal.sideB.winnerOf)];
+    } else {
+      slots = [...semi.ties.map(([id]) => id), ...semi.pendentes.map(p => p.slotId)].sort();
+    }
     if (slots.length !== 2) return { topologyKnown: true, ties: [], pendentes: [] };
-    // Ver "CONTINUIDADE DE PALPITE" acima: `id` aqui e o id REAL do confronto de semifinal, mas
-    // quem palpitou antes da materializacao salvou sob o id de slot antigo.
+
     const legadoSemi = legacyDerivedTieIds(s, "semifinal");
     const lados = slots.map(id => {
       const escolhido = pickByTieId(livePicks?.qualified, id, legadoSemi);
@@ -528,14 +559,23 @@ function virtualDerivedTies(s, phaseId, livePicks) {
       }
       return { resolved: false, team: null, winnerOf: id };
     });
+
+    // Se a final real ja foi materializada, mantenha o id REAL para continuidade de picks feitos
+    // depois disso, mas continue usando os TIMES previstos acima.
+    const legadoFinal = legacyDerivedTieIds(s, "final");
+    const realFinalId = Object.entries(legadoFinal)
+      .find(([, slotId]) => slotId === "final-1")?.[0];
+    const finalId = realFinalId || "final-1";
+
     if (lados[0].resolved && lados[1].resolved) {
       return { topologyKnown: true,
-               ties: [["final-1", { teamA: lados[0].team, teamB: lados[1].team,
-                                    matches: {}, __virtual: true }]],
+               ties: [[finalId, { teamA: lados[0].team, teamB: lados[1].team,
+                                  matches: {}, __virtual: true, __slotId: "final-1" }]],
                pendentes: [] };
     }
     return { topologyKnown: true, ties: [],
-             pendentes: [{ slotId: "final-1", a: lados[0], b: lados[1],
+             pendentes: [{ slotId: finalId, legacySlotId: "final-1",
+                           a: lados[0], b: lados[1],
                            sideA: { winnerOf: slots[0] }, sideB: { winnerOf: slots[1] } }] };
   }
 
@@ -2071,27 +2111,31 @@ function officialPodium(s) {
   };
 }
 function predictedPodium(entry, s) {
-  // A final pode ser REAL (a CBF materializou o jogo) ou VIRTUAL (o participante previu o
-  // caminho ate la). O podio sai igual nos dois casos: campeao e vice sao os dois lados da
-  // final, decididos pelo palpite. Sem terceiro lugar -- a Copa do Brasil nao tem disputa de 3o,
-  // e inventar um transformaria o palpite em outra competicao.
+  // Campeao/vice PREVISTOS pertencem ao bracket do participante, nao ao bracket real.
+  // Nunca aplique um side A/B historico diretamente aos times reais que ocupam esse side hoje:
+  // materializacao pode trocar o clube sem alterar o palpite salvo (Issue #440 / SIDE vs TEAM).
   const picks = entry?.picks || {};
-  const f = finalTieEntry(s);
-  if (f) {
-    const pick = picks.qualified?.[f.tieId];
-    if (!pick) return { champion: null, runnerUp: null };
-    const { tie } = f;
-    return { champion: pick === "A" ? tie.teamA : tie.teamB,
-             runnerUp: pick === "A" ? tie.teamB : tie.teamA };
-  }
   const virt = virtualDerivedTies(s, "final", picks);
-  const entrada = virt.ties[0];
+  let entrada = virt.ties[0];
+
+  // Compatibilidade com snapshots legados/anônimos anteriores à topologia derivada auditável:
+  // se NÃO existe topologia suficiente para reconstruir o bracket histórico, preserve o
+  // comportamento antigo usando a final materializada. Importante: quando a topologia existe
+  // (caso real de produção de #440), NÃO há fallback — isso reintroduziria SIDE vs TEAM.
+  if (!entrada && !virt.topologyKnown) {
+    const legacyFinal = finalTieEntry(s);
+    if (legacyFinal) entrada = [legacyFinal.tieId, legacyFinal.tie];
+  }
+
   if (!entrada) return { champion: null, runnerUp: null };
   const [tieId, tie] = entrada;
-  const pick = picks.qualified?.[tieId];
-  if (!pick) return { champion: null, runnerUp: null };
-  return { champion: pick === "A" ? tie.teamA : tie.teamB,
-           runnerUp: pick === "A" ? tie.teamB : tie.teamA };
+  const legadoFinal = legacyDerivedTieIds(s, "final");
+  const pick = pickByTieId(picks.qualified, tieId, legadoFinal);
+  if (!(pick === "A" || pick === "B")) return { champion: null, runnerUp: null };
+  return {
+    champion: pick === "A" ? tie.teamA : tie.teamB,
+    runnerUp: pick === "A" ? tie.teamB : tie.teamA,
+  };
 }
 
 // "Ver palpites" DISPLAY apenas -- devolve, para cada LADO da final (A/B), o rótulo do confronto
@@ -2121,9 +2165,19 @@ function finalSideLabels(s, picks) {
     const tie = (semi.ties.find(([tid]) => tid === id) || [])[1];
     const escolhido = pickByTieId(picks?.qualified, id, legado);
     if (!tie || !(escolhido === "A" || escolhido === "B")) return null;
+
+    // `tie` acima e o confronto PREVISTO do participante. Para o parenteses no padrao da Copa,
+    // o lado factual vem separadamente do confronto REAL materializado. Misturar os dois foi
+    // justamente o SIDE-vs-TEAM que mudou Internacional para Gremio no resumo de campeao.
     const predicted = escolhido === "A" ? tie.teamA : tie.teamB;
-    const real = tie.qualifiedTeamId ? (tie.qualifiedTeamId === "A" ? tie.teamA : tie.teamB) : null;
-    return { label: (real && real !== predicted) ? `${real} (${predicted})` : predicted, team: predicted };
+    const realTie = s?.phases?.semifinal?.ties?.[id];
+    const real = realTie?.qualifiedTeamId
+      ? (realTie.qualifiedTeamId === "A" ? realTie.teamA : realTie.teamB)
+      : null;
+    return {
+      label: (real && real !== predicted) ? `${real} (${predicted})` : predicted,
+      team: predicted,
+    };
   });
   return (lados[0] && lados[1]) ? lados : null;
 }
@@ -2779,7 +2833,22 @@ function scoreEntry(entry, s) {
       if (tie.qualifiedTeamId) {
         const pickQual = pickByTieId(entry.picks?.qualified, tieId, legado);
         if (pickQual) {
-          const hit = pickQual === tie.qualifiedTeamId;
+          // SIDE vs TEAM (#440): numa fase derivada, o mesmo lado A/B pode passar a ser ocupado
+          // por outro clube depois da materialização. O bônus de classificado pertence ao TIME
+          // previsto pela entrada, não à letra do lado. Ex.: Internacional previsto no lado A
+          // não vira acerto se o Grêmio real também estiver no lado A.
+          const predictedView = DERIVED_PHASES[phase.id]
+            ? virtualDerivedTies(s, phase.id, entry.picks || {})
+            : null;
+          const predictedTie = predictedView
+            ? ((predictedView.ties.find(([id]) => id === tieId) || [])[1]
+              || (!predictedView.topologyKnown ? tie : null))
+            : tie;
+          const predictedQualified = predictedTie
+            ? (pickQual === "A" ? predictedTie.teamA : predictedTie.teamB)
+            : null;
+          const realQualified = tie.qualifiedTeamId === "A" ? tie.teamA : tie.teamB;
+          const hit = !!predictedQualified && predictedQualified === realQualified;
           detail.ties[tieId] = { pts: hit ? sc.tieBonus : 0, type: hit ? "hit" : "miss" };
           total += detail.ties[tieId].pts;
         }
@@ -3299,6 +3368,28 @@ function renderRanking() {
   }));
 }
 
+function derivedTieDisplayLabels(s, phaseId, tieId, tie, picks) {
+  const base = { teamA: tie?.teamA || "", teamB: tie?.teamB || "" };
+  if (!DERIVED_PHASES[phaseId]) return base;
+
+  // Mesmo contrato visual da Copa do Mundo: a realidade ocupa a vaga, mas o palpite original
+  // continua visível entre parênteses. Ex.: Grêmio (Internacional) × Atlético-MG (Cruzeiro).
+  //
+  // O confronto REAL continua sendo a fonte para placar/resultado; virtualDerivedTies() aqui só
+  // reconstrói os TIMES que esta entrada tinha previsto para os mesmos lados estruturais.
+  const predictedView = virtualDerivedTies(s, phaseId, picks || {});
+  const predictedTie = (predictedView.ties.find(([id]) => id === tieId) || [])[1];
+  if (!predictedTie) return base;
+
+  const label = (real, predicted) =>
+    (real && predicted && real !== predicted) ? `${real} (${predicted})` : (real || predicted || "");
+
+  return {
+    teamA: label(tie?.teamA, predictedTie.teamA),
+    teamB: label(tie?.teamB, predictedTie.teamB),
+  };
+}
+
 function renderPickDisplay(entry, detail) {
   // Achado real (2026-07-14, Eduardo: "ver palpites nao pode estar aberto ate a CDB e o
   // brasileirao iniciarem, senao as pessoas podem copiar") -- mesma proteção que a Copa já tem
@@ -3337,18 +3428,28 @@ function renderPickDisplay(entry, detail) {
       if (pick) {
         const d = detail?.matches?.[`${tieId}:${leg}`];
         const { home: pHome, away: pAway } = legTeams(tie, leg, tie.matches?.[leg]);
+        const display = derivedTieDisplayLabels(s, phase.id, tieId, tie, entry.picks || {});
+        const pHomeDisplay = pHome === tie.teamA ? display.teamA
+          : pHome === tie.teamB ? display.teamB : pHome;
+        const pAwayDisplay = pAway === tie.teamA ? display.teamA
+          : pAway === tie.teamB ? display.teamB : pAway;
         const rm = tie.matches?.[leg];
         const realScore = (rm && rm.goalsHome != null && rm.goalsAway != null) ? `${rm.goalsHome} × ${rm.goalsAway}` : "—";
-        rows.push(`<tr><td>${esc(pHome)}</td><td><b>${pick.goalsHome} × ${pick.goalsAway}</b></td><td>${esc(pAway)}</td><td>${esc(realScore)}</td><td style="text-align:center">${ptsCell(d)}</td></tr>`);
+        rows.push(`<tr><td>${esc(pHomeDisplay)}</td><td><b>${pick.goalsHome} × ${pick.goalsAway}</b></td><td>${esc(pAwayDisplay)}</td><td>${esc(realScore)}</td><td style="text-align:center">${ptsCell(d)}</td></tr>`);
       }
       if (leg === lastLeg && !qualifiedTiesEmitted.has(tieId)) {
         const pickQual = pickByTieId(entry.picks?.qualified, tieId, legado);
         if (tie.qualifiedTeamId && pickQual) {
           qualifiedTiesEmitted.add(tieId);
           const d = detail?.ties?.[tieId];
-          const teamName = pickQual === "A" ? tie.teamA : tie.teamB;
+          const display = derivedTieDisplayLabels(s, phase.id, tieId, tie, entry.picks || {});
+          const predictedView = virtualDerivedTies(s, phase.id, entry.picks || {});
+          const predictedTie = (predictedView.ties.find(([id]) => id === tieId) || [])[1];
+          const teamName = predictedTie
+            ? (pickQual === "A" ? predictedTie.teamA : predictedTie.teamB)
+            : (pickQual === "A" ? tie.teamA : tie.teamB);
           const realQualified = tie.qualifiedTeamId === "A" ? tie.teamA : tie.teamB;
-          rows.push(`<tr><td colspan="2">${esc(t("pickQualifiedLabel"))}: ${esc(tie.teamA)} × ${esc(tie.teamB)}</td><td>${esc(teamName)}</td><td>${esc(realQualified)}</td><td style="text-align:center">${ptsCell(d)}</td></tr>`);
+          rows.push(`<tr><td colspan="2">${esc(t("pickQualifiedLabel"))}: ${esc(display.teamA)} × ${esc(display.teamB)}</td><td>${esc(teamName)}</td><td>${esc(realQualified)}</td><td style="text-align:center">${ptsCell(d)}</td></tr>`);
         }
       }
     });

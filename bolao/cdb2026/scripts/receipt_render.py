@@ -148,23 +148,21 @@ def ties_virtuais(snapshot, phase_id):
 
 
 def podio(snapshot):
-    """Campeão e vice são os dois lados da final. Sem 3º e sem 4º — a Copa do Brasil não tem."""
+    """Campeão/vice PREVISTOS vêm sempre do bracket do participante.
+
+    Materializar a final real pode trocar quais clubes ocupam A/B; isso não pode reinterpretar
+    um side histórico como outro time (Issue #440, mesma classe SIDE vs TEAM da Copa do Mundo).
+    O recibo é evidência do que foi salvo, portanto usa sempre a final virtual derivada dos picks.
+    """
     qual = (snapshot.get("picks") or {}).get("qualified") or {}
-    fases = snapshot.get("phases") or {}
-    reais = (fases.get("final") or {}).get("ties") or {}
-    if reais:
-        tid = sorted(reais)[0]
-        tie = reais[tid]
-    else:
-        virt = ties_virtuais(snapshot, "final")
-        if not virt:
-            return None, None
-        tid, tie = virt[0]
+    virt = ties_virtuais(snapshot, "final")
+    if not virt:
+        return None, None
+    tid, tie = virt[0]
     p = qual.get(tid)
     if p not in ("A", "B"):
         return None, None
     return (_lado(tie, p), _lado(tie, "B" if p == "A" else "A"))
-
 
 def _placar(m):
     if not isinstance(m, dict):
