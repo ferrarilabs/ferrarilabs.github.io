@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-09-19T23:39:38Z",
-  "sourceUpdatedAt": "2026-09-19T23:39:38Z",
+  "generatedAt": "2026-09-20T01:42:18Z",
+  "sourceUpdatedAt": "2026-09-20T01:42:18Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "416cdb42e744171a96fcefcbacd11fe7a57dcc0e15b86c64eb379a98c2853352",
+  "payloadHash": "2cc52a8091084c8c934445b19985fe81cf12fb07d8c006071ef096884c9e05a6",
   "matches": [
     {
       "name": "Flamengo",
@@ -126,13 +126,13 @@
       "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/3456.png",
       "rank": 9.0,
       "points": 38.0,
-      "played": 27.0,
+      "played": 28.0,
       "wins": 10.0,
       "draws": 8.0,
-      "losses": 9.0,
+      "losses": 10.0,
       "gf": 37.0,
-      "ga": 38.0,
-      "gd": -1.0
+      "ga": 43.0,
+      "gd": -6.0
     },
     {
       "name": "Red Bull Bragantino",
@@ -219,10 +219,24 @@
       "gd": -9.0
     },
     {
+      "name": "Vasco da Gama",
+      "abbr": "VAS",
+      "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/3454.png",
+      "rank": 16.0,
+      "points": 31.0,
+      "played": 27.0,
+      "wins": 8.0,
+      "draws": 7.0,
+      "losses": 12.0,
+      "gf": 34.0,
+      "ga": 41.0,
+      "gd": -7.0
+    },
+    {
       "name": "Grêmio",
       "abbr": "GRE",
       "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/6273.png",
-      "rank": 16.0,
+      "rank": 17.0,
       "points": 28.0,
       "played": 27.0,
       "wins": 7.0,
@@ -231,20 +245,6 @@
       "gf": 30.0,
       "ga": 38.0,
       "gd": -8.0
-    },
-    {
-      "name": "Vasco da Gama",
-      "abbr": "VAS",
-      "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/3454.png",
-      "rank": 17.0,
-      "points": 28.0,
-      "played": 26.0,
-      "wins": 7.0,
-      "draws": 7.0,
-      "losses": 12.0,
-      "gf": 29.0,
-      "ga": 41.0,
-      "gd": -12.0
     },
     {
       "name": "Internacional",
