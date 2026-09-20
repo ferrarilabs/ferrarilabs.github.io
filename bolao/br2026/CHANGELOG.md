@@ -1,5 +1,45 @@
 # Bolão Brasileirão 2026 — CHANGELOG
 
+## v1.138 — jogo terminado não volta a "Em andamento" (2026-09-15, #436)
+
+Produção, 2026-09-14/15: Bahia 2 × 1 Remo terminou (gateway com `state:"post"`, `completed:true`,
+FT havia horas) e "Jogos de hoje" mostrou o card como **"Em andamento"**, sem placar.
+
+**Causa raiz:** `renderNextGameCard()` só tinha dois ramos pra um jogo de hoje fora de
+`_liveMatches` — `isPostponedMatch(g)` e `isFinalMatch(g)`, ambos exigindo que `g.state` (campo
+overlay de `_schedule`, ver `applyLiveMatches()`) já confirme o resultado. Quando isso não
+acontece — o produtor do cache saiu da janela de rastreio de 3h (`WINDOW_LOOKBACK_MS` em
+`bolao/shared/scripts/produce_live_cache.mjs`), o snapshot estático do calendário
+(`data/espn-normalized.json`) ainda não foi resincronizado, ou a aba nunca recebeu a observação
+final — `g.state` fica parado em `"pre"`, e o código caía direto no ramo de contagem regressiva:
+`diffMs` fica muito negativo (jogo já acabou) e `countdownTimerHtml()` trata QUALQUER
+`diffMs <= 0` como "o jogo começou" — verdade pra um jogo que ACABOU DE COMEÇAR, falso pra um cujo
+kickoff foi há horas.
+
+**Correção cirúrgica:** um terceiro ramo, entre `isFinalMatch()` e a contagem regressiva —
+kickoff já passado sem NENHUMA confirmação de estado terminal é ESTADO DESCONHECIDO, nunca "ao
+vivo" nem placar inventado. Mostra a chave nova `gameStatusUnconfirmed`
+("Resultado aguardando confirmação"). `countdownTimerHtml()` em si não muda — ele nunca mais
+recebe um `diffMs` negativo vindo deste caminho, continua sendo só o widget do countdown, sem
+lógica de provedor misturada (pedido explícito de Eduardo). Nenhuma mudança em scoring, ranking,
+picks, persistência, Supabase, schema, broadcasts ou regra de torneio — só apresentação.
+
+- `js/app.js` (`renderNextGameCard()`): novo ramo `diffMs <= 0` sem `isFinalMatch`/
+  `isPostponedMatch` → estado neutro, fail-closed.
+- `js/i18n.js`: nova chave `gameStatusUnconfirmed`.
+- `scripts/test_post_match_state_transition.mjs` (novo, gate `br-post-match-state`): pre + in +
+  post no mesmo dia sem duplicar; post confirmado com placar/Encerrado; post SEM confirmação
+  (reprodução exata do defeito, verificada contra o código pré-correção via `git stash` — falha
+  do jeito certo, e só do jeito certo, antes desta correção); jogo futuro preservado; gateway
+  indisponível preserva contrato existente (fail-closed, sem "live" falso). Registrado em
+  `scripts/verify.mjs` (grupo `browser`), `bolao/scripts/gate_registry.json` e
+  `scripts/safety/check.mjs` (`BROWSER_SHARD_A`) — Issue #429/#430 já mostrou o que acontece com
+  um gate de browser novo que fica de fora dos shards manuais.
+- QA manual adicional (não commitada): transição in → post na MESMA sessão de página, sem
+  `page.reload()`, disparada pelo mesmo `window.addEventListener("focus", resumeLivePolling)` que
+  o app já usa — card ao vivo sai corretamente, "Jogos de hoje" passa a mostrar "2 – 1 Encerrado",
+  "Em andamento" nunca aparece.
+
 ## v1.137 — "Onde assistir" pela grade de TV, com override curado (2026-09-12, #431)
 
 `BROADCAST_SOURCE_MODEL` passa de `CURATED_ONLY` para **`EPG_CORROBORATED_WITH_CURATED_OVERRIDE`**.

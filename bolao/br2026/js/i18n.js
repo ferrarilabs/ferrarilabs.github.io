@@ -143,6 +143,10 @@ window.BR2026_I18N = {
     gameLive: "Ao vivo",
     gamePostponed: "Adiado",
     gamePending: "Agendado",
+    // #436: kickoff já passou mas nem isFinalMatch() nem isPostponedMatch() confirmam o estado
+    // (schedule/overlay ainda não chegou ou está parado) -- nunca virar "Em andamento" nem
+    // inventar um placar. Estado neutro, sem afirmar nada que não está confirmado.
+    gameStatusUnconfirmed: "Resultado aguardando confirmação",
     // Participants
     participantsTitle: "Participantes",
     participantsSubtitle: "Lista de entradas registradas.",
