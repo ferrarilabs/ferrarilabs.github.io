@@ -80,9 +80,12 @@ const ENGINE = new Function("C", "DATA", "_liveTies", `
   ${extractFn("topologyProvenanceIsValid")}
   ${extractFn("tieQualifiedTeam")}
   ${extractFn("resolveParticipant")}
+  ${extractFn("DERIVED_PHASES_PREDECESSOR_OF_TIE")}
+  ${extractFn("resolveParticipantPredicted")}
   ${extractFn("derivedPhaseView")}
   ${extractFn("legacyDerivedTieIds")}
   ${extractFn("pickByTieId")}
+  ${extractFn("virtualDerivedTies")}
   ${extractFn("scoreEntry")}
   ${extractFn("liveScoreEntry")}
   ${extractFn("hitChampion")}
