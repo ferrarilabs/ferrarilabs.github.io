@@ -148,6 +148,78 @@ class Harness:
 _ESCRITOR = next(k for k in ("sb_upsert", "sb_append_audit") if hasattr(S, k))
 
 
+class ScoreboardWindowFetch(unittest.TestCase):
+    def setUp(self):
+        self._orig_espn_get = S._espn_get
+
+    def tearDown(self):
+        S._espn_get = self._orig_espn_get
+
+    @staticmethod
+    def _event(eid, iso_date, home="Casa", away="Fora"):
+        return {
+            "id": eid,
+            "date": iso_date,
+            "competitions": [{
+                "status": {"type": {"completed": True, "name": "STATUS_FULL_TIME", "state": "post"}},
+                "competitors": [
+                    {"homeAway": "home", "score": "2", "team": {"displayName": home}},
+                    {"homeAway": "away", "score": "1", "team": {"displayName": away}},
+                ],
+            }],
+        }
+
+    def test_scoreboard_window_usa_apenas_urls_de_um_dia_e_deduplica_ids(self):
+        chamadas = []
+        respostas = {
+            "20260918": {"events": [self._event("g1", "2026-09-18T22:00Z")]},
+            "20260919": {"events": [
+                self._event("g1", "2026-09-18T22:00Z"),
+                self._event("g2", "2026-09-19T22:00Z"),
+            ]},
+            "20260920": {"events": [self._event("g3", "2026-09-20T22:00Z")]},
+        }
+
+        def fake_get(url):
+            chamadas.append(url)
+            ds = url.split("dates=", 1)[1].split("&", 1)[0]
+            return respostas[ds]
+
+        S._espn_get = fake_get
+        out = S.fetch_scoreboard_window(
+            datetime(2026, 9, 18).date(),
+            datetime(2026, 9, 20).date(),
+        )
+
+        self.assertEqual(len(chamadas), 3)
+        self.assertEqual(
+            [u.split("dates=", 1)[1].split("&", 1)[0] for u in chamadas],
+            ["20260918", "20260919", "20260920"],
+        )
+        self.assertTrue(all("-" not in u.split("dates=", 1)[1].split("&", 1)[0] for u in chamadas))
+        self.assertEqual(set(out), {"g1", "g2", "g3"})
+        self.assertEqual(out["g2"]["home"], "Casa")
+        self.assertTrue(out["g2"]["completed"])
+
+    def test_scoreboard_window_falha_fechado_se_um_dia_falhar(self):
+        chamadas = []
+
+        def fake_get(url):
+            chamadas.append(url)
+            ds = url.split("dates=", 1)[1].split("&", 1)[0]
+            if ds == "20260919":
+                raise RuntimeError("ESPN indisponivel")
+            return {"events": [self._event(ds, f"{ds[:4]}-{ds[4:6]}-{ds[6:8]}T22:00Z")]}
+
+        S._espn_get = fake_get
+        with self.assertRaisesRegex(RuntimeError, "ESPN indisponivel"):
+            S.fetch_scoreboard_window(
+                datetime(2026, 9, 18).date(),
+                datetime(2026, 9, 20).date(),
+            )
+        self.assertEqual(len(chamadas), 2, "deve parar no primeiro dia indisponivel; nunca usar janela parcial")
+
+
 class RecipientCompleteness(unittest.TestCase):
     def setUp(self):
         # `sb_upsert` deixou de existir: a gravacao de documento inteiro do BR2026 foi trocada
