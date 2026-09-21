@@ -102,32 +102,45 @@ def _espn_get(url):
 
 
 def fetch_scoreboard_window(date_from, date_to):
-    """Games between two datetime.date objects (inclusive), mirrors js fetchScoreboard()
-    field usage but keeps the raw ESPN shape needed here (id, date, teams, state, score)."""
-    ds = date_from.strftime("%Y%m%d")
-    de = date_to.strftime("%Y%m%d")
-    data = _espn_get(f"{ESPN_SCOREBOARD}?dates={ds}-{de}&limit=500")
+    """Games between two datetime.date objects (inclusive).
+
+    ESPN rejected the old multi-day form (`dates=YYYYMMDD-YYYYMMDD`) with HTTP 400 in the
+    production round-email workflow (run 35410453268). Fetch one calendar day at a time instead.
+    A failure on ANY required day is deliberately propagated: partial fixture coverage must never
+    be mistaken for a complete round and must never unlock a real send.
+    """
+    if date_to < date_from:
+        return {}
+
     games = {}
-    for e in data.get("events", []):
-        comp = (e.get("competitions") or [{}])[0]
-        status = (comp.get("status") or {}).get("type", {})
-        competitors = comp.get("competitors", [])
-        home = next((c for c in competitors if c.get("homeAway") == "home"), {})
-        away = next((c for c in competitors if c.get("homeAway") == "away"), {})
-        games[e["id"]] = {
-            "id":        e["id"],
-            "date":      datetime.strptime(e["date"], "%Y-%m-%dT%H:%MZ").replace(tzinfo=timezone.utc),
-            "home":      home.get("team", {}).get("displayName", ""),
-            "away":      away.get("team", {}).get("displayName", ""),
-            "completed": bool(status.get("completed")),
-            "goalsHome": home.get("score"),
-            "goalsAway": away.get("score"),
-            # Status bruto preservado: colapsar tudo em `completed` apagava a distincao entre
-            # "ainda vai acontecer" e "adiado indefinidamente" -- que e exatamente a distincao
-            # que travou a R21 e escondeu a R22. O resolver canonico precisa do nome do status.
-            "statusName": status.get("name"),
-            "statusState": status.get("state"),
-        }
+    day = date_from
+    while day <= date_to:
+        ds = day.strftime("%Y%m%d")
+        data = _espn_get(f"{ESPN_SCOREBOARD}?dates={ds}&limit=500")
+
+        for e in data.get("events", []):
+            comp = (e.get("competitions") or [{}])[0]
+            status = (comp.get("status") or {}).get("type", {})
+            competitors = comp.get("competitors", [])
+            home = next((c for c in competitors if c.get("homeAway") == "home"), {})
+            away = next((c for c in competitors if c.get("homeAway") == "away"), {})
+            games[e["id"]] = {
+                "id":        e["id"],
+                "date":      datetime.strptime(e["date"], "%Y-%m-%dT%H:%MZ").replace(tzinfo=timezone.utc),
+                "home":      home.get("team", {}).get("displayName", ""),
+                "away":      away.get("team", {}).get("displayName", ""),
+                "completed": bool(status.get("completed")),
+                "goalsHome": home.get("score"),
+                "goalsAway": away.get("score"),
+                # Status bruto preservado: colapsar tudo em `completed` apagava a distincao entre
+                # "ainda vai acontecer" e "adiado indefinidamente" -- que e exatamente a distincao
+                # que travou a R21 e escondeu a R22. O resolver canonico precisa do nome do status.
+                "statusName": status.get("name"),
+                "statusState": status.get("state"),
+            }
+
+        day += timedelta(days=1)
+
     return games
 
 
