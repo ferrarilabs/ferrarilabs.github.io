@@ -5,7 +5,7 @@
   "generatedAt": "2026-09-10T16:40:14Z",
   "sourceUpdatedAt": "2026-09-10T16:40:14Z",
   "stale": true,
-  "staleReason": "fetch failed: HTTP Error 400: Bad Request",
+  "staleReason": "fetch failed: <urlopen error [SSL: TLSV1_ALERT_INTERNAL_ERROR] tlsv1 alert internal error (_ssl.c:1000)>",
   "payloadHash": "698c468babe20e3c137a3c5ead2f46151bf9e771fc7d19e27f839d30dea13c2c",
   "matches": [
     {
