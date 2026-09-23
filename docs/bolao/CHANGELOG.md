@@ -4,6 +4,28 @@ This file consolidates the full version history. The source of truth for the lat
 
 ---
 
+## Loterias — a coleta que chega a `main` agora é publicada (2026-09-23)
+
+**Sintoma.** A página do Powerball podia ficar desatualizada em produção por muitas horas: o
+estado novo (jackpot, próximo sorteio, elegibilidade) estava em `main`, mas a versão publicada
+continuava mostrando o anterior.
+
+**Causa raiz.** `lottery_poll.yml` empurra seus commits com o `GITHUB_TOKEN`, e um push com esse
+token não dispara nenhum outro workflow. O gatilho `push:` de `deploy-pages.yml` nunca rodava
+para esses commits; a publicação só acontecia quando outro workflow (ou uma pessoa) fazia deploy.
+
+**Correção.** Depois de um push bem-sucedido, `lottery_poll.yml` pede o deploy existente
+(`gh workflow run "Deploy GitHub Pages" --ref main`), o mesmo padrão de `sync_version.yml` e
+`bolao_provider_snapshot.yml`. Sem mudança de dado ou com push falho, nada é pedido. A única
+permissão nova é `actions: write`, exigida pelo `gh workflow run`. Cron, coleta, formato dos dados,
+e-mail e pagamento não mudam.
+
+**Gate.** `bolao/loterias/scripts/test_lottery_poll_deploy_dispatch.mjs` (check
+`lottery-poll-deploy-dispatch`) prova pelo YAML que o pedido de deploy existe, só roda depois de
+um push real e não amplia permissões — com mutações que provam que ele reprova a regressão.
+
+---
+
 ## Plataforma — o produtor do cache ao vivo muda de egresso (2026-08-20, Issue #246)
 
 **PREPARADO, NÃO IMPLANTADO.** Este trabalho está em PR aguardando autorização humana de merge —

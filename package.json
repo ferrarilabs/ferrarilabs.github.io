@@ -75,6 +75,7 @@
     "test:lottery-failure-injection": "python3 bolao/loterias/scripts/test_failure_injection.py",
     "test:lottery-jackpot-identity": "python3 bolao/loterias/scripts/test_jackpot_identity.py",
     "test:lottery-prize-authority": "python3 bolao/loterias/scripts/test_prize_authority.py",
+    "test:lottery-poll-deploy-dispatch": "node bolao/loterias/scripts/test_lottery_poll_deploy_dispatch.mjs",
     "test:subject-policy": "python3 bolao/shared/scripts/test_subject_policy.py",
     "test:subject-policy-interop": "node bolao/shared/scripts/test_subject_policy_interop.mjs",
     "test:multi-live-hero": "node bolao/scripts/audit_multi_live_hero.mjs",

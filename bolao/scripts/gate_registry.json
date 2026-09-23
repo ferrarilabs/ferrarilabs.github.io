@@ -362,6 +362,10 @@
     "bolao/loterias/scripts/test_lottery_core.py": {
       "classification": "REGISTERED_AND_EXECUTED"
     },
+    "bolao/loterias/scripts/test_lottery_poll_deploy_dispatch.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED",
+      "coverage": "lottery_poll.yml pede o deploy do Pages quando um commit da coleta chega a main (push com GITHUB_TOKEN nao dispara deploy-pages.yml). Le so o YAML; inclui mutacoes que provam que o gate morde."
+    },
     "bolao/loterias/scripts/test_prize_authority.py": {
       "classification": "REGISTERED_AND_EXECUTED"
     },

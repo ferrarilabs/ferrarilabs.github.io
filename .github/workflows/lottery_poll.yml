@@ -45,6 +45,11 @@ concurrency:
 
 permissions:
   contents: write
+  # Um push feito com o GITHUB_TOKEN nao dispara nenhum outro workflow (protecao anti-loop do
+  # GitHub), entao o `push` de deploy-pages.yml nunca roda para os commits desta coleta. Sem pedir
+  # o deploy explicitamente, o estado novo chega a main mas nao ao ar. Mesmo padrao de
+  # sync_version.yml e bolao_provider_snapshot.yml; `actions: write` so serve ao `gh workflow run`.
+  actions: write
 
 jobs:
   coleta:
@@ -80,6 +85,7 @@ jobs:
         run: python3 bolao/loterias/scripts/lottery_status.py
 
       - name: Commitar o que mudou
+        id: commit
         run: |
           set -euo pipefail
           git config user.name  "github-actions[bot]"
@@ -99,7 +105,18 @@ jobs:
           # O push pode perder a corrida para outro commit; rebase e tentar de novo e o
           # suficiente, e falhar aqui NAO invalida a coleta (o proximo ciclo recupera).
           for i in 1 2 3; do
-            if git push origin HEAD:main; then exit 0; fi
+            if git push origin HEAD:main; then
+              echo "pushed=true" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
             git pull --rebase origin main || true
           done
           echo "::warning::push falhou 3x; a coleta seguinte recupera"
+
+      # So quando um commit desta execucao chegou de fato a main: sem mudanca ou sem push, nao ha o
+      # que publicar. Reusa o deploy existente; nao e um segundo mecanismo de publicacao.
+      - name: Pedir o deploy do Pages para o estado novo
+        if: steps.commit.outputs.pushed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh workflow run "Deploy GitHub Pages" --ref main
