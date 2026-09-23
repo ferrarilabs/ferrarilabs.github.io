@@ -237,6 +237,8 @@ const CHECKS = [
     why: "todos os incidentes do pipeline ao vivo em 2026-08 foram descobertos por alguem abrir o site e ver que estava errado; a CI de browser chegou a tropecar em alguns por acidente, o que e pior que nao detectar. Este gate prova que o vigia classifica certo, NAO repete alarme enquanto o mesmo incidente persiste (uma indisponibilidade de 3h e UM incidente, nao um por ciclo), reconhece recuperacao sozinho, usa os limiares do contrato compartilhado em vez de numeros proprios, e nao le nada de participante" },
   { id: "cron-coverage", group: "scheduling", cmd: ["node", "bolao/scripts/cron_coverage.test.mjs"],
     why: "scheduled workflows cover the expected event calendar" },
+  { id: "lottery-poll-deploy-dispatch", group: "scheduling", cmd: ["node", "bolao/loterias/scripts/test_lottery_poll_deploy_dispatch.mjs"],
+    why: "lottery_poll.yml empurra com GITHUB_TOKEN, que nao dispara o push de deploy-pages.yml; sem pedir o deploy explicitamente o estado da loteria chega a main e nao ao ar" },
   // Issue #259 — o agendamento fora da janela era inerte por aritmetica (30 min de cadencia contra
   // um teto de 10 min de ultimo-bom-conhecido) e nem exercitava o caminho, porque o produtor pula
   // antes da rede. Removido; este gate fixa a decisao e a aritmetica, para que a proxima cadencia
