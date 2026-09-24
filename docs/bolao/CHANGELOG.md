@@ -4,6 +4,38 @@ This file consolidates the full version history. The source of truth for the lat
 
 ---
 
+## Governança — documentação alinhada ao código (2026-09-24)
+
+Somente documentação; nenhum código, workflow, teste, SQL ou dado mudou. Cada correção foi
+conferida contra `main` antes de ser escrita.
+
+- **`CLAUDE.md`**:
+  - modelo de escrita do Supabase por app (Copa sem escrita remota no navegador; BR2026 com
+    `submit_entry` + `op_*`; CDB2026 com RPCs de token + `cdb_apply_operator_mutation`);
+  - limites de frescor apontam para as constantes de `freshness_contract.js` em vez de repetir
+    valores;
+  - deploy: push de bot só publica se o workflow pedir o `deploy-pages.yml`;
+  - contagens de checks e mutações sem número fixo;
+  - BR2026 descrito como em produção;
+  - leitura obrigatória reduzida ao contrato de segurança + changelog, com tabela de roteamento por
+    área;
+  - histórico e números de versão retirados das regras permanentes, mantendo regra e motivo.
+- **`memory/project_bolao_docs.md`**: fatos atuais, sem contagens.
+- **`docs/bolao/SECURITY.md`**: F10 passa de "aberto" para "mitigado em produção, não codificado",
+  com o motivo — o revoke do `anon` em `bolao_state` existe só no `MANUAL_ONLY` `033`, fora de
+  `supabase/migrations/`.
+- **`docs/bolao/security/RLS_POLICY_MATRIX.md`**: marcado como retrato histórico de 2026-08-02,
+  apontando para as fontes atuais.
+- **`docs/bolao/CONSISTENCY_MATRIX.md`** e **`docs/bolao/ARCHITECTURE.md`**: caminhos da Copa
+  anteriores à mudança para `bolao/copa2026/` corrigidos nas descrições de estado atual (registros
+  históricos datados ficam como estão); contagens de linhas de `app.js` removidas.
+
+Fora deste patch, de propósito: o comentário do cabeçalho de `live_cache_producer.yml` (é um
+workflow, superfície `NOTIFICATION_WORKFLOWS`) e o `AGENTS.md` (não versionado, gerado fora do
+repositório).
+
+---
+
 ## Loterias — a coleta que chega a `main` agora é publicada (2026-09-23)
 
 **Sintoma.** A página do Powerball podia ficar desatualizada em produção por muitas horas: o

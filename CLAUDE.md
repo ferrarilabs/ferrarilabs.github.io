@@ -4,7 +4,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Deployment
 
-No build step. Push to `main` and GitHub Pages auto-deploys.
+No build step. A push to `main` made by a person deploys GitHub Pages. A bot push (made with
+`GITHUB_TOKEN`) does not start any workflow, so a bot that commits data only reaches production if
+that workflow dispatches `deploy-pages.yml` itself — check the workflow before assuming its commits
+are live.
 
 **A origem de produção é `https://www.ferrarilabs.com`** (definida pelo `CNAME` na raiz do repo).
 `ferrarilabs.github.io` e o apex `ferrarilabs.com` respondem **301** para lá — nenhuma página de
@@ -18,8 +21,8 @@ comparando o `?v=` ao vivo com o do repositório.
 
 - Main site: `www.ferrarilabs.com`
 - Bolão root: `www.ferrarilabs.com/bolao/` — redirects to Brasileirão (see below)
-- Copa do Mundo 2026: `www.ferrarilabs.com/bolao/copa2026/` (moved here 2026-07-19, v4.159 — see "Copa do Mundo 2026 archive" below)
-- Brasileirão 2026: `www.ferrarilabs.com/bolao/br2026/` (not published yet)
+- Copa do Mundo 2026: `www.ferrarilabs.com/bolao/copa2026/` (archived — see "Copa do Mundo 2026 archive" below)
+- Brasileirão 2026: `www.ferrarilabs.com/bolao/br2026/` (in production with real entries and the default `/bolao/` destination; no link from the main site)
 - Copa do Brasil 2026: `www.ferrarilabs.com/bolao/cdb2026/` (published 2026-07-19, in production)
 
 To preview locally:
@@ -36,21 +39,16 @@ Three independent sub-projects:
 
 **Copa do Mundo 2026** (`bolao/copa2026/`) — bracket pool, tournament concluded (Spain champion, 2026-07-19) and archived. Vanilla JS, no framework, no build system. URL: `www.ferrarilabs.com/bolao/copa2026/`. See "Copa do Mundo 2026 archive" below.
 
-**Brasileirão 2026** (`bolao/br2026/`) — G4/Z4 classification picks with live ESPN standings. Not published yet (no link from main site). URL: `www.ferrarilabs.com/bolao/br2026/`.
+**Brasileirão 2026** (`bolao/br2026/`) — G4/Z4 classification picks with live ESPN standings. In production with real entries (entries closed); no link from the main site. URL: `www.ferrarilabs.com/bolao/br2026/`.
 
 **Copa do Brasil 2026** (`bolao/cdb2026/`) — knockout-round picks with real teams. Published 2026-07-19 (in production, invited by email). URL: `www.ferrarilabs.com/bolao/cdb2026/`.
 
-## Copa do Mundo 2026 archive (v4.157–v4.159, 2026-07-19)
+## Copa do Mundo 2026 archive
 
-Eduardo, after the Final concluded: "Copa do mundo finalizada! ... Desabilitar os botões todos,
-deixar só o vencedor, auditoria e os palpites" (v4.157 — `CONFIG.archived` in `js/config.js`
-hides every nav button except Ranking, which already has the podium banner, audit report link,
-and "Ver palpites" per-entry detail), then "Deixe o default do site como o Brasileiro agora" —
-confirmed he wanted a real redirect, not just the switcher's default option changing (v4.158 had
-only done the latter). A real redirect at `bolao/index.html` required moving the whole app so the
-archived Ranking would still have a URL of its own — so the entire Copa app (was directly under
-`bolao/`) moved to `bolao/copa2026/` (v4.159), matching the `br2026/`/`cdb2026/` folder pattern.
-
+The tournament is over. `CONFIG.archived` in `bolao/copa2026/js/config.js` hides every nav button
+except Ranking, which carries the podium banner, the audit report link and "Ver palpites". The app
+lives in `bolao/copa2026/` so the archived Ranking keeps its own URL while `/bolao/` redirects to
+Brasileirão.
 - `bolao/index.html` is now a redirect (meta refresh + JS `location.replace`) to `/bolao/br2026/`.
 - `bolao/audit-report.html`, `audit-detail-picks.html`, `audit-detail-governance.html`, and
   `classificacao-geral.html` are redirect stubs pointing into `bolao/copa2026/` — these paths
@@ -63,7 +61,10 @@ archived Ranking would still have a URL of its own — so the entire Copa app (w
 - Reversible: to make Copa the default again, edit `bolao/index.html`'s redirect target back to
   `/bolao/copa2026/` and flip `CONFIG.archived` to `false` in `bolao/copa2026/js/config.js`.
 
-## Bolão app — quick reference
+## Copa do Mundo 2026 (archived) — quick reference
+
+This section describes the Copa app. BR2026 and CDB2026 have their own `js/config.js`, data and
+scoring; check the app's files before assuming any value below applies to them.
 
 ### Script load order
 
@@ -74,6 +75,9 @@ archived Ranking would still have a URL of its own — so the entire Copa app (w
 5. `js/i18n.js` → `window.BOLAO_I18N`
 6. `js/app.js` (defer — all logic in a single IIFE)
 
+Shared scripts from `bolao/shared/js/` also load in between; each app's `index.html` is the
+authoritative order.
+
 ### Key files
 
 | File | Purpose |
@@ -81,7 +85,7 @@ archived Ranking would still have a URL of its own — so the entire Copa app (w
 | `js/config.js` | Runtime config: scoring, payments, Supabase, EmailJS, cutoff date, admin hash |
 | `js/data.js` | Fixture data: 72 group + 32 knockout matches, team flags, strength ratings |
 | `js/i18n.js` | All UI strings in **3 languages**: `pt-BR`, `es`, `en-US` |
-| `js/app.js` | Single IIFE (~1430 lines): all state, rendering, validation, scoring, admin |
+| `js/app.js` | Single IIFE: all state, rendering, validation, scoring, admin |
 | `css/styles.css` | All styles — mobile-first, responsive |
 | `index.html` | Single page; sections shown/hidden by JS |
 
@@ -152,9 +156,15 @@ When adding a new key, add it to all three objects. Default fallback is `pt-BR`.
 ### Supabase
 
 - `database.enabled: true` in config to activate.
-- Only anon key used — never the service_role key.
-- RLS restricts all operations to `id = 'main'`.
-- Merge strategy: union entries, local wins for paid/results.
+- The browser holds only the public anon key and never the service_role key. Every app reads
+  from `bolao_state_normalized_public` (sanitized; no participant PII).
+- Writes differ per app. Copa: the browser writes nothing remote (`saveRemoteState()` throws);
+  operator actions go through `bolao/copa2026/scripts/operator_cli.py`. BR2026: participants use
+  the `submit_entry` RPC; operator mutations are `op_*` RPCs run by scripts. CDB2026: participants
+  use the token RPCs `cdb_my_entry` / `cdb_save_my_picks`; operator mutations go through
+  `cdb_apply_operator_mutation`. Privileged scripts and workflows use service_role.
+- Never reintroduce a whole-document write from the browser: the anon key is public, so any
+  visitor could overwrite entries, payments and results.
 - See `bolao/copa2026/docs/DATABASE_SETUP_SUPABASE.md` for SQL setup.
 
 ### Release process
@@ -198,7 +208,7 @@ Also see `bolao/copa2026/docs/` for low-level setup guides (Supabase SQL, API-Fo
 This repo runs **three independent bolão apps** that share one design system and one set of
 conventions: `bolao/copa2026/` (Copa do Mundo 2026, **concluded and archived** 2026-07-19 —
 no longer the default `/bolao/` destination, see "Copa do Mundo 2026 archive" above),
-`bolao/br2026/` (Brasileirão 2026, not published — entries closed 2026-07-16, now the default
+`bolao/br2026/` (Brasileirão 2026, in production — entries closed 2026-07-16, now the default
 `/bolao/` destination), and `bolao/cdb2026/` (Copa do Brasil 2026,
 **published 2026-07-19, in production**). They do not share code (no imports between them) but
 they are audited together.
@@ -223,8 +233,8 @@ Additional rules:
   se for uma decisão de plataforma, em `docs/bolao/CONSISTENCY_MATRIX.md`).
 - Nunca alterar scoring ou regras de negócio em nenhum dos três apps sem autorização explícita
   do Eduardo — os três movimentam dinheiro real por entrada.
-- O bolão da Copa está em produção e deve receber apenas patches pequenos, testados e
-  reversíveis.
+- O bolão da Copa está arquivado, mas continua no ar com dados reais de pagamento: deve receber
+  apenas patches pequenos, testados e reversíveis.
 - Mudanças no bolão da Copa devem ser avaliadas nos outros dois apps.
 - Mudanças nos outros dois apps não devem ser aplicadas automaticamente à Copa sem avaliação
   de risco.
@@ -246,7 +256,7 @@ banco. Os dois defeitos achados na auditoria de julho/2026 estavam justamente em
 parecia não ter relação com o que estava sendo mexido.
 
 `npm run check` compõe: classificação da mudança + contrato de segurança + a suíte canônica
-(`scripts/verify.mjs`, 150 checks, agregados) + verificação de árvore/evidência. Ele é a única
+(`scripts/verify.mjs`, que imprime o total de checks que executou) + verificação de árvore/evidência. Ele é a única
 porta de entrada — não crie um segundo comando canônico e não invente uma suíte paralela.
 
 Variantes: `npm run check -- --with-npm-test` (roda também a cadeia literal do `npm test`);
@@ -261,8 +271,7 @@ deve, nesta ordem:
 3. **rodar os gates dedicados** da superfície (`required_gates` no registro);
 4. **reportar explicitamente** a mudança — nunca deixá-la implícita num diff grande.
 
-O registro canônico é `bolao/shared/safety/critical_surfaces.json` (23 superfícies — o número
-estava desatualizado em 22 até a Issue #253 acrescentar `EDGE_FUNCTIONS`) e o manifesto
+O registro canônico é `bolao/shared/safety/critical_surfaces.json` e o manifesto
 de notificação é `bolao/shared/safety/notification_workflows.json`. Documentação completa em
 `docs/bolao/CHANGE_SAFETY_CONTRACT.md`.
 
@@ -290,7 +299,8 @@ Funcionalidade Crítica").
 um comando da cadeia do `npm test`, introduzir um `skip`, esvaziar as assertions de um gate,
 alargar o `ALLOWLIST.json`, estreitar um gatilho de CI ou apagar um cron. Todos esses caminhos
 são detectados contra a base do git e todos têm mutação provando que mordem
-(`npm run safety:mutations`, 16/16). Se um gate está errado, corrija o gate e diga que corrigiu —
+(`npm run safety:mutations` exige que todas as mutações registradas sejam pegas — hoje 35/35,
+M1–M35; o total é a constante `MUTATIONS` em `scripts/safety/test_safety_contract.mjs`). Se um gate está errado, corrija o gate e diga que corrigiu —
 não o silencie.
 
 ### Repository is the source of truth (all devices, all sessions)
@@ -316,13 +326,33 @@ justification for skipping validation.
 
 ### Sempre ler antes de qualquer alteração
 
-1. `docs/bolao/CHANGE_SAFETY_CONTRACT.md` — o contrato permanente e o comando canônico `npm run check`
-2. `docs/bolao/PROJECT_MEMORY.md`
-3. `docs/bolao/ENGINEERING_STANDARD.md`
-4. `docs/bolao/PLATFORM_GOVERNANCE.md`
-5. `docs/bolao/CONSISTENCY_MATRIX.md`
-6. `docs/bolao/QA_MASTER_CHECKLIST.md`
-7. `CHANGELOG.md` de cada app afetado (`bolao/copa2026/CHANGELOG.md`, `bolao/br2026/CHANGELOG.md`, `bolao/cdb2026/CHANGELOG.md`)
+Toda alteração, sem exceção:
+
+1. `docs/bolao/CHANGE_SAFETY_CONTRACT.md` — o contrato permanente, o comando canônico
+   `npm run check` e o mecanismo `CHANGE_INTENT.json` (ciclo de vida em
+   `docs/bolao/adr/ADR-018-change-intent-conditional-lifecycle.md`).
+2. O `CHANGELOG.md` de cada app afetado (`bolao/copa2026/`, `bolao/br2026/`, `bolao/cdb2026/`).
+
+Depois, leia o que cobre a área que a mudança toca. Vários desses documentos são longos: leia as
+seções relevantes, não o arquivo inteiro.
+
+| Área da mudança | Leitura adicional obrigatória |
+|---|---|
+| Classificação da mudança, propagação entre apps, avaliação de risco | `docs/bolao/PLATFORM_GOVERNANCE.md`, `docs/bolao/QA_MASTER_CHECKLIST.md` |
+| Visual, componente, acessibilidade | `docs/bolao/DESIGN_SYSTEM.md`, `docs/bolao/CONSISTENCY_MATRIX.md`, `docs/bolao/UI_REGRESSION_PROTOCOL.md` |
+| Scoring, ranking, estado do bolão, merge de estado | `docs/bolao/db-modernization/SCORING_PARITY_CONTRACT.md`, `docs/bolao/adr/ADR-002-state-merge-strategy.md`, `docs/bolao/adr/ADR-005-scoring-rule-versioning.md`, e a doc de regras do app abaixo |
+| Supabase: banco, RLS, RPCs, migrações | `docs/bolao/adr/ADR-009-server-mediated-writes.md`, `docs/bolao/adr/ADR-006-migration-source-of-truth.md`, `docs/bolao/db-modernization/DOCUMENTATION_MAP.md` (índice), `docs/bolao/security/RLS_POLICY_MATRIX.md` |
+| Edge Functions (`supabase/functions/**`) | a seção "Autonomia em `supabase/functions/**`" abaixo e `docs/bolao/db-modernization/EDGE_WRITE_CONTRACTS.md` |
+| GitHub Actions, e-mail e notificações | `bolao/shared/safety/notification_workflows.json` e as seções de superfícies críticas de `docs/bolao/CHANGE_SAFETY_CONTRACT.md` |
+| Deploy e cache-bust | a seção "Deployment" deste arquivo e o cabeçalho de `bolao/scripts/cachebust.mjs` |
+| Dados ao vivo, ESPN, gateway | `docs/bolao/LIVE_DATA_INCIDENT_RUNBOOK.md`, `docs/bolao/TEST_ISOLATION.md` |
+| Segurança, autenticação, PII | `docs/bolao/SECURITY.md`, a pasta `docs/bolao/security/` e a seção "AI agent PII handling" abaixo |
+| BR2026 | `docs/bolao/BR2026_PROJECTION_MODEL.md`, `docs/bolao/BR2026_LIVE_STANDINGS.md` |
+| CDB2026 | `docs/bolao/CDB2026_RULES_AND_MODEL.md`, `docs/bolao/CDB2026_OPERATIONS_RUNBOOK.md`, `docs/bolao/CDB2026_DRAW_LIFECYCLE.md` |
+| Powerball / loterias | `docs/bolao/loterias/POWERBALL_CURRENT_ARCHITECTURE.md` e os demais `docs/bolao/loterias/` da área |
+| "Onde assistir" / transmissões | `docs/bolao/BROADCAST_OPERATIONS.md` |
+| Sentinel | `docs/bolao/sentinel/README.md` |
+| Decisões e histórico do projeto (contexto) | `docs/bolao/PROJECT_MEMORY.md`, `docs/bolao/ENGINEERING_STANDARD.md` |
 
 ### Antes de modificar qualquer arquivo
 
@@ -416,10 +446,7 @@ projeção. Nunca apresentar pontuação, posição ou vencedor provisório como
 Ver `docs/bolao/BR2026_PROJECTION_MODEL.md` para a fórmula, o índice de precisão informativo e a
 linguagem obrigatória na UI.
 
-### Padronização visual — regras adicionais (2026-07-14)
-
-Complementam as seções acima (não substituem — algumas regras abaixo já estavam parcialmente
-cobertas em outro texto deste arquivo; aqui ficam explícitas e diretas):
+### Padronização visual
 
 - Não alterar scoring ou regra de torneio durante uma tarefa de padronização visual, mesmo que
   pareça pequeno ou relacionado — padronização visual e mudança de regra de negócio nunca são o
@@ -444,14 +471,9 @@ cobertas em outro texto deste arquivo; aqui ficam explícitas e diretas):
 **Merge neste caminho PODE implantar em produção — e pode silenciosamente não implantar.**
 
 A integração do Supabase com o GitHub roda a cada push em `main` (aparece como o check
-`Supabase Preview`). Ela chegou a implantar a Edge Function 39 segundos depois do merge do PR #252
-(Issue #253), e por isso este documento afirmava um SLA de segundos.
-
-**Esse SLA não existe** (Issue #306). Em 2026-08-22 a Issue #296 entrou em `main` com CI verde e
-ficou **horas** sem chegar à produção: a integração aplica as **migrações antes** de implantar as
-funções, uma migração não-idempotente falhava com `SQLSTATE 42710`, e o pipeline **abortava antes do
-deploy**. O check `Supabase Preview` falhava — mas ele é externo, não reprova nada no repositório, e
-ninguém foi avisado. A divergência foi encontrada por `curl` manual.
+`Supabase Preview`). Ela aplica as **migrações antes** de implantar as funções: se uma migração
+falha, o pipeline aborta antes do deploy, e o check `Supabase Preview` é externo — não reprova nada
+no repositório nem avisa ninguém. Não há SLA de deploy.
 
 O que é realmente garantido:
 
@@ -489,14 +511,18 @@ Claude pode implementar, testar e abrir PR para YELLOW. **Merge e deploy de YELL
 autorização humana explícita.** GREEN segue a política autônoma normal.
 
 Preservar sempre, salvo autorização explícita em contrário: validação antes da promoção a cache,
-o comportamento de falhar honestamente com `SOURCE_UNAVAILABLE`, o contrato de resposta atual e o
-teto de 10 minutos de último-bom-conhecido (`LAST_KNOWN_GOOD_MAX_AGE_MS`).
+o comportamento de falhar honestamente com `SOURCE_UNAVAILABLE`, o contrato de resposta atual e os
+limites de frescor. A fonte única desses limites é `supabase/functions/_shared/freshness_contract.js`
+(`FRESH_MAX_AGE_MS`: até aqui o dado é apresentado como ao vivo; `STALE_BUT_USABLE_MAX_AGE_MS`: até
+aqui ainda é servido, rotulado como atrasado — `LAST_KNOWN_GOOD_MAX_AGE_MS` em `gateway_core.js` é
+alias dele). O navegador mantém uma cópia em `bolao/shared/js/football_live_store.js`, conferida
+contra a fonte pelo gate `freshness-contract`. Não repita os valores em documentação.
 
 ## AI agent PII handling
 
-Added 2026-08-18 after the HIST-091/HIST-093 investigation, where a normal-looking analysis pass
-accidentally printed raw participant emails into conversation output twice (a context-window
-slicing bug, and an unredacted `%s` commit-subject print). Full detail:
+Routine analysis output (context-window slices, `%s` commit-subject prints) has leaked raw
+participant emails into agent conversations before, so treat any printed repository or git text
+as possibly containing PII. Full detail:
 `docs/bolao/SECURITY.md` ("Commit-message PII prevention"); the detection engine itself is
 `scripts/pii_detectors.mjs`, run via `npm run pii:check`.
 
