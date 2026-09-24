@@ -400,16 +400,16 @@ codebases — there is no shared module, import, or build step linking them. Eac
 
 ### File-path equivalence table
 
-| Purpose | Copa (`bolao/`) | BR2026 (`bolao/br2026/`) | CDB2026 (`bolao/cdb2026/`) |
+| Purpose | Copa (`bolao/copa2026/`) | BR2026 (`bolao/br2026/`) | CDB2026 (`bolao/cdb2026/`) |
 |---|---|---|---|
 | Entry point | `index.html` | `index.html` | `index.html` |
 | Styles | `css/styles.css` | `css/styles.css` | `css/styles.css` |
 | Runtime config | `js/config.js` → `window.BOLAO_CONFIG` | `js/config.js` → `window.BR2026_CONFIG` | `js/config.js` → `window.CDB2026_CONFIG` |
 | Fixture data | `js/data.js` | `js/data.js` | `js/data.js` |
 | i18n strings | `js/i18n.js` (pt-BR, es, en-US) | `js/i18n.js` (pt-BR only) | `js/i18n.js` (pt-BR only) |
-| App logic | `js/app.js` (single IIFE, ~4400 lines) | `js/app.js` (single IIFE, ~1700 lines) | `js/app.js` (single IIFE, ~830 lines) |
+| App logic | `js/app.js` (single IIFE) | `js/app.js` (single IIFE) | `js/app.js` (single IIFE) |
 | Assets (logos, QR) | `assets/` | none | none |
-| Changelog | `bolao/CHANGELOG.md` | `bolao/br2026/CHANGELOG.md` | `bolao/cdb2026/CHANGELOG.md` |
+| Changelog | `bolao/copa2026/CHANGELOG.md` | `bolao/br2026/CHANGELOG.md` | `bolao/cdb2026/CHANGELOG.md` |
 | Supabase row | `bolao_state.id = "main"` | `bolao_state.id = "br2026"` | `bolao_state.id = "cdb2026"` |
 | localStorage key | `bolao_copa_2026_state` | `bolao_br2026_state` | `bolao_cdb2026_state` |
 
