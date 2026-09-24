@@ -560,6 +560,12 @@ const CHECKS = [
     why: "Revisao 2026-08-02: padrao de injecao SQL/comando; repositorio nao tem cliente SQL hoje" },
   { id: "html-table-structure", group: "app", cmd: ["node", "bolao/scripts/audit_html_table_structure.mjs"],
     why: "F16/F17: validade de tabela no HTML GERADO, nao so nos .html" },
+  // Issue #434: site profissional (fora dos bolões). SEO/a11y basicos, sitemap sem pagina noindex,
+  // robots.txt que nao esconde o noindex dos bolões, e GA4 so depois do consentimento.
+  { id: "public-site-pages", group: "app", cmd: ["node", "scripts/site/check_public_pages.mjs"],
+    why: "Issue #434: title/description/canonical/hreflang/OG, alt, sitemap so com indexaveis, robots, e GA4 nunca carregado antes do consentimento (site.js exercitado num vm)" },
+  { id: "public-site-pages-tests", group: "app", cmd: ["node", "scripts/site/test_check_public_pages.mjs"],
+    why: "mutacoes provando que o gate public-site-pages morde (um gate que nunca reprova e pior que nenhum)" },
   { id: "shared-store-adoption", group: "app", cmd: ["node", "bolao/scripts/audit_shared_store_adoption.mjs"],
     why: "F12/F13: BR e CDB consomem de fato o FootballLiveStore" },
   { id: "live-store-lifecycle", group: "app", cmd: ["node", "bolao/shared/scripts/test_live_store_lifecycle.mjs"],
