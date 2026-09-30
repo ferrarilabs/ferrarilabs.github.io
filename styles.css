@@ -616,12 +616,24 @@ nav a:hover, .nav-active { color: var(--text); }
   .insight-row { grid-template-columns: 1fr; gap: 12px; }
 }
 
-/* Header wraps below 900px (was 760px): the five-item nav plus the language
-   switcher needs ~870px on one row. */
-@media (max-width: 900px) {
+/* Header wrapping, measured with the real fonts: the four-link header fits one row
+   down to ~590px; with the language switcher (.has-lang) it needs up to ~850px (JP). */
+@media (max-width: 860px) {
+  .site-header.has-lang { flex-wrap: wrap; gap: 10px; padding: 16px 0; }
+  .site-header.has-lang nav { order: 2; gap: 4px 18px; flex-wrap: wrap; flex-basis: 100%; }
+  /* tablet: languages share the first row with the theme toggle */
+  .site-header.has-lang .lang-switcher { order: 1; margin-left: auto; }
+  .site-header.has-lang .theme-toggle { order: 1; }
+}
+
+@media (max-width: 600px) {
   .site-header { flex-wrap: wrap; gap: 10px; padding: 16px 0; }
-  nav { order: 2; gap: 8px 18px; flex-wrap: wrap; flex-basis: 100%; }
-  .lang-switcher { order: 3; margin-left: auto; }
+  .site-header nav,
+  .site-header.has-lang nav { order: 2; gap: 4px 14px; flex-wrap: wrap; flex-basis: 100%; }
+  /* phone: languages get their own last row again */
+  .site-header.has-lang .lang-switcher { order: 3; }
+  .site-header.has-lang .theme-toggle { order: 0; }
+  nav a, .lang-switcher a { padding: 4px 0; }
 }
 
 @media (max-width: 760px) {
