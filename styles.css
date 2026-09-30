@@ -334,6 +334,20 @@ nav a:hover, .nav-active { color: var(--text); }
   font-weight: 300;
 }
 .prose p + p { margin-top: 16px; }
+/* Owner headshot, placed inside .about-head under the h2 once a real photo exists
+   (4:5 portrait, e.g. /assets/eduardo-ferrari.jpg at 800×1000). */
+.about-photo {
+  display: block;
+  width: 100%;
+  max-width: 200px;
+  height: auto;
+  aspect-ratio: 4 / 5;
+  object-fit: cover;
+  margin-top: 28px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+}
 
 /* ---- Focus grid ---- */
 .focus-grid {
@@ -412,6 +426,30 @@ nav a:hover, .nav-active { color: var(--text); }
   min-height: 42px;
   padding: 10px 20px;
   text-align: center;
+}
+
+/* ---- Small business: problem-first list ---- */
+.problems-section { border-bottom: 1px solid var(--border); }
+.problem-list {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  column-gap: 40px;
+  max-width: 920px;
+}
+.problem-list li {
+  padding: 16px 0;
+  border-top: 1px solid var(--border);
+  font-size: 1rem;
+  line-height: 1.65;
+  font-weight: 300;
+  color: var(--text);
+}
+.problem-close {
+  margin-top: 28px;
+  font-family: var(--serif);
+  font-size: clamp(1.15rem, 1.8vw, 1.35rem);
+  font-weight: 300;
+  color: var(--white);
 }
 
 /* ---- Perspectives ---- */
@@ -652,4 +690,5 @@ nav a:hover, .nav-active { color: var(--text); }
   .perspective-link { white-space: normal; }
   .insight-row { padding: 22px 20px; }
   .path-card { padding: 26px 22px; }
+  .problem-list { grid-template-columns: 1fr; }
 }
