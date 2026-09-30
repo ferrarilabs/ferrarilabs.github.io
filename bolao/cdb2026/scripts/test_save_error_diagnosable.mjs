@@ -58,7 +58,8 @@ const ESTADO = { entries: [{ ...ENTRADA }], results: {}, deletedIds: [], auditLo
 const TOAST_ESPERADO = "Erro ao salvar. Tente novamente.";
 
 const srv = await startStaticServer(PORT, RAIZ);
-const browser = await chromium.launch();
+const executablePath = process.env.PLAYWRIGHT_CHROMIUM_PATH;
+const browser = await chromium.launch(executablePath ? { executablePath } : {});
 
 /** Abre uma página cujo `cdb_save_my_picks` recusa com o motivo pedido. */
 async function paginaComRecusa(motivo, status = 400) {

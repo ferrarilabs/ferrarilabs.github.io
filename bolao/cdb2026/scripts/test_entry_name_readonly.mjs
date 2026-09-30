@@ -55,7 +55,8 @@ const ENTRADAS = {
 const salvamentos = [];
 
 const srv = await startStaticServer(PORT, RAIZ);
-const browser = await chromium.launch();
+const executablePath = process.env.PLAYWRIGHT_CHROMIUM_PATH;
+const browser = await chromium.launch(executablePath ? { executablePath } : {});
 
 /**
  * Estado local sintetico com as duas entradas.

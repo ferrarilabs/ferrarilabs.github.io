@@ -67,7 +67,8 @@ const ESTADO = { entries: [], deletedIds: [], paid: {}, results: {}, auditLog: [
 
 async function main() {
   const srv = await startStaticServer(PORT, RAIZ);
-  const browser = await chromium.launch();
+  const executablePath = process.env.PLAYWRIGHT_CHROMIUM_PATH;
+  const browser = await chromium.launch(executablePath ? { executablePath } : {});
   try {
     for (const vp of VIEWPORTS) {
       console.log(`\n  ${vp.nome}`);

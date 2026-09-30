@@ -121,7 +121,8 @@ ESTADO.entries = [{
 ESTADO.paid = { e1: true };
 
 const srv = await startStaticServer(PORT, RAIZ);
-const browser = await chromium.launch();
+const executablePath = process.env.PLAYWRIGHT_CHROMIUM_PATH;
+const browser = await chromium.launch(executablePath ? { executablePath } : {});
 
 async function openState(estado) {
   const page = await browser.newPage({ viewport: { width: 1280, height: 1400 } });

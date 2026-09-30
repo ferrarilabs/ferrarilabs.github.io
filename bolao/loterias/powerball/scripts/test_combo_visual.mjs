@@ -66,7 +66,8 @@ for (const engineName of ["chromium", "webkit"]) {
   const engine = pw[engineName];
   if (!engine) { console.log(`  (motor ${engineName} indisponível — pulando)`); continue; }
   let browser;
-  try { browser = await engine.launch(); }
+  const executablePath = engineName === "chromium" ? process.env.PLAYWRIGHT_CHROMIUM_PATH : undefined;
+  try { browser = await engine.launch(executablePath ? { executablePath } : {}); }
   catch { console.log(`  (motor ${engineName} não pôde iniciar — pulando)`); continue; }
 
   const open = async (viewport) => {

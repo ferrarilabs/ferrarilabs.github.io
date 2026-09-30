@@ -92,7 +92,8 @@ function fixtureMatch() {
 
 const pw = await import("playwright");
 const server = await startStaticServer(EFFECTIVE_PORT, ROOT);
-const browser = await pw.chromium.launch();
+const executablePath = process.env.PLAYWRIGHT_CHROMIUM_PATH;
+const browser = await pw.chromium.launch(executablePath ? { executablePath } : {});
 
 async function abrir(app, width) {
   const ctx = await browser.newContext({ viewport: { width, height: 900 }, serviceWorkers: "block" });

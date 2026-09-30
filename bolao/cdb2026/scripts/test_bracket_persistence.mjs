@@ -73,7 +73,8 @@ const ESTADO = {
 };
 
 const srv = await startStaticServer(PORT, RAIZ);
-const browser = await chromium.launch();
+const executablePath = process.env.PLAYWRIGHT_CHROMIUM_PATH;
+const browser = await chromium.launch(executablePath ? { executablePath } : {});
 
 /** Sobe a página no caminho SEGURO, com o Supabase inteiramente falsificado na rota. */
 async function abrir(page, picksGravados, capturarSave) {

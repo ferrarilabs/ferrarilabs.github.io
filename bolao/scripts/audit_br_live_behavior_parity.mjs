@@ -68,7 +68,8 @@ function gatewayBody(matches, ageMinutes = 0, extra = {}) {
 
 const pw = await import("playwright");
 const server = await startStaticServer(PORT, ROOT);
-const browser = await pw.chromium.launch();
+const executablePath = process.env.PLAYWRIGHT_CHROMIUM_PATH;
+const browser = await pw.chromium.launch(executablePath ? { executablePath } : {});
 
 /**
  * Abre o BR2026 com as DUAS fontes interceptadas. Interceptar só uma deixaria o teste consultar

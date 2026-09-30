@@ -4,6 +4,31 @@ This file consolidates the full version history. The source of truth for the lat
 
 ---
 
+## Ferramentas de teste — `PLAYWRIGHT_CHROMIUM_PATH` em todo launch e recusa de escrita à prova de root (2026-09-30)
+
+Só harness de teste: nenhum arquivo servido pelo site, scoring, dado, e-mail ou banco muda, e
+nenhuma asserção muda.
+
+**Navegador.** `test_current_balance_unicity.mjs` (check `powerball-balance-unicity`) chamava
+`chromium.launch()` sem opções e ignorava `PLAYWRIGHT_CHROMIUM_PATH`. Onde a versão do Playwright do
+npm não bate com o browser pré-instalado (contêiner de nuvem, Chromium em `/opt/pw-browsers/chromium`),
+ele falhava com `Executable doesn't exist` mesmo com a variável definida, inclusive em `main` intocada.
+Não era o único: 17 scripts em `bolao/` lançavam o browser sem a variável. Todos passam agora
+`executablePath` só quando `PLAYWRIGHT_CHROMIUM_PATH` está definida, a regra de
+`audit_structural_parity.mjs` e de `playwright_loader.mjs`. Sem a variável o launch é idêntico ao
+anterior. Em `test_combo_visual.mjs` a variável vale só para o motor chromium, não para o webkit.
+
+**Loterias.** `test_failure_injection.py` (check `lottery-failure-injection`) recusava a escrita com
+`chmod 0o500` no diretório do livro. Root ignora permissão de diretório, então como root a trava era
+criada, o crédito gravado, e "escrita recusada levanta" / "saldo continua zero" reprovavam. Agora um
+diretório ocupa o caminho do arquivo de trava: o kernel recusa (EISDIR) para qualquer usuário, no
+mesmo `trava.open("a+")` onde o chmod falhava. Pular os casos quando `geteuid() == 0` foi descartado,
+porque o verify.mjs reportaria o check como PASSED com dois casos sem rodar. Prova: passa como root e
+como `nobody`; com a trava renomeada ou com o erro da trava engolido em `lottery_core.py`, os dois
+casos ficam vermelhos.
+
+---
+
 ## Loterias — a coleta que chega a `main` agora é publicada (2026-09-23)
 
 **Sintoma.** A página do Powerball podia ficar desatualizada em produção por muitas horas: o

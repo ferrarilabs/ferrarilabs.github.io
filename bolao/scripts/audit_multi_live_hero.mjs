@@ -175,7 +175,8 @@ async function cardsNoHero(page) {
 
 async function main() {
   const srv = await startStaticServer(PORT, RAIZ);
-  const browser = await chromium.launch();
+  const executablePath = process.env.PLAYWRIGHT_CHROMIUM_PATH;
+  const browser = await chromium.launch(executablePath ? { executablePath } : {});
   try {
     // ══ 7. sem limite silencioso: 0..4 simultâneos ═════════════════════════════════════════
     console.log(`\n1. LIVE_MATCH_RENDER_COUNT == LIVE_MATCH_DATA_COUNT${MUTAR ? "  [MUTADO]" : ""}`);

@@ -52,7 +52,8 @@ const PROBE = () => [...document.querySelectorAll(".count-grid")]
 
 const pw = await import("playwright");
 const server = await startStaticServer(PORT, ROOT);
-const browser = await pw.chromium.launch();
+const executablePath = process.env.PLAYWRIGHT_CHROMIUM_PATH;
+const browser = await pw.chromium.launch(executablePath ? { executablePath } : {});
 
 console.log("\nLayout do contador regressivo (célula órfã / estouro)\n");
 

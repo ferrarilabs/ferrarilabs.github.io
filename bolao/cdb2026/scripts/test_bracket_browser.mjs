@@ -75,7 +75,8 @@ const ESTADO = {
 };
 
 const srv = await startStaticServer(PORT, RAIZ);
-const browser = await chromium.launch();
+const executablePath = process.env.PLAYWRIGHT_CHROMIUM_PATH;
+const browser = await chromium.launch(executablePath ? { executablePath } : {});
 
 async function abrirFormulario(page) {
   // Injeta o estado ANTES do app subir, e desliga o remoto: nada de rede, nada de producao.

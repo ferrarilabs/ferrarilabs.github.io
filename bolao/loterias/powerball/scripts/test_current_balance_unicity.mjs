@@ -50,7 +50,8 @@ const server = await startStaticServer(PORT, ROOT);
 
 /** Carrega a página e devolve os tiles de dinheiro que ela realmente renderizou. */
 async function medir(rotas = {}) {
-  const browser = await pw.chromium.launch();
+  const executablePath = process.env.PLAYWRIGHT_CHROMIUM_PATH;
+  const browser = await pw.chromium.launch(executablePath ? { executablePath } : {});
   try {
     // `serviceWorkers: "block"`: a página registra um SW de cache-busting. Sem bloquear, ele
     // pode responder no lugar da rota interceptada e o teste mediria a versão em cache — uma

@@ -42,7 +42,8 @@ const assert = (c, m) => { if (!c) throw new Error(m); };
 const eq = (a, b, m) => { if (a !== b) throw new Error(`${m}: esperado ${JSON.stringify(b)}, obtido ${JSON.stringify(a)}`); };
 
 const server = await startStaticServer(PORT, ROOT);
-const browser = await pw.chromium.launch();
+const executablePath = process.env.PLAYWRIGHT_CHROMIUM_PATH;
+const browser = await pw.chromium.launch(executablePath ? { executablePath } : {});
 
 /**
  * Abre a página com o armazenamento local de resultados FIXADO.

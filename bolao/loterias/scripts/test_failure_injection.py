@@ -23,7 +23,6 @@ código para fingir que falhou testa o `if`, não a falha.
 """
 
 import json
-import os
 import signal
 import subprocess
 import sys
@@ -210,20 +209,23 @@ def secao_armazenamento():
           not gravou2 and L.saldo(livro) == 3800)
 
     # ESCRITA RECUSADA PELO SISTEMA DE ARQUIVOS (falha real, não simulada)
+    #
+    # A recusa era `chmod 0o500` no diretório, e root ignora permissão de diretório: rodando como
+    # root (contêiner de CI/agente) a trava era criada, o crédito era gravado e os dois casos
+    # abaixo reprovavam. Um DIRETÓRIO no caminho da trava é recusado pelo kernel (EISDIR) para
+    # qualquer usuário, no mesmo `trava.open("a+")` onde o chmod falhava. Se `append_ledger`
+    # renomear a trava, a escrita passa e os casos ficam VERMELHOS — nunca verdes por engano.
     d = Path(tempfile.mkdtemp(prefix="lot-ro-"))
     livro_ro = d / "ledger.jsonl"
     livro_ro.write_text("")
-    os.chmod(d, 0o500)   # diretório sem permissão de escrita
+    livro_ro.with_suffix(livro_ro.suffix + ".lock").mkdir()
     try:
-        try:
-            L.append_ledger({"type": "PRIZE_CREDIT", "idempotencyKey": "k", "poolId": "p",
-                             "amountCents": 100, "reason": "r", "source": "s"}, livro_ro)
-            checa("escrita recusada levanta (não vira sucesso silencioso)", False, "não levantou")
-        except OSError:
-            checa("escrita recusada levanta (não vira sucesso silencioso)", True)
-        checa("  e o saldo continua zero — nada foi afirmado", L.saldo(livro_ro) == 0)
-    finally:
-        os.chmod(d, 0o700)
+        L.append_ledger({"type": "PRIZE_CREDIT", "idempotencyKey": "k", "poolId": "p",
+                         "amountCents": 100, "reason": "r", "source": "s"}, livro_ro)
+        checa("escrita recusada levanta (não vira sucesso silencioso)", False, "não levantou")
+    except OSError:
+        checa("escrita recusada levanta (não vira sucesso silencioso)", True)
+    checa("  e o saldo continua zero — nada foi afirmado", L.saldo(livro_ro) == 0)
 
     # ── INVARIANTES DO LANÇAMENTO (rodada adversarial 2026-08-13) ──────────────────────────
     #
