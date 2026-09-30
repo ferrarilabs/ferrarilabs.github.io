@@ -26,15 +26,27 @@
     gtag('config', 'G-KF98YDJNK7');
   </script>
   <script>
+    /* Theme: a saved choice wins; otherwise follow the OS/browser preference (dark if none).
+       Runs in <head> before first paint so the wrong theme never flashes. */
     (function(){
-      var t=localStorage.getItem('theme')||'dark';
-      document.documentElement.setAttribute('data-theme',t);
+      var d=document.documentElement, saved=null, mq=null;
+      try{saved=localStorage.getItem('theme');}catch(e){/* storage blocked: fall back to OS preference */}
+      if(saved!=='light'&&saved!=='dark')saved=null;
+      try{mq=window.matchMedia('(prefers-color-scheme: light)');}catch(e){/* no matchMedia: keep dark default */}
+      function apply(t){
+        d.setAttribute('data-theme',t);
+        var btn=document.getElementById('theme-toggle');
+        if(btn)btn.setAttribute('aria-pressed',t==='dark'?'true':'false');
+      }
+      apply(saved||(mq&&mq.matches?'light':'dark'));
+      if(mq&&mq.addEventListener)mq.addEventListener('change',function(e){if(!saved)apply(e.matches?'light':'dark');});
       document.addEventListener('DOMContentLoaded',function(){
+        apply(d.getAttribute('data-theme'));
         var btn=document.getElementById('theme-toggle');
         if(btn)btn.addEventListener('click',function(){
-          t=document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark';
-          document.documentElement.setAttribute('data-theme',t);
-          localStorage.setItem('theme',t);
+          saved=d.getAttribute('data-theme')==='dark'?'light':'dark';
+          apply(saved);
+          try{localStorage.setItem('theme',saved);}catch(e){/* storage blocked: the switch still applies to this page */}
         });
       });
     })();
@@ -56,7 +68,7 @@
         <a href="index.es.html" class="lang-active">🇪🇸 ES</a>
         <a href="index.jp.html">🇯🇵 JP</a>
       </div>
-      <button id="theme-toggle" class="theme-toggle" aria-label="Toggle theme"></button>
+      <button id="theme-toggle" class="theme-toggle" type="button" aria-label="Dark theme"></button>
     </header>
 
     <main>
