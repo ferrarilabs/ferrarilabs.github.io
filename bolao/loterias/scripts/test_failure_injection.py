@@ -22,8 +22,9 @@ gravar, adaptadores de fonte que devolvem lixo estruturalmente válido. Um teste
 código para fingir que falhou testa o `if`, não a falha.
 """
 
+import errno
 import json
-import os
+import resource
 import signal
 import subprocess
 import sys
@@ -209,21 +210,35 @@ def secao_armazenamento():
     checa("NO_DOUBLE_PRIZE: reprocessar credita zero",
           not gravou2 and L.saldo(livro) == 3800)
 
-    # ESCRITA RECUSADA PELO SISTEMA DE ARQUIVOS (falha real, não simulada)
+    # ESCRITA RECUSADA PELO KERNEL (falha real, não simulada)
+    #
+    # A recusa vinha de `chmod 0o500` no diretório — e root ignora bits de permissão: sob uid 0
+    # (container, sessão de agente na nuvem) a escrita passava e este caso reprovava sem defeito
+    # nenhum no livro. RLIMIT_FSIZE vale para todo processo, root inclusive: com o teto em 0 o
+    # kernel recusa com EFBIG o primeiro byte que faria um arquivo crescer. E a recusa cai no
+    # write(2) do próprio lançamento, não na criação da trava, que era onde o chmod cortava.
     d = Path(tempfile.mkdtemp(prefix="lot-ro-"))
     livro_ro = d / "ledger.jsonl"
     livro_ro.write_text("")
-    os.chmod(d, 0o500)   # diretório sem permissão de escrita
+    # O `checa` só roda depois de o teto voltar: com stdout redirecionado para arquivo, até o
+    # print seria recusado. Pelo mesmo motivo o buffer sai antes de o teto baixar.
+    sys.stdout.flush()
+    suave, rigido = resource.getrlimit(resource.RLIMIT_FSIZE)
+    sinal_antes = signal.signal(signal.SIGXFSZ, signal.SIG_IGN)   # EFBIG, não processo morto
+    erro = None
+    resource.setrlimit(resource.RLIMIT_FSIZE, (0, rigido))
     try:
-        try:
-            L.append_ledger({"type": "PRIZE_CREDIT", "idempotencyKey": "k", "poolId": "p",
-                             "amountCents": 100, "reason": "r", "source": "s"}, livro_ro)
-            checa("escrita recusada levanta (não vira sucesso silencioso)", False, "não levantou")
-        except OSError:
-            checa("escrita recusada levanta (não vira sucesso silencioso)", True)
-        checa("  e o saldo continua zero — nada foi afirmado", L.saldo(livro_ro) == 0)
+        L.append_ledger({"type": "PRIZE_CREDIT", "idempotencyKey": "k", "poolId": "p",
+                         "amountCents": 100, "reason": "r", "source": "s"}, livro_ro)
+    except OSError as e:
+        erro = e
     finally:
-        os.chmod(d, 0o700)
+        resource.setrlimit(resource.RLIMIT_FSIZE, (suave, rigido))
+        signal.signal(signal.SIGXFSZ, sinal_antes)
+    checa("escrita recusada levanta (não vira sucesso silencioso)", erro is not None,
+          f"{errno.errorcode.get(erro.errno, erro.errno)}: {erro.strerror}" if erro
+          else "não levantou")
+    checa("  e o saldo continua zero — nada foi afirmado", L.saldo(livro_ro) == 0)
 
     # ── INVARIANTES DO LANÇAMENTO (rodada adversarial 2026-08-13) ──────────────────────────
     #

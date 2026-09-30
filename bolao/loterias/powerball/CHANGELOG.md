@@ -6,6 +6,32 @@ outros três bolões.
 
 ---
 
+## 2026-09-30 — `lottery-failure-injection` vermelho sob root, sem defeito no livro
+
+O caso "escrita recusada" de `bolao/loterias/scripts/test_failure_injection.py` recusava a escrita
+com `chmod 0o500` no diretório do livro. Root ignora bits de permissão: sob uid 0 (container,
+sessão de agente na nuvem) a escrita passava e duas asserções reprovavam — "escrita recusada
+levanta" e "o saldo continua zero". O CI roda sem root e ficava verde; quem rodasse
+`npm run check` como root via o portão canônico vermelho por motivo alheio à mudança. Reproduzia
+idêntico em `main` limpo (7a551c4).
+
+A recusa agora vem de `RLIMIT_FSIZE = 0`, que o kernel aplica a todo processo, root inclusive:
+o `write(2)` do lançamento volta `EFBIG`, o livro continua existindo e vazio. Continua sendo falha
+real, não dublê — nada no `lottery_core` foi tocado nem simulado — e a recusa passou a cair na
+gravação do próprio lançamento, não na criação da trava, onde o `chmod` cortava.
+
+- As duas asserções ficaram como estavam. Nenhum caso pulado sob root (G6 continua sem skip novo).
+- Provado como uid 0 e uid 65534, e com stdout redirecionado para arquivo (o `checa` só imprime
+  depois de o teto ser restaurado).
+- Controles negativos: um `append_ledger` que engole o `OSError` reprova a primeira asserção; sem
+  o teto, as duas reprovam — o sintoma original.
+- Alternativas descartadas: monkeypatch de `open` (o cabeçalho do arquivo proíbe falha pedida ao
+  código) e pai-do-livro-é-arquivo (recusa no `mkdir`, antes da trava e da escrita; o saldo zero
+  viraria trivial porque o livro nem existiria).
+
+Sem propagação: nenhum gate da Copa, BR2026 ou CDB2026 usa `chmod` para injetar falha. Scoring,
+ranking, livro-razão, e-mail e pagamentos não mudaram.
+
 ## 2026-08-26 — Issue #321: ações de suporte no cabeçalho
 
 `Reportar problema` saiu do fim da página e passou a formar, ao lado do WhatsApp, um grupo único
