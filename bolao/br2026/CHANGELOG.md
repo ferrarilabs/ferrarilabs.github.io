@@ -1,5 +1,33 @@
 # Bolão Brasileirão 2026 — CHANGELOG
 
+## 2026-09-30 — `br-round-email-durable-ledger`: o teste de 10 workers media a coisa errada
+
+**Somente teste.** Nenhum código de produção (sender, ledger, SQL, workflow) foi tocado; sem bump de
+`siteVersion`, nenhum arquivo servido ao navegador mudou.
+
+`test_10_workers_concorrentes_apenas_um_vence_a_corrida` falhou uma vez sob a carga de um
+`npm run check`: `14 != 11 ... [0, 1, 2, 0, 0, 11, 0, 0, 0, 0]`; isolado, passava 15/15.
+
+**Causa raiz.** Cada worker lia `len(shared_transport.chamadas)` antes e depois do próprio
+`_process_round` e a asserção somava esses deltas. O transporte é compartilhado, então um worker
+que não enviou nada contava os envios que OUTRAS threads fizeram dentro da sua janela. Com troca de
+GIL forçada (`sys.setswitchinterval(5e-4)`), a versão antiga reprovou 295/300 vezes com o
+transporte tendo recebido exatamente 11 e um único claim vencido.
+
+**Correção.** O total é lido do transporte uma vez, depois do `join()`; a atribuição por worker usa
+`providerCalls` (contador local de `_process_round`); os claims vencidos são contados na fronteira
+do "banco"; e o teste exige que os 10 workers tenham devolvido resultado. O que o teste prova não
+muda (exactly-once sob concorrência real de threads), sem `skip` e sem retry. Mutações (só em
+memória): claim que ignora estado/lease → reprova 20/20 (só pelo novo "exatamente um claim" — o
+total continuava 11); claim sem lock → reprova quando a corrida acontece.
+
+**Achado à parte, não corrigido aqui — Issue #447.** A mesma investigação reproduziu uma corrida
+REAL: dois workers leem "job inexistente", um cria e reivindica, o outro sobrescreve a linha
+reivindicada com um `READY` novo (o upsert da 030 troca a linha inteira) e um segundo claim reenvia
+os 11. Só com interleaving agressivo (`5e-5`: 7/400); 0/500 no intervalo padrão. Em produção o
+`concurrency` group de `br2026_round_emails.yml` impede duas execuções simultâneas. O teste corrigido
+PEGA essa corrida quando ela acontece — falha com 2+ claims vencidos não é flake.
+
 ## v1.138 — jogo terminado não volta a "Em andamento" (2026-09-15, #436)
 
 Produção, 2026-09-14/15: Bahia 2 × 1 Remo terminou (gateway com `state:"post"`, `completed:true`,

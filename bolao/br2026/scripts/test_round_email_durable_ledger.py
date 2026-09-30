@@ -178,10 +178,33 @@ class FreshRunnerExactlyOnce(_Base):
         teste, não no código sob teste). A atomicidade real vem do lock em
         `FakeRoundNotifStore.claim()`, modelando o UPDATE de linha única que o Postgres protege
         nativamente.
+
+        O QUE É MEDIDO, E ONDE: o total vem do transporte compartilhado, lido UMA vez depois do
+        `join()` de todas as threads. Até 2026-09-30 este teste somava deltas `len(chamadas)`
+        antes/depois de cada worker, e isso conta também o que OUTRAS threads enviaram naquela
+        janela: sob a carga do `npm run check` reprovou com [0, 1, 2, 0, 0, 11, 0, 0, 0, 0] = 14,
+        e com troca de GIL forçada (`sys.setswitchinterval`) reprova quase sempre mesmo quando o
+        transporte recebeu exatamente 11. A atribuição por worker usa `providerCalls`, o
+        contador LOCAL de `_process_round`, e os claims vencidos são contados na fronteira do
+        "banco" -- nenhuma das duas medidas depende do relógio entre threads.
+
+        Se falhar com 2+ claims vencidos e ~22 chamadas, NÃO é flake: é a corrida do caminho de
+        criação de `RoundLedger.ensure_job` (Issue #447), um envio duplicado de verdade.
         """
         shared_transport = Transporte(200)
         S._TRANSPORT = shared_transport
-        S._ROUND_RPC_CALLER = make_round_rpc_caller(self.store)
+        rpc = make_round_rpc_caller(self.store)
+        claims_vencidos_lock = threading.Lock()
+        claims_vencidos = []
+
+        def rpc_que_conta_claims(name, args):
+            r = rpc(name, args)
+            if name == "claim_bolao_notif_round_job" and r is not None:
+                with claims_vencidos_lock:
+                    claims_vencidos.append(args["p_owner"])
+            return r
+
+        S._ROUND_RPC_CALLER = rpc_que_conta_claims
 
         resultados_lock = threading.Lock()
         resultados = []
@@ -189,11 +212,9 @@ class FreshRunnerExactlyOnce(_Base):
         def worker():
             ledger = RoundLedger(S.AtomicRoundLedgerRepo(), now=lambda: int(time.time() * 1000))
             state = {"entries": ENTRIES, "deletedIds": []}
-            antes = len(shared_transport.chamadas)
-            S._process_round(_cand(), _manifest(), _obs(), state, ledger, False)
-            depois = len(shared_transport.chamadas)
+            r = S._process_round(_cand(), _manifest(), _obs(), state, ledger, False)
             with resultados_lock:
-                resultados.append(depois - antes)
+                resultados.append(r)
 
         threads = [threading.Thread(target=worker) for _ in range(10)]
         for th in threads:
@@ -201,10 +222,22 @@ class FreshRunnerExactlyOnce(_Base):
         for th in threads:
             th.join()
 
-        total = sum(resultados)
+        # Worker que lança exceção morre sem registrar nada -- e some da contagem em silêncio.
+        self.assertEqual(len(resultados), 10,
+                         f"só {len(resultados)} de 10 workers devolveram resultado")
+        total = len(shared_transport.chamadas)
+        por_worker = [r["providerCalls"] for r in resultados]
         self.assertEqual(total, N_RECIPIENTS,
-                         f"10 workers concorrentes deveriam somar {N_RECIPIENTS} chamadas ao "
-                         f"todo (só um vence a corrida do claim); somaram {total}: {resultados}")
+                         f"10 workers concorrentes deveriam fazer {N_RECIPIENTS} chamadas ao todo "
+                         f"(só um vence a corrida do claim); o transporte recebeu {total}. "
+                         f"providerCalls por worker: {por_worker}; claims vencidos: "
+                         f"{len(claims_vencidos)}")
+        self.assertEqual(len(claims_vencidos), 1,
+                         f"exatamente UM worker deveria reivindicar a rodada; "
+                         f"venceram {len(claims_vencidos)}")
+        self.assertEqual(sorted(por_worker), [0] * 9 + [N_RECIPIENTS],
+                         f"um único worker deveria ter feito todas as {N_RECIPIENTS} chamadas e "
+                         f"os outros nove, zero: {por_worker}")
 
     def test_atomic_round_ledger_repo_claim_atomic_e_atomico_sob_concorrencia(self):
         """O PRIMITIVO em si, isolado de todo o resto do pipeline: duas reivindicações
