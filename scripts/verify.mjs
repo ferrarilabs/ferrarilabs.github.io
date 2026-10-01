@@ -479,6 +479,8 @@ const CHECKS = [
   // escrita injetados): prova que fonte caida ou forma invalida NUNCA sobrescrevem o
   // ultimo-bom-conhecido, que o envelope gravado e o CANONICO do gateway (e nao o do snapshot),
   // e que so live_sports_cache e tocada.
+  { id: "live-cache-ingest", group: "provider", cmd: ["node", "bolao/shared/scripts/test_live_ingest.mjs"],
+    why: "relay de ingestao do cache ao vivo: falha fechada, uma implementacao do envelope (== produtor atual), nunca grava forma invalida, so live_sports_cache" },
   { id: "live-cache-producer", group: "provider", cmd: ["node", "bolao/shared/scripts/test_produce_live_cache.mjs"],
     why: "produtor do cache ao vivo: falha da fonte nao pode envenenar o ultimo-bom-conhecido, e o envelope gravado tem de ser o que a Edge Function monta" },
   { id: "live-gateway-health", group: "provider", cmd: ["node", "bolao/shared/scripts/check_live_gateway_health.mjs"],

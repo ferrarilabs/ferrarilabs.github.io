@@ -627,6 +627,9 @@
     "bolao/shared/scripts/test_pipeline_health.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
     },
+    "bolao/shared/scripts/test_live_ingest.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
     "bolao/shared/scripts/test_produce_live_cache.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
     },

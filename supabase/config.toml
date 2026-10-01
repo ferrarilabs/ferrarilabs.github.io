@@ -7,6 +7,11 @@ project_id = "cmhqkkfczotdnssupkni"
 # ler placar, o que seria pior em segurança, não melhor.
 verify_jwt = false
 
+[functions.live-cache-ingest]
+# Autenticada por token PROPRIO (LIVE_INGEST_TOKEN, comparacao em tempo constante), nao por JWT do
+# Supabase: o relay de egresso nao e usuario do projeto. Sem o segredo a funcao responde 503.
+verify_jwt = false
+
 # `user-report-intake` NAO mora mais aqui -- ver `support-intake/supabase/`. Este projeto guarda os
 # dados de participante, pagamento, scoring e ranking, e um endpoint publico NAO AUTENTICADO nao
 # pode compartilhar runtime com eles: o Supabase injeta SUPABASE_DB_URL, SUPABASE_SECRET_KEYS e o

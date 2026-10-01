@@ -1,0 +1,16 @@
+{
+  "declarations": [
+    {
+      "surface_id": "EDGE_FUNCTIONS",
+      "reason": "Migracao de custo do GitHub Actions (repo privado): o produtor do cache ao vivo so precisa de um runner para o GET na ESPN. Adiciona a Edge Function inerte `live-cache-ingest` (token proprio, falha fechada 503 sem LIVE_INGEST_TOKEN) e o nucleo portatil `_shared/live_ingest_core.js`, que o produtor atual passa a reutilizar. Nenhum arquivo da funcao live-football nem do Worker live-producer e alterado.",
+      "expected_behavior_change": "Producao: nenhuma ate o cutover manual. O merge implanta live-cache-ingest respondendo 503 (sem segredo). produce_live_cache.mjs delega validacao/normalizacao/envelope ao nucleo, com saida identica (18/18 testes do produtor e teste de paridade). live-football, live_sports_cache, contrato de resposta, teto de 10 min e SOURCE_UNAVAILABLE inalterados.",
+      "tests_required": [
+        "live-gateway",
+        "live-gateway-fixtures",
+        "live-producer-dispatch",
+        "live-cache-ingest",
+        "live-cache-producer"
+      ]
+    }
+  ]
+}

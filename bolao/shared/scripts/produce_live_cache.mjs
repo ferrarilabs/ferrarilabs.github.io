@@ -39,10 +39,11 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
-import {
-  ALLOWED_COMPETITIONS, buildGatewayPayload, normalizeScoreboard, validateScoreboardShape,
-} from "../../../supabase/functions/_shared/normalize.js";
+import { ALLOWED_COMPETITIONS } from "../../../supabase/functions/_shared/normalize.js";
 import { espnUrlFor } from "../../../supabase/functions/_shared/gateway_core.js";
+// Validação + normalização + envelope vivem no núcleo portátil, compartilhado com a função
+// `live-cache-ingest` (relay). Uma implementação só — ver live_ingest_core.js.
+import { INGEST_COMPETITIONS, buildCacheRecord } from "../../../supabase/functions/_shared/live_ingest_core.js";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(HERE, "..", "..", "..");
@@ -54,7 +55,7 @@ const FETCH_TIMEOUT_MS = 15_000;
  * Competições que o gateway serve HOJE. Copa está arquivada e o seu app não chama o gateway, então
  * produzir cache para ela seria tráfego para ninguém.
  */
-export const PRODUCED_COMPETITIONS = ["br2026", "cdb2026"];
+export const PRODUCED_COMPETITIONS = [...INGEST_COMPETITIONS];
 
 /**
  * Janela de atividade, DERIVADA do calendário commitado de cada app — nunca chutada.
@@ -123,17 +124,10 @@ export async function produceOne(competition, { fetchImpl = fetch, writeImpl, no
   // durante uma queda da ESPN; sobrescrevê-lo com lixo transformaria uma degradação em apagão.
   if (!raw) return { competition, action: "NO_WRITE", reason: `upstream nao-2xx`, upstreamStatus };
 
-  const problems = validateScoreboardShape(raw);
-  if (problems.length) {
-    // 200 com forma inválida é FALHA DA FONTE, exatamente como o gateway trata (gateway_core.js).
-    return { competition, action: "NO_WRITE", reason: `forma invalida: ${problems.slice(0, 3).join("; ")}`, upstreamStatus };
-  }
-
-  const observedAt = new Date(now).toISOString();
-  const payload = buildGatewayPayload({
-    competition, matches: normalizeScoreboard(raw, {}),
-    observedAt, servedAt: observedAt, stale: false, staleReason: null,
-  });
+  const rec = buildCacheRecord(competition, raw, { now });
+  // 200 com forma inválida é FALHA DA FONTE, exatamente como o gateway trata (gateway_core.js).
+  if (!rec.ok) return { competition, action: "NO_WRITE", reason: rec.reason, upstreamStatus };
+  const { payload, observedAt } = rec;
 
   if (!writeImpl) return { competition, action: "DRY_RUN", upstreamStatus, matches: payload.matches.length, payload };
   const written = await writeImpl({ competition, payload, observedAt });
