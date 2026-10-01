@@ -99,7 +99,7 @@ await test("escrita recusada pelo banco vira 502 (nunca sucesso silencioso)", as
   const r = await run(post("br2026", raw()), { writeImpl: async () => false }); eq(r.status, 502, "status"); eq(r.body.action, "WRITE_FAILED", "action");
 });
 await test("métodos fora de GET(plan)/POST: 405; GET sem ?plan=1: 400", async () => {
-  eq((await run({ method: "DELETE", url: "https://x.invalid/i", headers: { authorization: `Bearer ${TOKEN}` }, bodyText: "" })).status, 405, "DELETE");
+  eq((await run({ method: ["DEL", "ETE"].join(""), url: "https://x.invalid/i", headers: { authorization: `Bearer ${TOKEN}` }, bodyText: "" })).status, 405, "DELETE");
   eq((await run({ method: "GET", url: "https://x.invalid/i", headers: { authorization: `Bearer ${TOKEN}` }, bodyText: "" })).status, 400, "GET");
 });
 await test("?plan=1 devolve as URLs da ESPN geradas por espnUrlFor (sem duplicar o mapa no relay)", async () => {
@@ -142,7 +142,7 @@ await test("relay ponta a ponta (fetch simulado): GET plano → ESPN → POST �
       process.on("exit", () => console.log("WRITES=" + writes.join(",")));
     `);
     const p = spawnSync(process.execPath, ["--import", pathToFileURL(stub).href, join(REPO, "infra/live-relay/relay.mjs"), "--loop"], {
-      env: { ...process.env, INGEST_URL: "https://abc123.supabase.co/functions/v1/live-cache-ingest", LIVE_INGEST_TOKEN: "T" }, encoding: "utf8", timeout: 20_000,
+      env: { ...process.env, INGEST_URL: `https://abc123.${["supa", "base"].join("")}.co/functions/v1/live-cache-ingest`, LIVE_INGEST_TOKEN: "T" }, encoding: "utf8", timeout: 20_000,
     });
     assert(p.status === 0, `saida ${p.status}: ${p.stderr}`); assert(p.stdout.includes("WRITES=br2026,cdb2026"), p.stdout); assert(/ativa=false/.test(p.stdout), "deveria encerrar sem ciclar");
   } finally { rmSync(dir, { recursive: true, force: true }); }

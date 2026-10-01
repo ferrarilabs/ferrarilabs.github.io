@@ -279,7 +279,10 @@ test("o Worker NAO mora sob supabase/", () => {
 test("supabase/functions/ so tem as funcoes do projeto financeiro", () => {
   const dirs = readdirSync(join(RAIZ, "supabase", "functions"), { withFileTypes: true })
     .filter((d) => d.isDirectory()).map((d) => d.name).sort();
-  eq(dirs.join(","), "_shared,live-football", "allowlist do projeto financeiro");
+  // `live-cache-ingest` (migracao de custo do Actions): funcao de COMPARTILHAMENTO MINIMO — autenticada
+  // por token proprio, falha fechada (503 sem segredo), escreve so em live_sports_cache (dado esportivo
+  // publico, mesmo conjunto de poderes de live-football). Nao e um endpoint aberto nem o intake.
+  eq(dirs.join(","), "_shared,live-cache-ingest,live-football", "allowlist do projeto financeiro");
 });
 
 test("o config do primario nao declara o intake", () => {
