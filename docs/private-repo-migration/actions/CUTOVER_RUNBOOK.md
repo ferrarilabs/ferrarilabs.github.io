@@ -1,47 +1,40 @@
-# Cutover runbook — live producer off private-repo minutes
+# Live provider cutover runbook (API-Football, no recurring GitHub runner)
 
-**Nothing here has been executed.** No Worker/function deploy, no merge, no secret, no visibility change was made by the branch that adds this file.
-Pre-reading: `LIVE_PIPELINE_TRACE.md`, `EXECUTION_LOCATION_EVALUATION.md`.
+**Nothing here has been executed.** No deploy, merge, purchase, secret, DNS or visibility change was made. Pre-reading: `PIPELINE_TOPOLOGY_CORRECTION.md`, `EXECUTION_LOCATION_EVALUATION.md`, `API_FOOTBALL_PROVIDER_ASSESSMENT.md`.
 
-## Invariants for every step
-- One canonical implementation: `supabase/functions/_shared/live_ingest_core.js` (used by `produce_live_cache.mjs` today and by `live-cache-ingest`).
-- Only table written: `live_sports_cache`, key `competition`. Failed/invalid observation never writes (last-known-good preserved, 10-min gateway cap untouched).
-- **No dual writer without idempotency proof.** Both writers upsert the same key with a fresh `observed_at` and byte-identical envelopes for the same raw body
-  (test: "UMA implementação" in `bolao/shared/scripts/test_live_ingest.mjs`). Last write wins; the worst interleaving is a ≤15 s older observation overwriting a newer one.
-  Still, Steps 3–4 never let both *write*: shadow = `dry_run`.
+## Authority and invariants (read first)
+- **Authority rule:** exactly one system writes `live_sports_cache` at any time. Until step 5 that is the ESPN/GitHub producer. The API-Football path runs **dry (`dry_run=1`) and writes nothing** until it is made authoritative. There is **no dual-writer phase**.
+- Same table, same key (`competition`), same envelope (`buildGatewayPayload`), same last-known-good rules and 10-minute gateway cap; a provider failure (401/429/5xx/`errors`/bad shape) never writes.
+- Rollback never needs a code change: flip `PRODUCER_MODE` / re-enable the old Worker cron.
 
-## Step 0 — no-regret quick win (independent, optional)
-Worker cron `*/5 * * * *` → `*/5 0-2,14-23 * * *` in `workers/live-producer/wrangler.jsonc`, then `wrangler deploy`. Saves ~3,960 min/month; the producer already skips 03–13 UTC. Gate to update with it: `bolao/scripts/test_live_producer_cadence.mjs`.
+## A. Live egress + coverage proof (do first; Free key only; no paid plan)
+Goal: answer, with HTTP status codes only, (1) can Cloudflare reach api-sports.io, (2) can Supabase, (3) are Série A and Copa do Brasil 2026 covered, (4) does the real payload match the adapter. **Do not deploy probes without Eduardo's go.**
+1. Create a **Free** API-Football account (100 requests/day); store the key as a secret only. Budget per probe ≈ 3 requests.
+2. *From a laptop* (control): `GET /leagues?id=71&season=2026`, `GET /leagues?id=73&season=2026`, `GET /fixtures?live=71-73`. Record: HTTP status, `errors` keys, `results`, the `coverage` flags and season window. If the free plan cannot read 2026 → STOP: Pro is required before any further proof (decision for Eduardo). Save the **real JSON of a live and of a finished fixture** (redact nothing sensitive; it is public sports data) as new fixtures for the adapter tests and diff against the adapter's assumptions.
+3. *From Cloudflare*: a throwaway Worker `egress-probe` (separate name, no cron, `workers_dev` only for the probe, deleted afterwards) calling the same three endpoints with the key as a secret; log **status code, `content-type`, `errors` keys, `results` count and presence of `x-ratelimit-*` headers — never the body or key**. Repeat from 2 invocations (different colos).
+4. *From Supabase*: a throwaway Edge Function with the same logic (status codes only), invoked twice.
+5. Decision table: CF 200 → Option A. CF blocked and Supabase 200 → Option B (add `pull` mode). Both blocked → Option C/D. A 200 with `errors`/empty `response` for a Brazilian league → coverage FAIL.
+6. Delete the probes; revoke nothing else.
 
-## Step 1 — deploy the new path (inert)
-1. Merge this branch (Eduardo). **Merging `supabase/functions/**` auto-deploys `live-cache-ingest` via the Supabase GitHub integration.** It is inert: without `LIVE_INGEST_TOKEN` it answers 503. Remove `CHANGE_INTENT.json` after merge (check D3).
-2. Confirm: `curl -s -o /dev/null -w '%{http_code}' -X POST '<SUPABASE>/functions/v1/live-cache-ingest?competition=br2026'` → **503**; with a wrong token (after step 3) → 401. Confirm `x-deploy-sha` of `live-football` is unchanged (this branch does not modify its files).
-3. Generate a long random token; set Supabase secret `LIVE_INGEST_TOKEN` (`supabase secrets set …`, value never in chat/logs).
+## B. Shadow (read-only) — ESPN stays authoritative
+1. Merge this branch (Eduardo). **Merging `supabase/functions/**` auto-deploys `live-cache-ingest`** (inert: 503 without secret). Remove `CHANGE_INTENT.json` after merge (check D3). Confirm `x-deploy-sha` of `live-football` is unchanged.
+2. Set Supabase secret `LIVE_INGEST_TOKEN` (random, never in chat/logs). Smoke: wrong token → 401; right token `GET ?plan=1&provider=api_football` → JSON plan.
+3. Deploy `workers/live-producer-direct` with secrets `API_FOOTBALL_KEY`, `LIVE_INGEST_TOKEN`, `PRODUCER_MODE=shadow`, `OBSERVATIONS_PER_TICK=1`. (Plan check first: Workers Free CPU for cron = 10 ms; if the first invocations hit CPU limits, move to the $5 plan.) The existing `workers/live-producer` keeps dispatching GitHub, untouched.
+4. During **at least one real match** (ideally one per competition, plus one postponed/idle day): compare, per minute, the dry-run `results[*].live/matches/unmapped` and the Worker log against the gateway body written by the ESPN producer (`GET live-football?competition=…`). Quantify: (a) score-change latency — time between the provider showing a goal and ESPN showing it; (b) status transitions (HT, 2H, FT) latency; (c) `unmapped` fixtures (fill `identityMap`/aliases from the real response); (d) own-goal `details.team` convention vs ESPN; (e) any mismatch in final score. **Accept** when no unexplained score/status mismatch remains over ≥ 2 matches, `unmapped` = 0 for every fixture in the window, and median latency ≤ ESPN's.
+5. Free quota limits shadow to ≈ 100 requests: one match at 90 s. Anything more realistic (60 s, both leagues, several matches) needs **one month of Pro** — a purchase for Eduardo to authorize; I did not.
 
-## Step 2 — create the public relay repo
-New public repo (e.g. `ferrarilabs/live-relay`) containing exactly `infra/live-relay/` (3 files). Repo variable `INGEST_URL`, secret `LIVE_INGEST_TOKEN` (same value). No `pull_request` trigger exists, so forks never see secrets. Disable Actions' "run workflows from fork PRs" defaults as hygiene. Fine-grained PAT for the Worker: Actions:write on **this new repo only**.
+## C. Cutover (authoritative)
+Do in one short window with no live match, in this order (gaps up to ~10 min are invisible: gateway FRESH ≤ 10 min, usable ≤ 30 min):
+1. **Stop the old writer first:** deploy `workers/live-producer` with `"crons": []` (or delete it) → Cloudflare stops dispatching GitHub. In the same change remove the `schedule:` block from `live_cache_producer.yml` (scheduler A) — keep `workflow_dispatch` for manual emergency use; update `test_live_producer_cadence.mjs`/`cron_coverage` accordingly (their expectations encode the old schedule).
+2. **Then** set `PRODUCER_MODE=authoritative` on `live-producer-direct`. Order matters: stopping before starting guarantees no two writers.
+3. Verify within 2 minutes: Worker log `OBSERVADO`, function log `WRITTEN`, `GET live-football` `x-live-health: FRESH`, `ageSeconds` small.
+4. Observe ≥ 48 h including a match day: no `pipeline-incident` Issue; `live_pipeline_monitor` OK; quota remaining (`MIN_REMAINING_REQUESTS` guard) healthy; GitHub Billing → Usage: `live_cache_producer` ≈ 0 minutes.
+5. After the observation period: delete the workflow's `workflow_dispatch` inputs-driven production path or keep it manual-only (ESPN producer retained for emergency comparison); retire `workers/live-producer`.
 
-## Step 3 — shadow (read-only): relay in dry run
-Dispatch `live-relay` manually with `dry_run=true` (default) during a live match. Expected logs: `ingest HTTP 200 DRY_RUN <n> ativa=true`. Nothing is written. Compare, for the same minute: `matches` count and live states from the relay response vs the gateway body the old producer wrote (`GET live-football?competition=br2026`). Accept when they agree for ≥ 2 live matches across both competitions and ≥ 1 idle period.
+## D. Rollback (any time)
+- Before C: nothing to roll back (shadow writes nothing). Set `PRODUCER_MODE=off`.
+- After C: set `PRODUCER_MODE=off` on the direct Worker **first**, then redeploy the old Worker cron and restore the `schedule:` only if wanted; the old workflow is unchanged and resumes on the next dispatch (≤ 5 min; the cache serves last-known-good meanwhile).
+- Quota exhaustion/AUTH/429: the Worker stops itself (`PARADO`); the gateway degrades honestly to SOURCE_UNAVAILABLE after 30 min; fall back to the ESPN producer by re-enabling the old Worker.
 
-## Step 4 — compare freshness
-Record, for one match day, `ageSeconds` of the gateway body written by the old producer (expect ≤ ~20 s with the 15 s loop). Then do **one short controlled overlap**: dispatch the relay once with `dry_run=false` while the old producer keeps running, to prove the interleaving is harmless (envelopes identical, `observedAt` monotone within ~15 s). Abort and roll back if the served `ageSeconds` ever exceeds 60 s or the shape differs.
-
-## Step 5 — switch the scheduler
-Worker vars (wrangler.jsonc): `GH_REPO` → `ferrarilabs/live-relay`, `GH_WORKFLOW` → `relay.yml`; update `worker-configuration.d.ts` literals and `test_live_producer.mjs` expectations in the same commit; swap the Worker secret `GH_DISPATCH_TOKEN` to the new PAT. `wrangler deploy`. The dispatch body sends `dry_run:"false"`, so the relay now writes.
-**The old workflow must not also be dispatched** — the Worker has one target, so switching the vars *is* the disabling of the old 5-minute dispatch. The old `live_cache_producer.yml` keeps its own `schedule:` (`*/5 14-23,0-2`) which GitHub runs sporadically (median 25 min): **remove that schedule in the follow-up PR** (a leftover scheduled run is a second, billed, unwanted writer).
-
-## Step 6 — observe (≥ 48 h incl. a match day)
-Worker log: `DISPARADO` every cron tick (a `RECUSADO dispatch http 404` = PAT scope). Relay runs green; function log `status 200 action WRITTEN`. `live_pipeline_monitor` stays OK/CACHE_STALE; no `pipeline-incident` Issue. Settings → Billing → Usage: private-repo Actions minutes for `live_cache_producer` ≈ 0.
-
-## Step 7 — decommission
-PR: delete the `schedule:` block of `live_cache_producer.yml` (keep `workflow_dispatch` as break-glass), update `test_live_producer_cadence.mjs`/`cron_coverage` accordingly, mark the old path in `docs/bolao/ARCHITECTURE.md`.
-
-## Rollback (any step)
-- Before Step 5: nothing to roll back; delete the relay repo / unset `LIVE_INGEST_TOKEN` (function returns 503 again).
-- After Step 5: restore Worker vars `GH_REPO`/`GH_WORKFLOW` and the old PAT, `wrangler deploy` (≈ 1 minute); the old workflow still exists unchanged and resumes immediately. Cache keeps serving last-known-good (≤ 10 min FRESH, ≤ 30 min STALE_BUT_USABLE) during the swap.
-- Disable the function path entirely: unset `LIVE_INGEST_TOKEN`.
-- Emergency: `gh workflow run live_cache_producer.yml -f dry_run=false` still works (bills private minutes).
-
-## What must be decided / provided by Eduardo (external)
-Accept the Actions-ToS gray area or choose a self-hosted runner (then point `INGEST` relay at it, same function); create the public repo, secret, PAT; authorize merge (deploys the inert function); Worker redeploys; confirm account plan/allowance in Billing.
+## E. External actions required (none done)
+Free API-Football account; (maybe) Pro month; Supabase secret `LIVE_INGEST_TOKEN`; Worker secrets + deploy; probe Workers/functions; Workers plan check; merge; later the privacy decision. **ToS of API-Football (caching/redistribution) must be read before step C.**

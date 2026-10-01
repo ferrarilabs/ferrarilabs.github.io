@@ -8,7 +8,8 @@ Evidence: `.github/workflows/live_cache_producer.yml`, `workers/live-producer/{s
 ## Sequence (today)
 
 ```
-Cloudflare Cron  */5 * * * *  (24 h/day, wrangler.jsonc — NOT limited to the 14–02 UTC window)
+Scheduler B: Cloudflare Cron  */5 * * * *  (24 h/day, wrangler.jsonc — NOT limited to the 14–02 UTC window)
+(+ Scheduler A: GitHub `schedule:` */5 14-23 and */5 0-2 on the same workflow, delivered ≈4.7×/day — see PIPELINE_TOPOLOGY_CORRECTION.md)
    │ scheduled() → dispararProdutor()      Worker holds ONLY GH_DISPATCH_TOKEN (Actions:write), no DB key (ADR-021)
    ▼
 GitHub REST  POST /repos/ferrarilabs/ferrarilabs.github.io/actions/workflows/live_cache_producer.yml/dispatches  {ref:main}
@@ -47,4 +48,4 @@ So the pipeline needs exactly one thing from the runner: **one HTTPS GET to ESPN
 
 - The Worker dispatches **24 h/day**, but the producer only has work in the match window. Out-of-window runs finish in ~16 s but bill **1 minute each**.
 - In-window runs use `--loop` (#381): the runner stays alive ~5 min observing every 15 s and is cancelled by the next dispatch → ~5m12s → **6 billed minutes**, i.e. a runner that is busy continuously on match days.
-- Model (`scripts/actions_minutes_model.mjs`, calendar in repo): Oct 2026 ≈ 11,300 min, Sep ≈ 14,000, Aug ≈ 17,000 for this workflow alone. This is higher than the "~8,640" estimate from the first audit, which counted dispatches × 1 min and ignored the in-window loop.
+- Measured (Sept 2026, 8,757 runs): ≈ 13,370 billed min/30 d (dispatch ≈ 13,145 + schedule ≈ 224). Model (`scripts/actions_minutes_model.mjs`, calendar in repo): Oct ≈ 11,500, Sep ≈ 14,200. Higher than the first audit's "~8,640", which counted dispatches × 1 min and ignored the in-window loop.

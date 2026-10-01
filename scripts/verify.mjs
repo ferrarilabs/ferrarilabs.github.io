@@ -479,6 +479,10 @@ const CHECKS = [
   // escrita injetados): prova que fonte caida ou forma invalida NUNCA sobrescrevem o
   // ultimo-bom-conhecido, que o envelope gravado e o CANONICO do gateway (e nao o do snapshot),
   // e que so live_sports_cache e tocada.
+  { id: "api-football-adapter", group: "provider", cmd: ["node", "bolao/shared/scripts/test_api_football_adapter.mjs"],
+    why: "adaptador API-Football -> partida canonica: mesma forma da ESPN, identidade estavel e conservadora, falha do provedor nunca vira escrita (fixtures sinteticas)" },
+  { id: "live-producer-direct", group: "scheduling", cmd: ["node", "workers/live-producer-direct/test_live_producer_direct.mjs"],
+    why: "Worker direto (sem GitHub Actions): inerte por padrao, fail closed, nunca recebe credencial de banco, falha do provedor nunca vira observacao" },
   { id: "live-cache-ingest", group: "provider", cmd: ["node", "bolao/shared/scripts/test_live_ingest.mjs"],
     why: "relay de ingestao do cache ao vivo: falha fechada, uma implementacao do envelope (== produtor atual), nunca grava forma invalida, so live_sports_cache" },
   { id: "live-cache-producer", group: "provider", cmd: ["node", "bolao/shared/scripts/test_produce_live_cache.mjs"],

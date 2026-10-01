@@ -627,6 +627,9 @@
     "bolao/shared/scripts/test_pipeline_health.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
     },
+    "bolao/shared/scripts/test_api_football_adapter.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
     "bolao/shared/scripts/test_live_ingest.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
     },
@@ -996,6 +999,9 @@
       "classification": "REGISTERED_AND_EXECUTED"
     },
     "scripts/test_pii_fingerprints.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "workers/live-producer-direct/test_live_producer_direct.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
     },
     "workers/live-producer/test_live_producer.mjs": {

@@ -1,0 +1,51 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+
+  // ─── POR QUE ESTE WORKER EXISTE ─────────────────────────────────────────────────────────────
+  //
+  // Caminho de produção SEM GitHub Actions para o cache ao vivo (migração de custo do repositório
+  // privado). Ele é um RELÓGIO + PONTE de egresso:
+  //
+  //     Cron (1 min) → pergunta à função `live-cache-ingest` O QUE buscar agora (ou nada)
+  //                  → GET na API-Football (a chave vive AQUI, é chave de PROVEDOR, não de banco)
+  //                  → POST do corpo CRU para `live-cache-ingest`, que valida, resolve identidade,
+  //                    mescla e grava. Este Worker nunca recebe credencial de banco.
+  //
+  // É um Worker NOVO e separado de `workers/live-producer` (que continua acordando o produtor do
+  // GitHub, intocado). Convivem sem se pisar porque o modo padrão é `off`.
+  //
+  // ─── MODOS (var PRODUCER_MODE) ──────────────────────────────────────────────────────────────
+  //   off            não faz nada, não toca a rede           ← padrão: implantar não muda nada
+  //   shadow         busca e envia com dry_run=1: valida e compara, NUNCA grava
+  //   authoritative  grava em live_sports_cache (só depois do cutover decidido por humano)
+  //
+  // ─── CADÊNCIA ───────────────────────────────────────────────────────────────────────────────
+  // Linha de base: 1 observação por minuto. OBSERVATIONS_PER_TICK > 1 ativa o modo rápido
+  // (várias observações espaçadas por INTERVAL_MS dentro do mesmo disparo) — só depois de validar o
+  // plano da conta: o limite de CPU de cron do plano Free é 10 ms e o de subrequests é 50.
+  // Plano atual da conta: NÃO VERIFICADO.
+
+  "name": "ferrarilabs-live-producer-direct",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-08-27",
+  "compatibility_flags": ["nodejs_compat"],
+
+  "triggers": { "crons": ["* * * * *"] },
+
+  // Sem endereço público: só acorda no cron.
+  "workers_dev": false,
+  "preview_urls": false,
+
+  "observability": { "enabled": true, "logs": { "head_sampling_rate": 1 } },
+
+  // NOMES de segredo, nunca valores.
+  "secrets": { "required": ["API_FOOTBALL_KEY", "LIVE_INGEST_TOKEN"] },
+
+  "vars": {
+    "PRODUCER_MODE": "off",
+    "INGEST_URL": "https://cmhqkkfczotdnssupkni.supabase.co/functions/v1/live-cache-ingest",
+    "OBSERVATIONS_PER_TICK": "1",
+    "INTERVAL_MS": "15000",
+    "MIN_REMAINING_REQUESTS": "200"
+  }
+}

@@ -44,6 +44,7 @@ import { espnUrlFor } from "../../../supabase/functions/_shared/gateway_core.js"
 // Validação + normalização + envelope vivem no núcleo portátil, compartilhado com a função
 // `live-cache-ingest` (relay). Uma implementação só — ver live_ingest_core.js.
 import { INGEST_COMPETITIONS, buildCacheRecord } from "../../../supabase/functions/_shared/live_ingest_core.js";
+import { WINDOW_LOOKBACK_MS, WINDOW_LOOKAHEAD_MS, isWithinWindow } from "../../../supabase/functions/_shared/polling_plan.js";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(HERE, "..", "..", "..");
@@ -64,8 +65,7 @@ export const PRODUCED_COMPETITIONS = [...INGEST_COMPETITIONS];
  * `LOOKAHEAD` liga o produtor um pouco antes do apito para que o primeiro visitante já encontre
  * observação fresca em vez de esperar o próximo ciclo.
  */
-export const WINDOW_LOOKBACK_MS = 3 * 60 * 60_000;
-export const WINDOW_LOOKAHEAD_MS = 60 * 60_000;
+export { WINDOW_LOOKBACK_MS, WINDOW_LOOKAHEAD_MS, isWithinWindow };
 
 /** Lê as datas de partida do snapshot commitado do app. Só calendário — nada de dado privado. */
 export function fixtureDatesFor(competition, { root = ROOT } = {}) {
@@ -77,22 +77,6 @@ export function fixtureDatesFor(competition, { root = ROOT } = {}) {
     // `isWithinWindow()` decidir pelo lado seguro (ver lá).
     return [];
   }
-}
-
-/**
- * `true` quando vale a pena ir à fonte.
- *
- * Sem calendário conhecido a resposta é `true`: um produtor que se cala porque não sabe o horário
- * é indistinguível de um produtor quebrado, e o custo de uma requisição extra é irrelevante perto
- * de deixar o cache expirar durante um jogo real.
- */
-export function isWithinWindow(dates, now = Date.now()) {
-  if (!dates.length) return true;
-  return dates.some((d) => {
-    const t = Date.parse(d);
-    if (Number.isNaN(t)) return false;
-    return t >= now - WINDOW_LOOKBACK_MS && t <= now + WINDOW_LOOKAHEAD_MS;
-  });
 }
 
 /**

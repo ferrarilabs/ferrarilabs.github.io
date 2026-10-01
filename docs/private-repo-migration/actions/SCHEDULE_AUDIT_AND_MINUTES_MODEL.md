@@ -10,9 +10,10 @@ The account allowance seen in GitHub's 2026-09-15 email is 2,000 min; Pro would 
 
 | Workflow | Trigger / frequency | Billed shape | Class | Why / what to do |
 |---|---|---|---|---|
-| **live_cache_producer** (via Worker) | dispatch `*/5` 24 h; runner loops ~5 min in window | 1 min out-of-window, **6 min** in-window | **MOVE_OUT_OF_GITHUB** (to a public relay repo) | needs only a GitHub-IP GET; this branch makes the rest portable |
+| **live_cache_producer** — scheduler B (Worker dispatch) | dispatch `*/5` 24 h; runner loops ~5 min in window | 1 min out-of-window, **6 min** in-window | **MOVE_OUT_OF_GITHUB** (Worker → API-Football → ingest; public-relay idea REJECTED) | measured ≈ 13,145 min/30 d |
+| **live_cache_producer** — scheduler A (`schedule:` in the workflow) | `*/5 14-23`, `*/5 0-2`; ≈ 4.7 delivered/day, 28 % cancelled | ≈ 1.6 min avg | **REMOVE_OBSOLETE** (redundant since #369) | ≈ 224 min/30 d; removal is cutover step C.1 |
 | live_pipeline_monitor | hourly `:17` | 1 min × 720 nominal / 164 seen | MOVE_OUT (later) → short term KEEP, window-limit the cron (`17 14-23,0-2`) | opens Issues with `GITHUB_TOKEN`; moving it needs a PAT elsewhere |
-| bolao_provider_snapshot | `*/10`, 2-job matrix, commits JSON | 2 min × 187 seen (nominal 4,320 × 2) | KEEP_IN_GITHUB (needs ESPN egress + repo write) | throttled by GitHub today; if GitHub ever honors `*/10` it costs ~8,600 → **watch**; long term: relay + ingest model for snapshots |
+| bolao_provider_snapshot | `*/10`, 2-job matrix, commits JSON | 2 min × 187 seen (nominal 4,320 × 2) | KEEP_IN_GITHUB (needs ESPN egress + repo write) | throttled by GitHub today; if GitHub ever honors `*/10` it costs ~8,600 → **watch**; long term: the same provider-neutral ingest model could feed snapshots |
 | cdb2026_entry_saved_confirmation | `*/5` | 1 min × 192 seen (nominal 8,640) | **MAKE_EVENT_DRIVEN** (DB webhook/trigger → edge fn) | polls a queue every 5 min; same throttling caveat as above |
 | cdb2026_result_emails | `*/10` 16–05 UTC | ~1.3 min × 164 | KEEP_IN_GITHUB (ESPN + EmailJS + private data) | money-adjacent; do not touch in this workstream |
 | br2026_round_emails | `*/30` 21–04 | 1 min × 98 (21 failed) | KEEP_IN_GITHUB | investigate failures separately |
@@ -27,15 +28,15 @@ The account allowance seen in GitHub's 2026-09-15 email is 2,000 min; Pro would 
 
 ## Monthly model (30-day month)
 
-| Block | CURRENT, repo public | PRIVATE, before migration (Oct) | PRIVATE, after relay migration |
+| Block | CURRENT, repo public | PRIVATE, before migration (Oct) | PRIVATE, after provider migration |
 |---|---:|---:|---:|
-| live_cache_producer (scheduled production) | 0 (free) | **≈ 11,300** (Sep 14,000 · Aug 17,000) | **0** |
+| live_cache_producer (scheduler B + A) | 0 (free) | **≈ 11,500** (Sep ≈ 14,200 modelled / 13,370 measured) | **0** |
 | GitHub Pages deploy + cache-bust | 0 | 177 | 177 |
 | CI / PR (`safety_check`) | 0 | 1,449 | 1,449 |
 | Scheduled production (snapshot, EPG, lottery, jackpot, receipts) | 0 | 859 | 859 |
 | Emails / operators (result, round, powerball, manual) | 0 | 464 | 464 |
 | Monitoring (monitor, schedule_watch, sentinel, watch, coverage) | 0 | 434 | 434 |
-| **Total** | **0 billed** (≈ 12 k used) | **≈ 14,700** | **≈ 3,400** |
+| **Total** | **0 billed** (≈ 12 k used) | **≈ 14,900** | **≈ 3,400** |
 | After cheap levers (below) | | | **≈ 1,850** |
 
 Producer share of private-repo minutes today: **~77 %**. Cheap levers, each independent and none touching business logic:
@@ -45,6 +46,10 @@ Producer share of private-repo minutes today: **~77 %**. Cheap levers, each inde
 
 ## What "near-zero recurring production runner use" realistically means
 
-After the relay cutover, *recurring producer* minutes = 0. Remaining scheduled production in the private repo (~860 + emails ~460 + monitoring ~430)
+After the provider cutover, *recurring producer* minutes = 0. Remaining scheduled production in the private repo (~860 + emails ~460 + monitoring ~430)
 is ~1,750 min/month — **below Pro's 3,000 but not below Free's 2,000 once CI is added**. Getting the rest near zero needs moving ESPN/EmailJS jobs
 out of GitHub, which requires an egress answer for ESPN and handling of private participant data off-GitHub: separate decisions, not this change.
+
+
+## Update (provider pivot)
+See `PIPELINE_TOPOLOGY_CORRECTION.md` (two schedulers, measured minutes) and run `node scripts/actions_minutes_model.mjs` for the five scenarios: CURRENT_REAL_ARCHITECTURE 14,898 · PRIVATE_WITHOUT_CHANGES 14,898 · PRIVATE_REMOVE_DUPLICATE_GITHUB_SCHEDULE 14,675 · PRIVATE_MATCH_WINDOW_DISPATCH_ONLY 6,565 · PRIVATE_API_FOOTBALL_DIRECT 3,383 (1,848 with the cheap CI/monitor levers), October 2026, repo-wide. Live-cache recurring Actions minutes in the last scenario: **0**.
