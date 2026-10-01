@@ -1,5 +1,16 @@
 # CHANGELOG
 
+## Unreleased — 2026-10-01 (sem bump de siteVersion; so texto do relatorio de auditoria)
+
+### audit-report.html: removidos os links para o codigo-fonte no GitHub
+
+Preparacao para repositorio privado (`docs/private-repo-migration/`). O relatorio de auditoria (enviado por e-mail aos
+participantes) linkava `github.com/ferrarilabs/.../blob/main/...` ("codigo aberto no GitHub") nos tres idiomas; esses links
+dariam 404 apos a mudanca de visibilidade. Agora o item "Codigo-fonte" aponta para `js/app.js` (artefato publico, inspecionavel)
+e diz que o codigo completo e disponibilizado a participantes mediante solicitacao. Mesma troca em `scripts/generate_audit_report.py`
+(constante `GITHUB_REPO_URL` removida). Scoring, regras, dados e demais paginas: inalterados. Audit de scoring: ver resumo da tarefa.
+Nao propagado a br2026/cdb2026: nao tem pagina equivalente.
+
 ## v4.189 — 2026-08-13
 
 ### READ_CUTOVER — a leitura passa a vir do modelo normalizado (segunda execucao)
