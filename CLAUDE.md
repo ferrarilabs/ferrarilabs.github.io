@@ -4,7 +4,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Deployment
 
-No build step. Push to `main` and GitHub Pages auto-deploys.
+No framework build. Push to `main` and GitHub Pages auto-deploys — but **only an explicit public allowlist is
+published** (`scripts/public-site.manifest.json` → `node scripts/build-public-site.mjs` → `_site`, validated by
+`node scripts/check-public-artifact.mjs` before upload). A new file is NOT public until its exact path is added to the
+manifest; docs/, scripts/, supabase/, workers/, SQL, Python and AI-instruction files are never served. Whenever a page
+loads a new file (`<script>`, `<link>`, `fetch`, image), add it to the manifest in the same PR. See
+`docs/private-repo-migration/`.
 
 **A origem de produção é `https://www.ferrarilabs.com`** (definida pelo `CNAME` na raiz do repo).
 `ferrarilabs.github.io` e o apex `ferrarilabs.com` respondem **301** para lá — nenhuma página de
