@@ -35,6 +35,9 @@ const REPO = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const WF = join(REPO, ".github/workflows/live_cache_producer.yml");
 const GATEWAY = join(REPO, "supabase/functions/_shared/gateway_core.js");
 const PRODUCER = join(REPO, "bolao/shared/scripts/produce_live_cache.mjs");
+// A janela vive em UM lugar (polling_plan.js), compartilhado pelo produtor GitHub e pela funcao de
+// ingestao; o produtor a reexporta. O gate trava o VALOR onde ele esta definido.
+const POLLING_PLAN = join(REPO, "supabase/functions/_shared/polling_plan.js");
 
 let pass = 0, fail = 0;
 const test = (n, fn) => {
@@ -128,8 +131,11 @@ test("3. toda cadencia DECLARADA cabe no teto do gateway — o que NAO e o mesmo
 // ── 4 ────────────────────────────────────────────────────────────────────────────────────────
 test("4. a logica de elegibilidade continua intacta, e ainda pula ANTES da rede", () => {
   const src = readFileSync(PRODUCER, "utf8");
-  assert(/WINDOW_LOOKBACK_MS\s*=\s*3\s*\*\s*60\s*\*\s*60_?000/.test(src), "WINDOW_LOOKBACK_MS deixou de ser 3h");
-  assert(/WINDOW_LOOKAHEAD_MS\s*=\s*60\s*\*\s*60_?000/.test(src), "WINDOW_LOOKAHEAD_MS deixou de ser 1h");
+  const plano = readFileSync(POLLING_PLAN, "utf8");
+  assert(/WINDOW_LOOKBACK_MS\s*=\s*3\s*\*\s*60\s*\*\s*60_?000/.test(plano), "WINDOW_LOOKBACK_MS deixou de ser 3h");
+  assert(/WINDOW_LOOKAHEAD_MS\s*=\s*60\s*\*\s*60_?000/.test(plano), "WINDOW_LOOKAHEAD_MS deixou de ser 1h");
+  assert(/export\s*\{\s*WINDOW_LOOKBACK_MS,\s*WINDOW_LOOKAHEAD_MS,\s*isWithinWindow\s*\}/.test(src) && /polling_plan\.js/.test(src),
+    "o produtor deixou de usar/reexportar a janela compartilhada");
   assert(/SKIPPED_OUT_OF_WINDOW/.test(src), "o caminho de skip sumiu");
 
   // O skip tem de vir ANTES do fetch: e o que torna uma execucao fora de janela incapaz de
