@@ -52,3 +52,6 @@ bolao/loterias/config/*.jsonl.lock
 # Foi versionado por engano no #331 e disparava o check de superficie critica
 # (`workers/user-report-intake/**`) a cada execucao de wrangler.
 .wrangler/
+
+# Saidas locais da prova do provedor (payloads reais; nunca commitar)
+.proof-out/

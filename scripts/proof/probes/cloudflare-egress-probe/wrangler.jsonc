@@ -1,0 +1,11 @@
+{
+  // SONDA DESCARTÁVEL — prova de egresso Cloudflare → API-Football. NÃO é o live-producer.
+  // Sem cron, sem Supabase, sem credencial de banco, sem escrita. Apagar depois: `wrangler delete`.
+  "name": "ferrarilabs-egress-probe-tmp",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-08-27",
+  "workers_dev": true,
+  "preview_urls": false,
+  "observability": { "enabled": true, "logs": { "head_sampling_rate": 1 } },
+  "secrets": { "required": ["API_FOOTBALL_KEY", "PROBE_TOKEN"] }
+}
