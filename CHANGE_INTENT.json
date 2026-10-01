@@ -1,0 +1,19 @@
+{
+  "declarations": [
+    {
+      "surface_id": "NOTIFICATION_WORKFLOWS",
+      "affected_workflows": [
+        ".github/workflows/deploy-pages.yml"
+      ],
+      "reason": "Preparacao para repositorio privado: o deploy copiava quase o repositorio inteiro para _site (rsync + exclusoes), publicando docs/, scripts/, supabase/, SQL e evidencias internas. Passa a construir _site a partir de allowlist explicita e a validar o artefato antes de publicar.",
+      "expected_behavior_change": "deploy-pages.yml troca o passo rsync por `node scripts/build-public-site.mjs --out _site --deployment-meta` seguido de `node scripts/check-public-artifact.mjs --dir _site`; falha do gate aborta antes do upload. Gatilhos (push em main, workflow_dispatch), permissoes, concorrencia, upload/deploy do Pages e deployment-meta.json nao mudam. Deixam de ser publicados arquivos nao listados no manifesto (docs, scripts, supabase, workers, previews, logs, jsonl operacionais, debug.html, copa2026/preview). Nenhum cron, e-mail ou pagamento muda.",
+      "tests_required": [
+        "cron-coverage",
+        "email-send-safety",
+        "powerball-workflow-arming",
+        "lottery-poll-deploy-dispatch",
+        "public-artifact"
+      ]
+    }
+  ]
+}

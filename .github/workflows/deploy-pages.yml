@@ -32,32 +32,15 @@ jobs:
       - name: Configure Pages
         uses: actions/configure-pages@v5
 
-      - name: Prepare static site
-        shell: bash
-        run: |
-          set -euo pipefail
+      # Fail-closed publication boundary (private-repo readiness): _site is built from the explicit
+      # allowlist in scripts/public-site.manifest.json — NOT by copying the repository and excluding
+      # things. Then the gate inspects the real _site; any finding fails the job BEFORE upload/deploy.
+      # Node is preinstalled on ubuntu-latest and both scripts use only node builtins (no npm ci).
+      - name: Build public artifact (explicit allowlist)
+        run: node scripts/build-public-site.mjs --out _site --deployment-meta
 
-          rm -rf _site
-          mkdir -p _site
-
-          rsync -a ./ _site/ \
-            --exclude '.git/' \
-            --exclude '.github/' \
-            --exclude '_site/' \
-            --exclude 'node_modules/' \
-            --exclude '__pycache__/' \
-            --exclude '*.pyc'
-
-          touch _site/.nojekyll
-
-          cat > _site/deployment-meta.json <<EOF
-          {
-            "gitSha": "${GITHUB_SHA}",
-            "runId": "${GITHUB_RUN_ID}",
-            "runAttempt": "${GITHUB_RUN_ATTEMPT}",
-            "deployedAt": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-          }
-          EOF
+      - name: Validate public artifact (security gate)
+        run: node scripts/check-public-artifact.mjs --dir _site
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v4
