@@ -221,6 +221,8 @@ const CHECKS = [
     why: "Powerball draw result: fetch, prize computation, surgical write, ticket highlight" },
   { id: "fixture-privacy", group: "security", cmd: ["node", "scripts/test_fixture_privacy.mjs"],
     why: "no third-party address inside any test fixture; provider unreachable from tests" },
+  { id: "public-artifact", group: "security", cmd: ["node", "scripts/test_public_artifact.mjs"],
+    why: "Pages publica so a allowlist explicita (scripts/public-site.manifest.json); o gate do artefato rejeita docs/scripts/SQL/segredos e aceita os ativos de producao" },
   { id: "powerball-pii", group: "security", cmd: ["node", "bolao/loterias/powerball/scripts/audit_pii_tests.mjs"],
     why: "Powerball private-data contract" },
   { id: "powerball-pii-scope", group: "security", cmd: ["node", "bolao/loterias/powerball/scripts/test_pii_scan_scope.mjs"],

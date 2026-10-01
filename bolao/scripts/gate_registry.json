@@ -989,6 +989,9 @@
     "scripts/test_fixture_privacy.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
     },
+    "scripts/test_public_artifact.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
     "scripts/test_pii_detectors.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
     },
