@@ -1,5 +1,16 @@
 # RLS Policy Matrix — `public.bolao_state`
 
+> **Historical snapshot (2026-08-02). Superseded — do not use the tables below as the current
+> state.** Since then the DDL has lived in `supabase/migrations/` plus the `MANUAL_ONLY` files in
+> `bolao/shared/sql/`. The anon policies for `cdb2026` were removed in
+> `supabase/migrations/20260812080000_cdb_revoke_anon_raw_state.sql`. Every app reads the sanitized
+> `bolao_state_normalized_public`. According to
+> `bolao/shared/sql/033_codify_bolao_state_fence_and_view_structural.sql`, production `anon` holds
+> no row privileges on `bolao_state` (measured 2026-08-22), but that revoke is not a migration.
+> Current client-access decisions are in `bolao/shared/safety/table_client_decisions.json`,
+> enforced by `scripts/db/audit_table_client_decisions.mjs`; the F10 status is in
+> `docs/bolao/SECURITY.md`.
+
 2026-08-02. Fonte: `bolao/copa2026/docs/DATABASE_SETUP_SUPABASE.md` (único SQL versionado no
 repo — não há diretório de migrations). Comportamento de `select` confirmado empiricamente via
 teste passivo (GET, chave anon pública) em 2026-08-02 — ver `SUPABASE_SECURITY_REVIEW.md`.

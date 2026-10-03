@@ -8,8 +8,17 @@ This is an informal friends/family app deployed as a static site. There is no se
 against production on that date, every entry in `bolao_state` carries `participantEmail`,
 `payerName` and `paymentMethod`. The anon key is public by construction — it ships in
 `js/config.js` to every browser — so anyone able to read that row can enumerate the participants'
-e-mail addresses. That is a real exposure, tracked as finding **F10**, and it is not remediated
-yet. Do not read the rest of this document as saying the public state is empty of PII.
+e-mail addresses. That is a real exposure, tracked as finding **F10**.
+
+**F10 status: mitigated in production, not yet codified in the repository.** Every app now reads
+from the sanitized projection `bolao_state_normalized_public`, which emits no e-mail, payer or
+payment fields. According to the read-only measurement recorded in
+`bolao/shared/sql/033_codify_bolao_state_fence_and_view_structural.sql` (2026-08-22), `anon` holds
+no SELECT/INSERT/UPDATE/DELETE on `bolao_state` in production. That revoke was applied outside
+`supabase/migrations/` and exists in the repository only as the `MANUAL_ONLY` file above, so a
+database rebuilt from `supabase/migrations/` alone would give `anon` full access to the raw
+documents again. `bolao_state` itself still holds `participantEmail` and `payerName`. Do not read
+the rest of this document as saying the stored state is free of PII.
 
 What is *not* stored: card numbers, bank credentials, or anything the app itself charges — money
 changes hands outside the app (Zelle/Venmo/PIX), and only the payer's name and the method are
@@ -101,7 +110,7 @@ frame-ancestors 'none';
 |---|---|---|
 | Admin password auth is client-side only | Low (informal app) | SHA-256 + lockout + session expiry |
 | Cutoff date enforcement is client-side | Low (clock manipulation) | Honor system; admin can delete fraudulent entries |
-| Supabase anon key is public, and `bolao_state` contains participant e-mail + payer name | **Open (F10)** | RLS limits access to a single row, but that row is anonymously readable and holds PII. Mitigation is a public/private split — designed, not yet applied. |
+| Supabase anon key is public, and `bolao_state` contains participant e-mail + payer name | **Mitigated in production; not codified (F10)** | Public reads go through the sanitized `bolao_state_normalized_public`; `anon` access to the raw table was revoked in production outside `supabase/migrations/` (see the F10 status above). Until that revoke is a migration, a rebuild from the repository reopens the exposure. |
 | EmailJS key is public | Accepted | Rate limiting; e-mails carry results and ranking, no payment credentials |
 | API-Football key exposed if set | Medium | Keep disabled; use proxy for production |
 

@@ -709,7 +709,7 @@ A Copa já tinha três camadas de proteção que BR2026/CDB2026 não tinham:
 | Confirmação antes de ação destrutiva | `confirm()` único por ação | `confirm()` único por ação | **Triplo**: dois `confirm()` + um `prompt()` exigindo digitar a palavra `CONFIRMAR` — o terceiro passo é o que resiste a mis-click/fat-finger em série, não só repetição de `confirm()` |
 | Journal de ações (`s.auditLog`) | Sim — registra edições de participante (antes/depois), mesclado por timestamp entre dispositivos, exibido no admin (`renderAdminAuditLog`) | Não existia | Sim — novo `appendAdminAuditLog()`, registra as ações destrutivas do admin manual (remover confronto, lançar/editar placar de partida, travar/destravar resultado — CDB2026; travar/destravar resultado — BR2026) com detalhe suficiente para saber o que reverter. Mesmo padrão de merge (`mergeStates`) e mesmo cap de 200 |
 | Backup manual (botão admin, download JSON) | `backupJson()`/`backupCsv()` | `exportJsonBackup()` já existia (equivalente ao JSON da Copa, sem o CSV) | Sem mudança — já cobria isso |
-| Backup automatizado (script + cron) | `bolao/scripts/backup.py` (git tag + snapshot Supabase, uso manual) e `backup_daily.py` (cron 01:00 AM EDT, dedup por hash, retenção de 60 dias) — só cobria `id="main"` | Não cobertos | Os dois scripts agora iteram sobre os três apps (`main`/`br2026`/`cdb2026`) na mesma execução — **o mesmo cron existente passa a cobrir os três sem precisar de entrada nova**. Arquivos prefixados por app em `bolao/backups/` (já no `.gitignore`) |
+| Backup automatizado (script + cron) | `bolao/copa2026/scripts/backup.py` (git tag + snapshot Supabase, uso manual) e `backup_daily.py` (cron 01:00 AM EDT, dedup por hash, retenção de 60 dias) — só cobria `id="main"` | Não cobertos | Os dois scripts agora iteram sobre os três apps (`main`/`br2026`/`cdb2026`) na mesma execução — **o mesmo cron existente passa a cobrir os três sem precisar de entrada nova**. Arquivos prefixados por app em `bolao/copa2026/backups/` (já no `.gitignore`) |
 
 `INTENTIONALLY_DIFFERENT` preservado: a granularidade do journal da Copa (diff de picks de
 participante) não foi copiada para BR2026/CDB2026 — o journal novo neles é escopado só às ações
@@ -743,7 +743,7 @@ o fim + screenshot antes/depois): `scrollHeight` mobile caiu ~68px em cada app (
 
 Eduardo encontrou entradas reais salvas sem responsável e/ou método de pagamento (Matheus,
 Gustavo) na aba Participantes do BR2026 — "This can not happen... doesn't look professional."
-A Copa (`bolao/js/app.js`) sempre validou `payerName` e `paymentMethod` como obrigatórios
+A Copa (`bolao/copa2026/js/app.js`) sempre validou `payerName` e `paymentMethod` como obrigatórios
 (`requiredPayerName`/`requiredPaymentMethod`); essa checagem nunca foi portada para BR2026 nem
 CDB2026 quando os apps foram construídos — `saveEntry()` neles só validava `entryName` e
 `participantEmail`. `NOT_CONSISTENT` → `CONSISTENT`: os dois apps agora bloqueiam o salvamento
@@ -799,7 +799,7 @@ Eduardo pediu email automático após cada rodada do Brasileirão terminar, "par
 envio" comparado a um email por jogo. `INTENTIONALLY_DIFFERENT` — não propagado à Copa nem ao
 CDB2026:
 
-- **Copa** (`bolao/scripts/send_result_email.py`) já tem o equivalente por PARTIDA — funciona
+- **Copa** (`bolao/copa2026/scripts/send_result_email.py`) já tem o equivalente por PARTIDA — funciona
   ali porque a Copa tem só ~32 partidas na vida inteira do torneio. Não faz sentido "agrupar em
   rodadas" numa fase de grupos com >36 jogos e depois um mata-mata de partida única.
   Volume baixo o suficiente que emailar por partida nunca foi um problema de custo.
@@ -826,7 +826,7 @@ Eduardo renomeou duas entradas do BR2026 direto no Supabase e reportou "não apa
 confirmado que o banco estava correto, o problema era `mergeStates()`: `entries` em BR2026/
 CDB2026 usava "local sempre vence" incondicional (`byId[e.id] = e`, remoto processado antes,
 local sobrescrevendo por último) — a MESMA classe de bug do `cutoffAt` corrigida mais cedo hoje
-(nota anterior), só que nunca propagada pra `entries`. A Copa (`bolao/js/app.js`) já tinha a
+(nota anterior), só que nunca propagada pra `entries`. A Copa (`bolao/copa2026/js/app.js`) já tinha a
 correção certa desde antes: preferir o registro mais recente por entrada (`updatedAt`/
 `createdAt`), não um lado fixo. `NOT_CONSISTENT` → `CONSISTENT`: portado pra BR2026 e CDB2026.
 
@@ -840,7 +840,7 @@ com dados ao vivo da ESPN (schedule + standings reais, não simulados):
 1. Nome de time divergente entre os dois endpoints da ESPN ("Athletico Paranaense" na
    classificação vs. "Athletico-PR" no calendário) — corrigido com mapa de alias
    (`ESPN_SCOREBOARD_NAME_ALIASES`), mesmo padrão do `ESPN_ALIASES` já usado em
-   `bolao/scripts/send_result_email.py` (Copa).
+   `bolao/copa2026/scripts/send_result_email.py` (Copa).
 2. O ajuste iterativo Dixon-Coles genuinamente diverge pra alguns times (confirmado: não é
    ruído, reduzir iterações/adicionar amortecimento não resolve) — mitigado com limite [0.25,3]
    + encolhimento de 70% em direção à média ingênua de gols/jogo no resultado final.
@@ -1368,7 +1368,7 @@ Eduardo, na véspera da Final: pediu uma auditoria automática com relatório es
 línguas, com o máximo de detalhes, publicada no site com link antes do resultado final ser
 conhecido — um gesto de transparência antes do dinheiro ser distribuído amanhã.
 
-Implementado só na Copa: `bolao/scripts/generate_audit_report.py` gera `bolao/audit-report.html`
+Implementado só na Copa: `bolao/copa2026/scripts/generate_audit_report.py` gera `bolao/copa2026/audit-report.html`
 a partir de dados reais de produção — recalcula a pontuação de TODAS as entradas reais de forma
 independente (código separado do `score_entry_total()` oficial), verifica integridade de dados,
 fórmula de pontuação, mecanismo de prêmio, critérios de desempate, e divulga com transparência os
