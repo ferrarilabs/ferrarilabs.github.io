@@ -96,7 +96,7 @@ archived Ranking would still have a URL of its own — so the entire Copa app (w
 | `js/config.js` | Runtime config: scoring, payments, Supabase, EmailJS, cutoff date, admin hash |
 | `js/data.js` | Fixture data: 72 group + 32 knockout matches, team flags, strength ratings |
 | `js/i18n.js` | All UI strings in **3 languages**: `pt-BR`, `es`, `en-US` |
-| `js/app.js` | Single IIFE (~1430 lines): all state, rendering, validation, scoring, admin |
+| `js/app.js` | Single IIFE (~5,200 lines in copa2026; br2026 ~4,300, cdb2026 ~6,700 as of 2026-10-04): all state, rendering, validation, scoring, admin |
 | `css/styles.css` | All styles — mobile-first, responsive |
 | `index.html` | Single page; sections shown/hidden by JS |
 
@@ -261,7 +261,7 @@ banco. Os dois defeitos achados na auditoria de julho/2026 estavam justamente em
 parecia não ter relação com o que estava sendo mexido.
 
 `npm run check` compõe: classificação da mudança + contrato de segurança + a suíte canônica
-(`scripts/verify.mjs`, 150 checks, agregados) + verificação de árvore/evidência. Ele é a única
+(`scripts/verify.mjs`, 265 checks em 2026-10-04 — `node scripts/verify.mjs --list` é a contagem autoritativa, agregados) + verificação de árvore/evidência. Ele é a única
 porta de entrada — não crie um segundo comando canônico e não invente uma suíte paralela.
 
 Variantes: `npm run check -- --with-npm-test` (roda também a cadeia literal do `npm test`);

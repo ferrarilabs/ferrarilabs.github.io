@@ -16,16 +16,17 @@ The homepage (`index.html`) briefly introduces FerrariLabs and links to both.
 
 ## Contact form setup
 
-The site includes a contact form designed for static hosting.
+The contact form is live on every page that has one: `/`, `/financial-crimes/`, `/small-business/`,
+`/small-business/pt/` and the root PT/ES/JP pages. All of them post to the same Formspree form and
+use the same Cloudflare Turnstile widget. The form endpoint and the Turnstile site key are already in
+the HTML; nothing needs to be replaced.
 
-To activate it:
+When changing the form:
 
-1. Create a form in Formspree.
-2. Replace `REPLACE_WITH_YOUR_FORM_ID` in `index.html` with your Formspree form endpoint.
-3. Create a Cloudflare Turnstile widget for your domain.
-4. Replace `REPLACE_WITH_TURNSTILE_SITE_KEY` in `index.html` with your Turnstile site key.
-5. In Formspree, enable Cloudflare Turnstile and add your Turnstile secret key.
-6. In Formspree, restrict submissions to your domain.
+1. Keep the Formspree endpoint and the Turnstile site key identical on every form page.
+2. The Turnstile **secret** key lives only in Formspree (enable Turnstile there); never put it in this repo.
+3. In Formspree, keep submissions restricted to `www.ferrarilabs.com`.
+4. After any change, submit one test lead and confirm the notification reaches the business mailbox.
 
 ## Deployment
 
