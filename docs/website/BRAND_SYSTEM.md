@@ -14,8 +14,6 @@ Applies to:
 - `/styles.css`
 - `/assets/ferrarilabs-mark.svg`
 
-Does **not** apply automatically to `/bolao/` or the three pool applications. Their own visual governance remains independent.
-
 ## Brand architecture
 
 FerrariLabs is the master brand with two service families:
@@ -95,7 +93,7 @@ Guardrails:
 
 ## Change-control rule
 
-A FerrariLabs corporate-site branding change should stay within the corporate-site files unless the task explicitly calls for a separate Bolão review. Never propagate these colors/fonts into the Bolão apps incidentally.
+A FerrariLabs corporate-site branding change should stay within the corporate-site files listed above. Never propagate these colors/fonts into other applications incidentally.
 
 ## Repository workflow
 
