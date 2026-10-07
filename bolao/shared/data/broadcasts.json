@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "sourceModel": "EPG_CORROBORATED_WITH_CURATED_OVERRIDE",
   "_comment": "Fonte de dados de 'Onde assistir' (bolao/shared/js/where_to_watch.js). Modelo EPG_CORROBORATED_WITH_CURATED_OVERRIDE (#431): registros sem 'origin' são curadoria humana e sempre vencem; registros 'origin: epg' são gerados por bolao/shared/scripts/sync_epg_broadcasts.mjs a partir da grade de TV — não edite esses à mão. Ver docs/bolao/BROADCAST_OPERATIONS.md antes de editar este arquivo.",
-  "updatedAt": "2026-10-07T13:29:26Z",
+  "updatedAt": "2026-10-07T23:06:04Z",
   "entries": [
     {
       "espnId": "401909114",
@@ -292,11 +292,36 @@
       ]
     },
     {
+      "espnId": "401841262",
+      "kickoffUtc": "2026-10-10T20:00Z",
+      "home": "Vasco da Gama",
+      "away": "Remo",
+      "channels": ["Premiere"],
+      "origin": "epg",
+      "source": "EPG XMLTV epgshare01 (BR1/BR2) — corroboração automática: programa cita os dois clubes no horário do kickoff",
+      "confirmedAt": "2026-10-07",
+      "collectedAt": "2026-10-07T23:06:04Z",
+      "evidence": [
+        {
+          "channel": "Premiere",
+          "source": "epgshare-br2",
+          "epgChannelId": "Premiere.Clubes.br",
+          "programmeTitle": "Vasco x Remo - Ao Vivo",
+          "programmeSubTitle": null,
+          "programmeCategories": ["Esporte", "Futebol"],
+          "programmeStart": "2026-10-10T19:30:00Z",
+          "programmeStop": "2026-10-10T22:10:00Z",
+          "matchedTeams": ["vasco", "remo"],
+          "collectedAt": "2026-10-07T23:06:04Z"
+        }
+      ]
+    },
+    {
       "espnId": "401841259",
       "kickoffUtc": "2026-10-11T00:00Z",
       "home": "São Paulo",
       "away": "Vitória",
-      "channels": ["SporTV"],
+      "channels": ["SporTV", "Premiere"],
       "origin": "epg",
       "source": "EPG XMLTV epgshare01 (BR1/BR2) — corroboração automática: programa cita os dois clubes no horário do kickoff",
       "confirmedAt": "2026-10-07",
@@ -312,6 +337,30 @@
           "programmeStop": "2026-10-11T02:00:00Z",
           "matchedTeams": ["sao-paulo", "vitoria"],
           "collectedAt": "2026-10-07T13:29:26Z"
+        },
+        {
+          "channel": "SporTV",
+          "source": "epgshare-br2",
+          "epgChannelId": "SporTV.br",
+          "programmeTitle": "São Paulo x Vitória - Ao Vivo",
+          "programmeSubTitle": null,
+          "programmeCategories": ["Esporte", "Futebol"],
+          "programmeStart": "2026-10-10T23:30:00Z",
+          "programmeStop": "2026-10-11T02:00:00Z",
+          "matchedTeams": ["sao-paulo", "vitoria"],
+          "collectedAt": "2026-10-07T23:06:04Z"
+        },
+        {
+          "channel": "Premiere",
+          "source": "epgshare-br2",
+          "epgChannelId": "Premiere.Clubes.br",
+          "programmeTitle": "São Paulo x Vitória - Ao Vivo",
+          "programmeSubTitle": null,
+          "programmeCategories": ["Esporte", "Futebol"],
+          "programmeStart": "2026-10-10T23:30:00Z",
+          "programmeStop": "2026-10-11T02:10:00Z",
+          "matchedTeams": ["sao-paulo", "vitoria"],
+          "collectedAt": "2026-10-07T23:06:04Z"
         }
       ]
     }
