@@ -5,7 +5,7 @@ interface __BaseEnv_Env {
 	RAJADA: RateLimit;
 	VERSAO: WorkerVersionMetadata;
 	REPORT_INTAKE_ENABLED: "false";
-	REPORT_GITHUB_OWNER: "ferrarilabs";
+	REPORT_GITHUB_OWNER: "eduardomferrari";
 	REPORT_GITHUB_REPO: "support-intake";
 	REPORT_GITHUB_APP_ID: string;
 	REPORT_GITHUB_INSTALLATION_ID: string;

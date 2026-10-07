@@ -6,6 +6,17 @@ outros três bolões.
 
 ---
 
+## 2026-10-05 — Issue #451: Worker de reporte aponta para `eduardomferrari/support-intake`
+
+Na migração GitHub da FerrariLabs a conta pessoal `ferrarilabs` virou `eduardomferrari` e
+`ferrarilabs` passou a ser uma Organization; o repositório privado de relatos ficou na conta
+pessoal (decisão do Eduardo). O Worker `ferrarilabs-support-intake` ainda declarava
+`REPORT_GITHUB_OWNER: "ferrarilabs"`, e a busca de reconciliação `repo:ferrarilabs/support-intake`
+passou a devolver 422 — a busca do GitHub não segue rename —, o que desligava a deduplicação em
+silêncio. Agora o dono é `eduardomferrari` no Worker, no `provisionar.mjs` e no `readiness.mjs`.
+Mesmo endpoint para BR2026, CDB2026 e Powerball: nenhuma mudança de UI nos apps. O deploy do
+Worker é um passo separado e exige autorização explícita.
+
 ## 2026-08-26 — Issue #321: ações de suporte no cabeçalho
 
 `Reportar problema` saiu do fim da página e passou a formar, ao lado do WhatsApp, um grupo único

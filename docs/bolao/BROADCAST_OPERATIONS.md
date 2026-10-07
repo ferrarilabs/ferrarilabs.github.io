@@ -18,7 +18,7 @@ EPGShare BR1/BR2 (XMLTV) → sync_epg_broadcasts.mjs (workflow) → próximos jo
 - **Automático:** `.github/workflows/br2026_broadcast_epg.yml` (a cada 3h + `workflow_dispatch`)
   baixa a grade EPGShare BR1/BR2, corrobora contra os jogos do BR2026 dos próximos 7 dias e grava
   `broadcasts.json` só quando o dado muda. Filosofia portada do repositório irmão
-  `ferrarilabs/FerrariTV` (`packages/football/src/corroborate.ts`).
+  `eduardomferrari/FerrariTV` (`packages/football/src/corroborate.ts`).
 - **Também automático (#425):** saber quais partidas ainda não têm cobertura
   (`check_broadcast_coverage.mjs`, agora marcando `[EPG]` ou `[curadoria]`) e recusar arquivo
   corrompido, ambíguo ou conflitante (`validate_broadcasts.mjs`).

@@ -18,7 +18,7 @@ agregado pela plataforma em si — organização informal de compra de bilhetes)
 | Credenciais admin | SHA-256 hash em `config.js`, compartilhado entre os 3 apps | Alta — compromete os 3 painéis admin ao mesmo tempo |
 | Backups (CSV/JSON exportados) | Download local pelo admin, fora do repositório | Alta se vazado (mesmos dados de `entries[]` completos) |
 | Chaves públicas (anon Supabase, EmailJS) | `config.js`, `scripts/*.py` | Pública por design — não são segredo, mas são o único portão de acesso ao banco |
-| Relatos de problema | Issues privadas em `ferrarilabs/support-intake`; estado antiabuso pseudônimo no Durable Object | Moderada — texto livre pode conter PII acidental e input hostil |
+| Relatos de problema | Issues privadas em `eduardomferrari/support-intake`; estado antiabuso pseudônimo no Durable Object | Moderada — texto livre pode conter PII acidental e input hostil |
 | Credenciais do intake | Cloudflare Secrets do Worker `ferrarilabs-support-intake` | Alta para o repo privado; sem acesso a participante, pagamento, scoring ou banco Supabase |
 
 ## Atores

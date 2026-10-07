@@ -1013,6 +1013,10 @@
     "bolao/cdb2026/scripts/test_backfill_venue.py": {
       "classification": "REGISTERED_AND_EXECUTED",
       "coverage": "Backfill de venue/city do CDB2026 (#393). A operacao toca pernas de partidas JA JOGADAS num app que paga dinheiro real, entao a maioria das assercoes verifica AUSENCIA de mudanca: kickoff, placar, status, qualifiedTeamId, resultSource, lockedBy, entries e paid provados estaveis por fingerprint. Trava tambem que CURADORIA VENCE PROVEDOR (local ja gravado nunca e sobrescrito), que o casamento e side-aware (mando invertido, time diferente ou data distante nao casam -- a ida e a volta sao estadios diferentes), que perna sem data fica de fora (#395), que a segunda execucao produz zero mutacoes, que o comando aborta se o servidor nao registrar a trilha, e que o app.js continua sem referenciar o backfill (renderizar nao repara dado, #392). Mutacao: 7/8 mortas individualmente; a guarda de 'sem data' e tripla (guarda externa + guarda do matcher + parse) e o trio morre junto. O teste 9b existe porque a verificacao pos-escrita nao era exercida por servidor falso bem-comportado -- ele simula um servidor que encosta em `status` e exige aborto."
+    },
+    "scripts/test_corporate_brand.mjs": {
+      "classification": "INTENTIONALLY_STANDALONE_WITH_REASON",
+      "reason": "Guarda de tipografia do site CORPORATIVO (styles.css: so Arial/Helvetica, nenhum webfont), rodada sob demanda com `node scripts/test_corporate_brand.mjs` quando a marca corporativa muda. Fora da cadeia do bolao de proposito: o site corporativo nao faz parte dos tres apps nem das superficies criticas, e o docs/website/BRAND_SYSTEM.md e a referencia."
     }
   }
 }

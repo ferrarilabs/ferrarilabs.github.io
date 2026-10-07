@@ -153,7 +153,7 @@ const base = (over = {}) => ({
 const ENV_BASE = () => ({
   REPORT_INTAKE_ENABLED: "true",
   REPORT_GITHUB_APP_ID: "1", REPORT_GITHUB_INSTALLATION_ID: "2",
-  REPORT_GITHUB_PRIVATE_KEY: PEM_DE_TESTE, REPORT_GITHUB_OWNER: "ferrarilabs",
+  REPORT_GITHUB_PRIVATE_KEY: PEM_DE_TESTE, REPORT_GITHUB_OWNER: "eduardomferrari",
   REPORT_GITHUB_REPO: "support-intake", REPORT_ABUSE_HMAC_SECRET: "segredo-de-teste",
   VERSAO: { id: "versao-de-teste" },
   ESTADO: estadoFalso(),

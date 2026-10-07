@@ -23,6 +23,16 @@ retenção, deploy e runbook; a RTM canônica permanece no arquivo acima.
 > verificada. A leitura posterior listou somente `live-football`; banco, schema, segredos e as
 > demais funções não foram alterados.
 
+> **Mudança de dono (2026-10-05, Issue #451).** Na migração GitHub da FerrariLabs a conta pessoal
+> `ferrarilabs` foi renomeada para `eduardomferrari` e `ferrarilabs` passou a ser uma Organization. O
+> repositório de relatos está agora em **`eduardomferrari/support-intake`** (decisão do Eduardo:
+> permanece pessoal), na mesma conta que é dona da App privada `Ferrarilabs Support Intake`. O
+> registro de provisionamento abaixo e a atestação são de 2026-08-25 e ficam como estavam. A transferência
+> de ida e volta do repositório removeu a instalação `156482151`; a App foi reinstalada na conta
+> `eduardomferrari`, só em `support-intake` (`Metadata: read`, `Issues: read/write`): instalação
+> **`168171584`**, gravada em `REPORT_GITHUB_INSTALLATION_ID`. Versão do Worker implantada:
+> `4b9e5587-1403-418b-b01f-088fa33e263c`; `readiness.mjs --live` verde.
+
 > **Provisionamento concluído (2026-08-25).** O repositório `ferrarilabs/support-intake` foi
 > verificado privado, com Issues ligado, Pages desligado e apenas `ferrarilabs` como colaborador.
 > A GitHub App `Ferrarilabs Support Intake` (App ID `4714457`, instalação `156482151`) está instalada
@@ -127,7 +137,7 @@ CLOUDFLARE WORKER  ferrarilabs-support-intake     ← workers/user-report-intake
    │  9. token de instalação de GitHub App   (curto, em memória)
    │ 10. INVARIANTE: destino é PRIVADO ← última linha antes da divulgação
    ▼
-ferrarilabs/support-intake   (PRIVADO)
+eduardomferrari/support-intake   (PRIVADO)
    │  triagem humana
    ▼
 (opcional, autorizado) Issue de engenharia SANITIZADA no repositório público
@@ -390,7 +400,7 @@ escrito, porque risco não registrado é risco que ninguém decidiu correr.
 |---|---|---|---|
 | Cloudflare (Worker + Durable Object) | chave de rede **pseudônima** (HMAC), chave de idempotência, impressão de duplicata, contadores | ≤ 24 h (o objeto apaga o que passa da janela) | controle de abuso e idempotência |
 | Cloudflare (Workers Logs) | eventos agregados: código, contador, latência — **sem conteúdo** | retenção padrão da plataforma | operação |
-| GitHub (`ferrarilabs/support-intake`, privado) | o relato, no Issue privado | retenção proposta de 90 dias (§10) | triagem |
+| GitHub (`eduardomferrari/support-intake`, privado) | o relato, no Issue privado | retenção proposta de 90 dias (§10) | triagem |
 
 **Região:** o Worker executa na borda global da Cloudflare. A localização efetiva do Durable Object
 e a região de armazenamento do repositório GitHub não foram confirmadas por evidência disponível

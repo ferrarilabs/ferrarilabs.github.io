@@ -80,7 +80,7 @@
     // vive em `bolao/shared/safety/report_rollout.json` e os gates exigem COERENCIA com ele: mudar
     // este valor sozinho, sem mudar o estado declarado, REPROVA.
     "REPORT_INTAKE_ENABLED": "true",
-    "REPORT_GITHUB_OWNER": "ferrarilabs",
+    "REPORT_GITHUB_OWNER": "eduardomferrari",
     "REPORT_GITHUB_REPO": "support-intake"
   },
 

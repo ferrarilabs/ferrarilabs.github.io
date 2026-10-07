@@ -17,7 +17,7 @@ O Worker está implantado no estado `BACKEND_PROVISIONED_DISABLED`: servidor
 sintético autorizado. A versão ativa é `b50704ad-f61d-44e9-adeb-530973faf244`.
 
 A fronteira de dados é estrutural: não há binding Supabase/D1/Hyperdrive, e a GitHub App tem acesso
-somente ao repositório privado `ferrarilabs/support-intake` com `Issues: write` e `Metadata: read`.
+somente ao repositório privado `eduardomferrari/support-intake` com `Issues: write` e `Metadata: read`.
 A antiga Edge Function `user-report-intake` foi removida do projeto Supabase primário depois de os
 gates passarem; `live-football` permaneceu. Detalhes de desenho, testes, privacidade, retenção e
 rollback: `SECURE_USER_REPORTING.md`, ADR-021 e a RTM específica.

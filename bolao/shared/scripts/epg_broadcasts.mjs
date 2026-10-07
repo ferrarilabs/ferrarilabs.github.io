@@ -12,7 +12,7 @@
  *
  * ─── DE ONDE VEM A FILOSOFIA ────────────────────────────────────────────────────────────────
  *
- * Portada do repositório irmão ferrarilabs/FerrariTV (`packages/football/src/corroborate.ts`,
+ * Portada do repositório irmão eduardomferrari/FerrariTV (`packages/football/src/corroborate.ts`,
  * `aliases.ts`, `broadcasters.ts`, `apps/api/src/guide.ts`), onde já funciona:
  *
  *   - a ESPN identifica a PARTIDA (id, kickoff, clubes) — nunca a transmissão; para bra.1 o campo

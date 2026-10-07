@@ -387,12 +387,12 @@ item("worker_live_matches_rollout", "LIVE",
   });
 
 item("private_repo_verified", "LIVE",
-  "ferrarilabs/support-intake privado, Issues on, Pages off", () => {
+  "eduardomferrari/support-intake privado, Issues on, Pages off", () => {
     // Era OWNER. Nao precisava ser: a API do GitHub responde isto com mais confianca que a memoria
     // de qualquer pessoa, e o Worker ja reconfere `private` em runtime antes de criar cada Issue.
     let j;
     try {
-      j = JSON.parse(execSync("gh api repos/ferrarilabs/support-intake", { encoding: "utf-8", stdio: ["pipe","pipe","pipe"] }));
+      j = JSON.parse(execSync("gh api repos/eduardomferrari/support-intake", { encoding: "utf-8", stdio: ["pipe","pipe","pipe"] }));
     } catch { return { ok: false, nota: "gh indisponivel ou sem acesso ao repositorio" }; }
     const ruins = [];
     if (j.private !== true) ruins.push("NAO E PRIVADO");

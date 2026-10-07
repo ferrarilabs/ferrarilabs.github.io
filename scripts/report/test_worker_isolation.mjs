@@ -287,6 +287,25 @@ test("o config do primario nao declara o intake", () => {
   ok(!/^\s*\[functions\.user-report-intake\]/m.test(t), "o manifesto do primario voltou a declarar o intake");
 });
 
+/**
+ * O destino dos relatos e um repositorio PRIVADO nomeado por dono/nome. A busca do GitHub nao segue
+ * rename nem transferencia: com o dono antigo a reconciliacao devolve 422, e o 422 e lido como "nao
+ * encontrado" -- a deduplicacao desliga em silencio (Issue #451, migracao de 2026-10-05). Por isso o
+ * dono fica fixado aqui, e as tres fontes que o nomeiam precisam concordar.
+ */
+console.log("\n6. Destino: o repositorio privado de relatos:");
+
+test("o destino e eduardomferrari/support-intake, e provisionar/readiness concordam", () => {
+  const v = cfg.vars || {};
+  eq(`${v.REPORT_GITHUB_OWNER}/${v.REPORT_GITHUB_REPO}`, "eduardomferrari/support-intake", "destino do Worker");
+  const prov = readFileSync(join(DIR, "provisionar.mjs"), "utf-8");
+  ok(prov.includes(`const DONO = "${v.REPORT_GITHUB_OWNER}";`) && prov.includes(`const REPO = "${v.REPORT_GITHUB_REPO}";`),
+     "provisionar.mjs nomeia outro destino");
+  const pronto = readFileSync(join(RAIZ, "scripts", "report", "readiness.mjs"), "utf-8");
+  ok(pronto.includes(`gh api repos/${v.REPORT_GITHUB_OWNER}/${v.REPORT_GITHUB_REPO}`),
+     "readiness.mjs verifica outro repositorio");
+});
+
 console.log(`\n  ${pass} passed, ${fail} failed\n`);
 if (fail) { console.log("✗ CATRACAS DO WORKER REPROVADAS\n"); process.exit(1); }
 console.log("✓ CATRACAS DO WORKER OK\n");

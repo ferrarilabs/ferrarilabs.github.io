@@ -32,7 +32,7 @@ import { readFileSync, existsSync } from "node:fs";
 import { createSign, randomBytes } from "node:crypto";
 
 const WORKER = "ferrarilabs-support-intake";
-const DONO = "ferrarilabs";
+const DONO = "eduardomferrari";
 const REPO = "support-intake";
 const ALVO = `${DONO}/${REPO}`;
 
