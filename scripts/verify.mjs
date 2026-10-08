@@ -811,5 +811,8 @@ function main() {
   return failed.length === 0 ? 0 : 1;
 }
 
-try { process.exit(main()); }
-catch (e) { console.error(`runner error: ${e.message}`); process.exit(2); }
+// exitCode + natural exit instead of process.exit(): with stdout on a pipe (scripts/safety/check.mjs reads
+// `--list` through spawnSync), process.exit() discards output still queued for a slow reader, so the
+// ~46 KB list arrived cut and the browser-shard composition check failed closed in CI.
+try { process.exitCode = main(); }
+catch (e) { console.error(`runner error: ${e.message}`); process.exitCode = 2; }
