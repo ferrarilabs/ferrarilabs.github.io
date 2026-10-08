@@ -16,10 +16,13 @@ Applies to:
 
 ## Brand architecture
 
-FerrariLabs is the master brand with two service families:
+FerrariLabs is the master brand with one active service family:
 
-1. **Business AI & Automation**
-2. **Financial Crime Technology** — AML, KYC, Sanctions, Fraud, Digital Assets
+1. **Business AI & Automation** — the only active commercial line.
+
+**Financial Crime Technology** (AML, KYC, Sanctions, Fraud, Digital Assets) is professional background and
+thought leadership, not an active offering. The commercial solicitation is paused until employer /
+outside-activity clearance exists; do not reintroduce calls to action, contact forms or service positioning for it.
 
 Do not create separate service-family logos.
 
