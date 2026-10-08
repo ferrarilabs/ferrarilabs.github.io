@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-07T10:14:36Z",
+  "generatedAt": "2026-10-08T01:16:14Z",
   "threshold": {
     "minJackpotCents": 50000000000,
     "comparison": "strictly_greater",
@@ -16,7 +16,7 @@
       "nextDrawAt": "2026-10-08T02:59:00Z",
       "source": "https://www.powerball.com/",
       "verificationState": "PRIMARY_CONFIRMED",
-      "fetchedAt": "2026-10-07T10:14:35Z",
+      "fetchedAt": "2026-10-08T01:16:14Z",
       "sourceHash": "cfa7648825f97a10",
       "eligible": false,
       "state": "BELOW_THRESHOLD",
@@ -31,7 +31,7 @@
       "nextDrawAt": "2026-10-10T03:00:00Z",
       "source": "https://www.megamillions.com/cmspages/utilservice.asmx/GetLatestDrawData",
       "verificationState": "PRIMARY_CONFIRMED",
-      "fetchedAt": "2026-10-07T10:14:35Z",
+      "fetchedAt": "2026-10-08T01:16:14Z",
       "sourceHash": "38962cbd359180b5",
       "eligible": false,
       "state": "BELOW_THRESHOLD",
