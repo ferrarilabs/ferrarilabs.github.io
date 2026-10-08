@@ -4,15 +4,17 @@ FerrariLabs — Eduardo Ferrari's owner-operated technology practice.
 
 ## What this site is
 
-A static website with two service areas:
+A static website with one active service area and one background page:
 
-- `/financial-crimes/` — financial crimes & compliance technology: AML, fraud, sanctions,
-  model validation, AI in compliance, digital asset risk
+- `/financial-crimes/` — **professional background and published writing** (AML, fraud, sanctions,
+  model validation, AI in compliance, digital asset risk). **Not an active service offering:** the
+  commercial Financial Crime solicitation is paused until employer / outside-activity clearance exists.
+  Do not add calls to action, contact forms or service positioning to this page.
 - `/small-business/` — practical technology for local and small businesses: websites,
   Google presence, lead capture/follow-up, scheduling, customer communication and automation
 - `/small-business/pt/` — Portuguese localization of the small-business offer for the Charlotte-area Brazilian/Portuguese-speaking channel
 
-The homepage (`index.html`) briefly introduces FerrariLabs and links to both.
+The homepage (`index.html`) introduces FerrariLabs' small-business services and links to the background page.
 
 ## Contact form setup
 

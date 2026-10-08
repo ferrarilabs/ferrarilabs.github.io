@@ -417,6 +417,9 @@ nav a:hover, .nav-active { color: var(--text); }
   grid-template-columns: 1fr 1fr;
   gap: 20px;
 }
+.paths-grid-single {
+  grid-template-columns: minmax(0, 640px);
+}
 .path-card {
   display: flex;
   flex-direction: column;
