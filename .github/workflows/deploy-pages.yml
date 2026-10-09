@@ -32,23 +32,51 @@ jobs:
       - name: Configure Pages
         uses: actions/configure-pages@v5
 
-      - name: Prepare static site
+      - name: Prepare static site (ALLOWLIST)
         shell: bash
         run: |
           set -euo pipefail
 
+          # Publish ONLY explicitly public paths. Everything else in the repository (AI
+          # instructions, package files, scripts, docs, supabase, workers, models, memory) is
+          # never copied. Add a path here deliberately when something new must be public.
           rm -rf _site
           mkdir -p _site
 
-          rsync -a ./ _site/ \
-            --exclude '.git/' \
-            --exclude '.github/' \
-            --exclude '_site/' \
-            --exclude 'node_modules/' \
-            --exclude '__pycache__/' \
-            --exclude '*.pyc'
+          for f in index.html index.pt.html index.es.html index.jp.html insights.html \
+                   styles.css sitemap.xml CNAME .nojekyll; do
+            test -f "$f" && cp "$f" "_site/$f"
+          done
+          for d in assets financial-crimes small-business; do
+            test -d "$d" && cp -R "$d" "_site/$d"
+          done
+
+          # TRANSITIONAL (T-103): the personal Bolao frontend is still served from here until its
+          # cutover to the personal repository; then this block becomes a minimal 30-day redirect.
+          # Only the static frontend is published, not its tooling, docs or SQL.
+          if [ -d bolao ]; then
+            mkdir -p _site/bolao
+            rsync -a bolao/ _site/bolao/ \
+              --exclude 'scripts/' --exclude 'docs/' --exclude 'sql/' --exclude 'preview/' \
+              --exclude '*.md' --exclude '*.txt' --exclude '*.py' --exclude '*.sql' \
+              --exclude '*.test.mjs' --exclude '__pycache__/'
+          fi
+          if [ -d bolao-teste ]; then cp -R bolao-teste _site/bolao-teste; fi
 
           touch _site/.nojekyll
+
+          # Fail closed: nothing internal may be present in the artifact.
+          for bad in CLAUDE.md CHATGPT.md README.md package.json package-lock.json docs scripts \
+                     supabase workers model memory .github .claude .githooks node_modules; do
+            if [ -e "_site/$bad" ]; then echo "::error::non-public path in artifact: $bad"; exit 1; fi
+          done
+          if find _site \( -name 'CLAUDE.md' -o -name 'CHATGPT.md' -o -name '*.py' -o -name '*.sql' -o -name 'package.json' \) | grep -q .; then
+            echo "::error::internal file leaked into artifact"; find _site \( -name 'CLAUDE.md' -o -name 'CHATGPT.md' -o -name '*.py' -o -name '*.sql' -o -name 'package.json' \); exit 1
+          fi
+          for req in index.html index.pt.html index.es.html index.jp.html insights.html styles.css sitemap.xml \
+                     financial-crimes/index.html small-business/index.html; do
+            test -s "_site/$req" || { echo "::error::required public file missing: $req"; exit 1; }
+          done
 
           cat > _site/deployment-meta.json <<EOF
           {
