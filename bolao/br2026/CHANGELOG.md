@@ -1,5 +1,31 @@
 # Bolão Brasileirão 2026 — CHANGELOG
 
+## v1.139 — hero não pode ficar "Em andamento" sem confirmação ao vivo (2026-10-18, #467)
+
+Eduardo relatou, minutos depois do deploy do #465: hero mostrando Bahia × Flamengo como
+**"Em andamento"**, sem placar, com o gateway ao vivo fora (`UPSTREAM_403`). Mesma classe de
+defeito do #436, em componente irmão que aquela correção não cobria.
+
+**Causa raiz:** `bolao/shared/js/football_hero_state.js` (`deriveFootballHeroState()`,
+compartilhado com CDB2026) devolvia `HERO.UPCOMING` sempre que havia `nextMatch` conhecido, sem
+checar se o kickoff já tinha passado. `renderHeroSemAoVivo()` alimenta esse estado direto em
+`countdownTimerHtml()`, cujo contrato (#436, de propósito sem lógica de provedor) é
+`diffMs<=0 => "Em andamento"` — sem checar NADA. Resultado: qualquer partida cujo kickoff passa
+sem confirmação ao vivo (fonte fora, cron atrasado, snapshot velho) vira "ao vivo" por omissão,
+mesmo adiada/cancelada.
+
+**Correção:** `UPCOMING` só vale enquanto o kickoff ainda não chegou. Passado o horário sem
+confirmação, cai nos ramos já existentes e honestos (`SOURCE_UNAVAILABLE`/`SCHEDULE_UNKNOWN`),
+que já têm texto apropriado via `BOLAO_HERO_COPY` e nunca afirmam partida em andamento sem prova.
+Um confronto conhecido mas sem data (#395, ex.: "Vencedor de X × Y" no CDB2026) não tem kickoff
+pra comparar e continua `UPCOMING` normalmente.
+
+- `bolao/shared/js/football_hero_state.js`: um `if` a mais em `deriveFootballHeroState()` —
+  mesma correção serve BR2026 e CDB2026, sem duplicar lógica.
+- `bolao/shared/scripts/test_hero_always_mounted.mjs`: 4 testes novos (demonstrado falhando
+  contra o código antigo, depois passando com a correção).
+- Nenhuma mudança em scoring, schema ou regra de torneio.
+
 ## Backend/pipeline fix (sem bump de siteVersion) — 2026-10-18, #465
 
 Jogos ao vivo pararam de aparecer inteiramente (não só o countdown pós-jogo do #436). Causa raiz:
