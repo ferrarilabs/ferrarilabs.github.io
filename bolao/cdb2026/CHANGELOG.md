@@ -1,5 +1,15 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.154 — hero não pode ficar "Em andamento" sem confirmação ao vivo (2026-10-18, #467)
+
+Mesma correção aplicada em `bolao/br2026/CHANGELOG.md` (#467) — código compartilhado em
+`bolao/shared/js/football_hero_state.js`. `deriveFootballHeroState()` não checava se o kickoff
+de `nextMatch` já tinha passado antes de devolver `UPCOMING`; CDB2026 alimenta esse estado em
+`nextMatchBlockHtml()` → `countdownTimerHtml()` exatamente como o BR2026. Corrigido no módulo
+compartilhado; um confronto sem data conhecida (#395, "Vencedor de X × Y") continua `UPCOMING`
+normalmente, já que não tem kickoff pra comparar. Nenhuma mudança de scoring, schema ou regra de
+torneio.
+
 ## Backend/pipeline fix (sem bump de siteVersion) — 2026-10-18, #465
 
 Mesma correção aplicada em `bolao/br2026/CHANGELOG.md` (#465) — código compartilhado em
