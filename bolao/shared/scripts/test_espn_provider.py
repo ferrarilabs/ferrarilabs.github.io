@@ -279,5 +279,130 @@ class AtomicWriteTests(unittest.TestCase):
             self.assertFalse(os.path.exists(path))  # destination never created at all
 
 
+# ─── Issue #465: ESPN dropped `dates=RANGE` support — windowed single-date fetch + merge ───────
+
+class ScoreboardWindowUrlsTests(unittest.TestCase):
+    def test_one_url_per_day_single_date_form(self):
+        import datetime
+        urls = ep.scoreboard_window_urls(
+            "https://fake/scoreboard", days_back=1, days_ahead=1,
+            today=datetime.date(2026, 10, 18),
+        )
+        self.assertEqual(urls, [
+            "https://fake/scoreboard?dates=20261017",
+            "https://fake/scoreboard?dates=20261018",
+            "https://fake/scoreboard?dates=20261019",
+        ])
+
+    def test_appends_with_ampersand_when_base_url_already_has_a_query_string(self):
+        import datetime
+        urls = ep.scoreboard_window_urls(
+            "https://fake/scoreboard?limit=500", days_back=0, days_ahead=0,
+            today=datetime.date(2026, 10, 18),
+        )
+        self.assertEqual(urls, ["https://fake/scoreboard?limit=500&dates=20261018"])
+
+
+class FetchJsonManyTests(unittest.TestCase):
+    def test_merges_events_from_every_url_that_succeeds(self):
+        day1 = '{"events": [{"id": "1"}]}'
+        day2 = '{"events": [{"id": "2"}]}'
+        by_url = {"https://fake/a": day1, "https://fake/b": day2}
+
+        def opener(url, timeout_s):
+            return by_url[url].encode("utf-8")
+
+        r = ep.fetch_json_many(["https://fake/a", "https://fake/b"], opener=opener)
+        self.assertTrue(r.ok)
+        self.assertEqual([e["id"] for e in r.data["events"]], ["1", "2"])
+
+    def test_one_failing_url_does_not_discard_the_others(self):
+        day_ok = '{"events": [{"id": "1"}]}'
+
+        def opener(url, timeout_s):
+            if url == "https://fake/bad":
+                raise ep.FetchError("simulated 400")
+            return day_ok.encode("utf-8")
+
+        r = ep.fetch_json_many(["https://fake/bad", "https://fake/good"],
+                                retries=1, opener=opener)
+        self.assertTrue(r.ok)
+        self.assertEqual([e["id"] for e in r.data["events"]], ["1"])
+
+    def test_all_urls_failing_is_a_failed_fetch(self):
+        def opener(url, timeout_s):
+            raise ep.FetchError("simulated 400")
+
+        r = ep.fetch_json_many(["https://fake/a", "https://fake/b"], retries=1, opener=opener)
+        self.assertFalse(r.ok)
+
+
+class MergeMatchesByIdTests(unittest.TestCase):
+    def test_new_entry_overrides_old_entry_with_same_id(self):
+        old = [{"id": "1", "state": "pre"}]
+        new = [{"id": "1", "state": "post"}]
+        merged = ep.merge_matches_by_id(old, new)
+        self.assertEqual(merged, [{"id": "1", "state": "post"}])
+
+    def test_old_entry_outside_the_window_passes_through_unchanged(self):
+        old = [{"id": "1", "date": "2026-01-01"}, {"id": "2", "date": "2026-10-18"}]
+        new = [{"id": "2", "date": "2026-10-18", "state": "post"}]
+        merged = ep.merge_matches_by_id(old, new)
+        self.assertEqual(len(merged), 2)
+        self.assertIn({"id": "1", "date": "2026-01-01"}, merged)
+
+    def test_result_is_sorted_by_date(self):
+        old = [{"id": "2", "date": "2026-10-18"}]
+        new = [{"id": "1", "date": "2026-01-01"}]
+        merged = ep.merge_matches_by_id(old, new)
+        self.assertEqual([m["id"] for m in merged], ["1", "2"])
+
+
+class RunSyncWindowedMergeTests(unittest.TestCase):
+    """run_sync() with config["source_urls"] set — the path sync_espn.py now uses for the
+    scoreboard kind, since the previous single `dates=RANGE` URL stopped working (#465)."""
+
+    def test_windowed_fetch_preserves_matches_outside_the_window_and_updates_matches_inside_it(self):
+        import tempfile, os
+
+        old_in_window = {
+            "id": "1", "date": "2026-10-18T00:00Z", "state": "pre", "statusName": "STATUS_SCHEDULED",
+            "completed": False, "homeTeam": "Time Alfa", "awayTeam": "Time Beta",
+            "homeTeamId": None, "awayTeamId": None, "homeScore": None, "awayScore": None,
+            "homeWinner": None, "awayWinner": None, "venue": None, "city": "",
+            "clockSec": None, "clockStr": "", "period": None, "details": [],
+        }
+        old_outside_window = {**old_in_window, "id": "99", "date": "2026-01-01T00:00Z"}
+        previous_snapshot = {
+            "schemaVersion": ep.SCHEMA_VERSION, "competitionId": "bra.1", "provider": "espn",
+            "generatedAt": "2026-09-15T00:00:00Z", "sourceUpdatedAt": "2026-09-15T00:00:00Z",
+            "stale": False, "staleReason": None,
+            "payloadHash": ep.payload_hash([old_in_window, old_outside_window]),
+            "matches": [old_in_window, old_outside_window],
+        }
+
+        with tempfile.TemporaryDirectory() as d:
+            path = os.path.join(d, "espn-normalized.json")
+            ep.write_snapshot_atomic(path, previous_snapshot)
+
+            def opener(url, timeout_s):
+                return SCOREBOARD_FIXTURE.encode("utf-8")
+
+            cfg = {
+                "competition_id": "bra.1", "provider": "espn", "kind": "scoreboard",
+                "source_urls": ["https://fake/scoreboard?dates=20261018"],
+                "output_path": path, "aliases": {},
+            }
+            outcome = ep.run_sync(cfg, opener=opener)
+            self.assertTrue(outcome.wrote)
+            written = ep.read_snapshot(path)
+            ids = sorted(m["id"] for m in written["matches"])
+            self.assertEqual(ids, ["1", "99"])
+            refreshed = next(m for m in written["matches"] if m["id"] == "1")
+            self.assertEqual(refreshed["state"], "post")  # refreshed from the fixture, not "pre"
+            preserved = next(m for m in written["matches"] if m["id"] == "99")
+            self.assertEqual(preserved["date"], "2026-01-01T00:00Z")  # untouched, outside window
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

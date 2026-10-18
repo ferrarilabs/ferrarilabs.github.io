@@ -30,7 +30,7 @@ import time
 import urllib.error
 import urllib.request
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from typing import Callable, Optional
 
 SCHEMA_VERSION = 1
@@ -82,6 +82,67 @@ def fetch_json(
             if attempt < retries:
                 time.sleep(backoff_s * attempt)
     return FetchResult(ok=False, error=last_err, attempts=retries, fetchedAt=now_iso())
+
+
+def scoreboard_window_urls(base_url: str, *, days_back: int, days_ahead: int,
+                            today: Optional[date] = None) -> list[str]:
+    """`base_url` must NOT already contain a `dates=` param (e.g. '.../bra.1/scoreboard').
+    Returns one URL per day in [today-days_back, today+days_ahead] using ESPN's single-date
+    `dates=YYYYMMDD` form.
+
+    Exists because ESPN silently stopped accepting the `dates=YYYYMMDD-YYYYMMDD` range form this
+    provider used since inception — confirmed empirically 2026-10-18 (every width, even a 2-day
+    range, now 400s with "Failed to get events endpoint"), while the single-date form and no
+    `dates` param at all both still return 200. See Issue #465."""
+    base_date = today or datetime.now(timezone.utc).date()
+    sep = "&" if "?" in base_url else "?"
+    return [f"{base_url}{sep}dates={(base_date + timedelta(days=offset)).strftime('%Y%m%d')}"
+            for offset in range(-days_back, days_ahead + 1)]
+
+
+def fetch_json_many(
+    urls: list[str],
+    *,
+    timeout_s: float = DEFAULT_TIMEOUT_S,
+    retries: int = DEFAULT_RETRIES,
+    backoff_s: float = DEFAULT_RETRY_BACKOFF_S,
+    opener: Optional[Callable[[str, float], bytes]] = None,
+) -> FetchResult:
+    """Fetch several URLs (one per day — see scoreboard_window_urls) and merge their 'events'
+    arrays into a single FetchResult, as if one wide-range request had succeeded. A URL that
+    fails all its own retries is skipped rather than failing the whole batch — ok=True as long as
+    at least one URL succeeded; run_sync()'s merge-by-id step keeps whatever was already on disk
+    for the day(s) that failed, same as a normal stale fallback would for a single-URL fetch."""
+    merged_events: list = []
+    errors: list[str] = []
+    fetched_at = None
+    for url in urls:
+        r = fetch_json(url, timeout_s=timeout_s, retries=retries, backoff_s=backoff_s, opener=opener)
+        if r.ok:
+            fetched_at = r.fetchedAt
+            merged_events.extend((r.data or {}).get("events") or [])
+        else:
+            errors.append(f"{url}: {r.error}")
+    if fetched_at is None:
+        return FetchResult(ok=False, error="; ".join(errors) or "all date-window fetches failed",
+                            attempts=len(urls), fetchedAt=now_iso())
+    return FetchResult(ok=True, data={"events": merged_events}, attempts=len(urls), fetchedAt=fetched_at)
+
+
+def merge_matches_by_id(previous_matches: Optional[list], new_matches: Optional[list]) -> list[dict]:
+    """Pure merge: new entries win over old ones with the same id; old entries whose id isn't in
+    `new_matches` (i.e. outside the fetched date window) pass through unchanged. Needed because
+    build_snapshot() fully replaces `matches` with whatever one fetch produced (its own tested
+    contract — see SnapshotTests) — without this, a windowed fetch would shrink the committed
+    calendar down to just the days queried instead of refreshing a slice of it."""
+    by_id: dict = {}
+    for m in (previous_matches or []):
+        if isinstance(m, dict) and m.get("id") is not None:
+            by_id[m["id"]] = m
+    for m in (new_matches or []):
+        if isinstance(m, dict) and m.get("id") is not None:
+            by_id[m["id"]] = m
+    return sorted(by_id.values(), key=lambda m: m.get("date") or "")
 
 
 def _default_opener(url: str, timeout_s: float) -> bytes:
@@ -450,17 +511,21 @@ def read_snapshot(path: str) -> Optional[dict]:
         return None
 
 
-def run_sync(config: dict) -> RefreshOutcome:
+def run_sync(config: dict, *, opener: Optional[Callable[[str, float], bytes]] = None) -> RefreshOutcome:
     """The one driver every per-app wrapper script calls. Each app's own script (e.g.
     bolao/cdb2026/scripts/sync_espn.py) supplies ONLY declarative config — competition id,
     source URL, kind, app-specific aliases, output path — no per-app reimplementation of
     fetch/validate/normalize/write logic, per checkpoint C2's requirement.
 
-    config keys (all required):
+    config keys:
       competition_id: str   — e.g. "bra.copa_do_brazil"
       provider: str         — e.g. "espn"
       kind: str             — "scoreboard" | "standings"
-      source_url: str
+      source_url: str       — single-URL fetch (standings; scoreboard before #465)
+      source_urls: list[str] — OR a day-by-day window (see scoreboard_window_urls); mutually
+                               exclusive with source_url. Required because ESPN's scoreboard
+                               endpoint no longer accepts a `dates=RANGE` single query (#465) —
+                               each URL here is one day's single-date query, merged below.
       output_path: str      — where to write bolao/{app}/data/espn-normalized.json
       aliases: dict         — app-specific team-name aliases beyond any shared defaults
       timeout_s, retries, retry_backoff_s: optional, fall back to module defaults
@@ -473,12 +538,17 @@ def run_sync(config: dict) -> RefreshOutcome:
         # code doesn't understand.
         previous = None
 
-    fetch_result = fetch_json(
-        config["source_url"],
+    source_urls = config.get("source_urls")
+    fetch_kwargs = dict(
         timeout_s=config.get("timeout_s", DEFAULT_TIMEOUT_S),
         retries=config.get("retries", DEFAULT_RETRIES),
         backoff_s=config.get("retry_backoff_s", DEFAULT_RETRY_BACKOFF_S),
+        opener=opener,
     )
+    if source_urls:
+        fetch_result = fetch_json_many(source_urls, **fetch_kwargs)
+    else:
+        fetch_result = fetch_json(config["source_url"], **fetch_kwargs)
     snapshot, outcome = build_snapshot(
         kind=config["kind"],
         competition_id=config["competition_id"],
@@ -487,6 +557,15 @@ def run_sync(config: dict) -> RefreshOutcome:
         aliases=config.get("aliases", {}),
         previous=previous,
     )
+    # Fetch de janela (`source_urls`): build_snapshot() SUBSTITUI `matches` inteiro pelo que veio
+    # NESTE fetch (contrato dele, testado em SnapshotTests) — mas aqui o fetch cobre só um RECORTE
+    # do calendário (ex.: ontem..+N dias), nunca a temporada inteira. Sem este passo o calendário
+    # inteiro encolheria para só os dias consultados a cada rodada. merge_matches_by_id() devolve o
+    # calendário completo: dias fora da janela mantêm a entrada anterior, dias dentro são
+    # sobrescritos pelo que a ESPN devolveu agora.
+    if source_urls and not snapshot.get("stale") and previous and previous.get("matches"):
+        snapshot["matches"] = merge_matches_by_id(previous.get("matches"), snapshot["matches"])
+        snapshot["payloadHash"] = payload_hash(snapshot["matches"])
     # ESCRITA IDEMPOTENTE: se o conteúdo upstream não mudou (mesmo payloadHash) e o snapshot em
     # disco continua válido, NÃO reescrever. Sem isto o `generatedAt` muda a cada execução e o
     # arquivo é reescrito sempre — no CI isso significa um commit novo de ~3,5 MB (os três apps

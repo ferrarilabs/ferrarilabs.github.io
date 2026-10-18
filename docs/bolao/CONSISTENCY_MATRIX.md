@@ -2597,3 +2597,26 @@ A regra de derivação é lógica de torneio, e a governança proíbe generaliz�
 tokens e componentes da Copa é sempre correto, copiar sua lógica de chaveamento nunca é. O que É
 compartilhado aqui continua compartilhado: o bloco reusa `.next-game-card`/`.next-game-teams` e a
 redação canônica de `i18n.js`, sem componente novo.
+
+## `espn_provider.py` janela de consultas ESPN — fix não propagado ao copa2026 (2026-10-18, #465)
+
+`bolao/shared/scripts/espn_provider.py` é `PLATFORM_SHARED` de fato (os três `sync_espn.py`
+importam o mesmo módulo). A correção do #465 (ESPN deixou de aceitar `dates=RANGE`; trocado por
+janela diária + merge por id — ver `bolao/br2026/CHANGELOG.md`) foi aplicada nos configs de
+`bolao/br2026/scripts/sync_espn.py` e `bolao/cdb2026/scripts/sync_espn.py`. `bolao/copa2026/
+scripts/sync_espn.py` tem o MESMO bug de forma (sua config também usa `dates=RANGE`) e não foi
+tocado.
+
+| | br2026 | cdb2026 | copa2026 |
+|---|---|---|---|
+| config usa `dates=RANGE` (quebrado) | corrigido → janela diária | corrigido → janela diária | **ainda quebrado** |
+| sintoma em produção | sim (#465) | sim (mesma causa) | nenhum — torneio concluído/arquivado |
+| no cron agendado (`bolao_provider_snapshot.yml`) | sim | sim | não (matrix só roda br2026/cdb2026 no `schedule`) |
+
+**Por que não propagar agora.** Copa está `CONFIG.archived`, não é mais o destino padrão de
+`/bolao/`, e só recebe patch pequeno/reversível avaliado caso a caso. O cron agendado já exclui
+copa2026 (`matrix.app` só lista `br2026`/`cdb2026` em `schedule`), então não há sintoma — o
+snapshot da Copa não está sendo refrescado por nenhum caminho de qualquer forma, corrigido ou não,
+desde que o torneio terminou. Corrigir código morto num app congelado é risco sem benefício visível.
+Se o Copa voltar a ser consultado por qualquer motivo, aplicar a mesma troca (`scoreboard_window_urls`
++ `source_urls`) em `bolao/copa2026/scripts/sync_espn.py` antes.
