@@ -1,5 +1,30 @@
 # Bolão Brasileirão 2026 — CHANGELOG
 
+## Backend/pipeline fix (sem bump de siteVersion) — 2026-10-18, #465
+
+Jogos ao vivo pararam de aparecer inteiramente (não só o countdown pós-jogo do #436). Causa raiz:
+a ESPN deixou de aceitar `dates=YYYYMMDD-YYYYMMDD` no endpoint de scoreboard (qualquer largura,
+mesmo 2 dias, passou a devolver 400 "Failed to get events endpoint"; `dates=YYYYMMDD` isolado e
+sem `dates` continuam funcionando) — confirmado empiricamente 2026-10-18. `espn_provider.py`
+usava essa forma desde a criação do pipeline, então o fetch já estava falhendo silenciosamente
+(`stale=True reason="fetch failed, kept last-known-good"`) desde ~2026-09-15, antes até do bloqueio
+de push por regra de branch do #465 (ver Issue #465 para a cadeia completa). Com o calendário
+commitado congelado, `produce_live_cache.mjs` não reconhecia os jogos de hoje como "na janela" e
+nem tentava buscar dado ao vivo — para br2026 E cdb2026.
+
+**Correção** em `bolao/shared/scripts/espn_provider.py` (código compartilhado pelos três apps):
+`scoreboard_window_urls()` + `fetch_json_many()` substituem a consulta única de intervalo por
+uma janela de consultas diárias de data única (a forma que a ESPN ainda aceita), e
+`merge_matches_by_id()` mescla o resultado da janela com o snapshot anterior por id — dias fora
+da janela mantêm a entrada anterior, dias dentro são atualizados. `run_sync()` aplica esse merge
+quando `config["source_urls"]` está presente (`source_url` singular, usado pelo standings,
+continua exatamente como antes). Backfill único de ~55 dias rodado manualmente para corrigir a
+lacuna de 2026-09-15 a hoje; janela contínua do cron fica pequena (2 dias atrás, 10 à frente) para
+não repetir os bloqueios que a ESPN já aplicou a este pipeline antes (403 por user-agent, depois
+TLS). Sem mudança de scoring, schema ou regra de torneio — `audit_scoring.py` roda limpo nos três
+apps. `copa2026` tem o mesmo bug no código mas NÃO foi alterado aqui: está arquivado, sem cron
+ativo, sem sintoma em produção — ver `docs/bolao/CONSISTENCY_MATRIX.md`.
+
 ## v1.138 — jogo terminado não volta a "Em andamento" (2026-09-15, #436)
 
 Produção, 2026-09-14/15: Bahia 2 × 1 Remo terminou (gateway com `state:"post"`, `completed:true`,

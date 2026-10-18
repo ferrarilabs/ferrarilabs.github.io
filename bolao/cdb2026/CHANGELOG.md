@@ -1,5 +1,14 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## Backend/pipeline fix (sem bump de siteVersion) — 2026-10-18, #465
+
+Mesma correção aplicada em `bolao/br2026/CHANGELOG.md` (#465) — código compartilhado em
+`bolao/shared/scripts/espn_provider.py`. A ESPN deixou de aceitar `dates=RANGE` no endpoint de
+scoreboard; o snapshot (`espn-normalized.json`) estava congelado desde 2026-09-22. Trocado por
+janela de consultas diárias de data única + merge por id com o snapshot anterior. Backfill único
+rodado para a lacuna de 22/09 a hoje. `audit_scoring.py` roda limpo. Nenhuma mudança de scoring,
+schema ou regra de torneio.
+
 ## v3.153 — campeão previsto preserva a identidade do TIME, não só o lado A/B (#440)
 
 Eduardo encontrou um caso real: uma entrada escolheu **Internacional** nas quartas, depois lado A da
