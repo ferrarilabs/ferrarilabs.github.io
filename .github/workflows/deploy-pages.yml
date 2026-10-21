@@ -51,6 +51,18 @@ jobs:
             test -d "$d" && cp -R "$d" "_site/$d"
           done
 
+          # Owner-approved public PHP/WordPress landing pages, 2026-10-21.
+          # Copy ONLY these specific reviewed HTML files, not whole new trees.
+          for f in \
+            services/php-updates/index.html \
+            services/php-updates/es/index.html \
+            services/wordpress-maintenance/index.html \
+            security/php2shell-cve-2026-109618-109619/index.html; do
+            test -s "$f" || { echo "::error::required public file missing: $f"; exit 1; }
+            mkdir -p "_site/$(dirname "$f")"
+            cp "$f" "_site/$f"
+          done
+
           # TRANSITIONAL (T-103): the personal Bolao frontend is still served from here until its
           # cutover to the personal repository; then this block becomes a minimal 30-day redirect.
           # Only the static frontend is published, not its tooling, docs or SQL.
@@ -74,7 +86,10 @@ jobs:
             echo "::error::internal file leaked into artifact"; find _site \( -name 'CLAUDE.md' -o -name 'CHATGPT.md' -o -name '*.py' -o -name '*.sql' -o -name 'package.json' \); exit 1
           fi
           for req in index.html index.pt.html index.es.html index.jp.html insights.html styles.css sitemap.xml \
-                     financial-crimes/index.html small-business/index.html; do
+                     financial-crimes/index.html small-business/index.html \
+                     services/php-updates/index.html services/php-updates/es/index.html \
+                     services/wordpress-maintenance/index.html \
+                     security/php2shell-cve-2026-109618-109619/index.html; do
             test -s "_site/$req" || { echo "::error::required public file missing: $req"; exit 1; }
           done
 
