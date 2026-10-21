@@ -24,4 +24,20 @@
   <url>
     <loc>https://www.ferrarilabs.com/insights.html</loc>
   </url>
+  <url>
+    <loc>https://www.ferrarilabs.com/services/php-updates/</loc>
+    <lastmod>2026-10-21</lastmod>
+  </url>
+  <url>
+    <loc>https://www.ferrarilabs.com/services/php-updates/es/</loc>
+    <lastmod>2026-10-21</lastmod>
+  </url>
+  <url>
+    <loc>https://www.ferrarilabs.com/services/wordpress-maintenance/</loc>
+    <lastmod>2026-10-21</lastmod>
+  </url>
+  <url>
+    <loc>https://www.ferrarilabs.com/security/php2shell-cve-2026-109618-109619/</loc>
+    <lastmod>2026-10-21</lastmod>
+  </url>
 </urlset>
