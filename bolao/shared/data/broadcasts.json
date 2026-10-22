@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "sourceModel": "EPG_CORROBORATED_WITH_CURATED_OVERRIDE",
   "_comment": "Fonte de dados de 'Onde assistir' (bolao/shared/js/where_to_watch.js). Modelo EPG_CORROBORATED_WITH_CURATED_OVERRIDE (#431): registros sem 'origin' são curadoria humana e sempre vencem; registros 'origin: epg' são gerados por bolao/shared/scripts/sync_epg_broadcasts.mjs a partir da grade de TV — não edite esses à mão. Ver docs/bolao/BROADCAST_OPERATIONS.md antes de editar este arquivo.",
-  "updatedAt": "2026-10-22T11:54:09Z",
+  "updatedAt": "2026-10-22T17:11:28Z",
   "entries": [
     {
       "espnId": "401909114",
@@ -50,7 +50,7 @@
       "origin": "epg",
       "source": "EPG XMLTV epgshare01 (BR1/BR2) — corroboração automática: programa cita os dois clubes no horário do kickoff",
       "confirmedAt": "2026-10-22",
-      "collectedAt": "2026-10-22T11:54:09Z",
+      "collectedAt": "2026-10-22T17:11:28Z",
       "evidence": [
         {
           "channel": "SporTV",
@@ -61,7 +61,7 @@
           "programmeStart": "2026-10-23T23:00:00Z",
           "programmeStop": "2026-10-24T01:00:00Z",
           "matchedTeams": ["cruzeiro", "remo"],
-          "collectedAt": "2026-10-22T11:54:09Z"
+          "collectedAt": "2026-10-22T17:11:28Z"
         },
         {
           "channel": "SporTV",
@@ -73,7 +73,7 @@
           "programmeStart": "2026-10-23T23:00:00Z",
           "programmeStop": "2026-10-24T01:00:00Z",
           "matchedTeams": ["cruzeiro", "remo"],
-          "collectedAt": "2026-10-22T11:54:09Z"
+          "collectedAt": "2026-10-22T17:11:28Z"
         }
       ]
     },
@@ -86,7 +86,7 @@
       "origin": "epg",
       "source": "EPG XMLTV epgshare01 (BR1/BR2) — corroboração automática: programa cita os dois clubes no horário do kickoff",
       "confirmedAt": "2026-10-22",
-      "collectedAt": "2026-10-22T11:54:09Z",
+      "collectedAt": "2026-10-22T17:11:28Z",
       "evidence": [
         {
           "channel": "Premiere",
@@ -97,7 +97,7 @@
           "programmeStart": "2026-10-24T21:30:00Z",
           "programmeStop": "2026-10-24T23:40:00Z",
           "matchedTeams": ["palmeiras", "bragantino"],
-          "collectedAt": "2026-10-22T11:54:09Z"
+          "collectedAt": "2026-10-22T17:11:28Z"
         }
       ]
     }
