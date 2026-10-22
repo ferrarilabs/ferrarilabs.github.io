@@ -36,6 +36,8 @@ concurrency:
 permissions:
   contents: write
   actions: write
+  # 2026-10-21: abrir/atualizar o PR rolante (main exige PR — ruleset main-protection).
+  pull-requests: write
 
 jobs:
   sync:
@@ -81,6 +83,8 @@ jobs:
       - name: Commit
         id: commit
         if: steps.cfg.outputs.dry != 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -91,32 +95,16 @@ jobs:
             exit 0
           fi
           git commit -m "chore(br2026): Onde assistir atualizado pela grade de TV"
-          empurrou=false
-          for tentativa in 1 2 3 4 5; do
-            git pull --rebase --autostash origin main
-            # Um humano pode ter curado a mesma partida entre o checkout e o push: revalida o
-            # resultado do rebase antes de publicar.
-            if ! node bolao/shared/scripts/validate_broadcasts.mjs; then
-              echo "::error::broadcasts.json inválido depois do rebase; nada foi publicado."
-              exit 1
-            fi
-            if git push origin HEAD:refs/heads/main; then
-              empurrou=true
-              break
-            fi
-            echo "push rejeitado (tentativa ${tentativa}/5) — rebaseando de novo."
-            sleep $(( tentativa * 3 ))
-          done
-          if [ "$empurrou" != "true" ]; then
-            echo "::error::push rejeitado 5 vezes seguidas; broadcasts.json NAO foi persistido."
+          # 2026-10-21: o push direto em main era recusado com GH013 desde 2026-10-14 (ruleset
+          # main-protection: PR + `npm run check`). O dado vai para um PR rolante; o check exigido
+          # e disparado no topo do branch. Ver scripts/ci/publish_data_via_pr.sh.
+          scripts/ci/publish_data_via_pr.sh "auto/data/br2026-broadcasts" \
+            "chore(br2026): Onde assistir atualizado pela grade de TV (automatico)" \
+            "broadcasts.json gerado por br2026_broadcast_epg.yml, com autoteste do corroborador e validate_broadcasts.mjs verdes antes deste push. PR rolante: execucoes seguintes atualizam este mesmo PR. Merge somente com \`npm run check\` verde no topo atual (ruleset main-protection)." \
+            bolao/shared/data/broadcasts.json
+          # O branch recebeu origin/main por merge: revalida o resultado antes de declarar sucesso.
+          if ! node bolao/shared/scripts/validate_broadcasts.mjs; then
+            echo "::error::broadcasts.json inválido no branch do PR; o check exigido vai reprovar o merge."
             exit 1
           fi
           echo "committed=true" >> "$GITHUB_OUTPUT"
-
-      - name: Trigger Pages deploy
-        if: steps.commit.outputs.committed == 'true'
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          gh workflow run "Deploy GitHub Pages" --ref main
-          echo "Deploy GitHub Pages dispatched for the refreshed broadcasts.json."
