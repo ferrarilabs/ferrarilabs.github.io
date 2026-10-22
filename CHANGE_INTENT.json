@@ -1,0 +1,10 @@
+{
+  "declarations": [
+    {
+      "surface_id": "NOTIFICATION_WORKFLOWS",
+      "reason": "GH013 since 2026-10-14: ruleset main-protection requires a pull request and the `npm run check` status on refs/heads/main, and GITHUB_TOKEN has no bypass. bolao_provider_snapshot.yml (br2026) and br2026_broadcast_epg.yml pushed generated data straight to main, so every run with new data failed after 5 rejected pushes and the data never reached the repository. Both files are matched by this surface only because they live under .github/workflows; neither sends e-mail.",
+      "expected_behavior_change": "Generated data is committed to a rolling branch auto/data/<name> (fast-forward only, never force-pushed, never main) and one rolling PR per branch is opened or updated against main; the workflow dispatches safety_check.yml on that branch so the required `npm run check` runs on the PR head. Merge stays governed by the unchanged ruleset. The direct Pages deploy dispatch is removed from both workflows: Pages deploys on the merge push. Triggers, cron, dry-run behavior, pre-publication validators and concurrency are unchanged. Adds `pull-requests: write`.",
+      "tests_required": ["cron-coverage", "email-send-safety", "powerball-workflow-arming"]
+    }
+  ]
+}

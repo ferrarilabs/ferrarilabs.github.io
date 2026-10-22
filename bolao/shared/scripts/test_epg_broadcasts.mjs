@@ -418,13 +418,21 @@ test("B1 snapshot confirma o mesmo horário: entrada fora do escopo continua (la
   A(!changed && doc.entries.some((e) => e.origin === "epg"), J(doc.entries));
 });
 
-test("S1 workflow só publica a partir de refs/heads/main e empurra explicitamente para main", () => {
+// 2026-10-21: o destino explicito deixou de ser main. O ruleset main-protection recusa push direto
+// (GH013) e o dado passa por PR rolante via scripts/ci/publish_data_via_pr.sh. O invariante da
+// revisao do PR #432 continua o mesmo e fica mais estrito: nenhum push sem destino explicito, nenhum
+// push direto em main, e o script so escreve na ref explicita auto/data/<nome>.
+test("S1 workflow só publica a partir de refs/heads/main e empurra só para destino explícito auto/data/", () => {
   const wf = readFileSync(join(ROOT, ".github/workflows/br2026_broadcast_epg.yml"), "utf8");
   const guard = wf.indexOf("So publica a partir de main");
   const checkout = wf.indexOf("uses: actions/checkout@v4");
   A(guard > 0 && guard < checkout, "a guarda de ref precisa vir antes do checkout");
   A(/"\$\{GITHUB_REF\}" != "refs\/heads\/main"/.test(wf) && /exit 1/.test(wf.slice(guard, checkout)), "guarda de ref ausente ou sem falha");
-  A(/git push origin HEAD:refs\/heads\/main/.test(wf) && !/git push(\s*;|\s*$|\s+then)/m.test(wf), "push sem destino explícito");
+  A(!/git push/.test(wf), "o workflow voltou a empurrar sozinho — main exige PR (ruleset main-protection)");
+  A(/scripts\/ci\/publish_data_via_pr\.sh "auto\/data\/br2026-broadcasts"/.test(wf), "publicação fora do PR rolante auto/data/");
+  const pub = readFileSync(join(ROOT, "scripts/ci/publish_data_via_pr.sh"), "utf8");
+  A(/auto\/data\/\*\) ;;/.test(pub) && /git push origin "HEAD:refs\/heads\/\$BRANCH"/.test(pub), "script sem guarda de ref ou push sem destino explícito");
+  A(!/--force|\s-f\s+origin|refs\/heads\/main/.test(pub.split("\n").filter((l) => /git push/.test(l)).join("\n")), "o script empurra com força ou para main");
 });
 
 const keptAfter = (first, programmes) => runMerge(first, [SANTOS_CRUZEIRO], programmes, { now: LATER });
