@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "sourceModel": "EPG_CORROBORATED_WITH_CURATED_OVERRIDE",
   "_comment": "Fonte de dados de 'Onde assistir' (bolao/shared/js/where_to_watch.js). Modelo EPG_CORROBORATED_WITH_CURATED_OVERRIDE (#431): registros sem 'origin' são curadoria humana e sempre vencem; registros 'origin: epg' são gerados por bolao/shared/scripts/sync_epg_broadcasts.mjs a partir da grade de TV — não edite esses à mão. Ver docs/bolao/BROADCAST_OPERATIONS.md antes de editar este arquivo.",
-  "updatedAt": "2026-10-24T15:57:41Z",
+  "updatedAt": "2026-10-24T20:50:39Z",
   "entries": [
     {
       "espnId": "401909114",
@@ -50,7 +50,7 @@
       "origin": "epg",
       "source": "EPG XMLTV epgshare01 (BR1/BR2) — corroboração automática: programa cita os dois clubes no horário do kickoff",
       "confirmedAt": "2026-10-24",
-      "collectedAt": "2026-10-24T15:57:41Z",
+      "collectedAt": "2026-10-24T20:50:39Z",
       "evidence": [
         {
           "channel": "Premiere 4",
@@ -61,7 +61,7 @@
           "programmeStart": "2026-10-24T19:30:00Z",
           "programmeStop": "2026-10-24T22:30:00Z",
           "matchedTeams": ["vitoria", "athletico-pr"],
-          "collectedAt": "2026-10-24T15:57:41Z"
+          "collectedAt": "2026-10-24T20:50:39Z"
         }
       ]
     },
@@ -74,7 +74,7 @@
       "origin": "epg",
       "source": "EPG XMLTV epgshare01 (BR1/BR2) — corroboração automática: programa cita os dois clubes no horário do kickoff",
       "confirmedAt": "2026-10-24",
-      "collectedAt": "2026-10-24T15:57:41Z",
+      "collectedAt": "2026-10-24T20:50:39Z",
       "evidence": [
         {
           "channel": "Premiere 5",
@@ -85,7 +85,7 @@
           "programmeStart": "2026-10-24T19:30:00Z",
           "programmeStop": "2026-10-24T22:30:00Z",
           "matchedTeams": ["mirassol", "sao-paulo"],
-          "collectedAt": "2026-10-24T15:57:41Z"
+          "collectedAt": "2026-10-24T20:50:39Z"
         }
       ]
     },
@@ -98,7 +98,7 @@
       "origin": "epg",
       "source": "EPG XMLTV epgshare01 (BR1/BR2) — corroboração automática: programa cita os dois clubes no horário do kickoff",
       "confirmedAt": "2026-10-24",
-      "collectedAt": "2026-10-24T15:57:41Z",
+      "collectedAt": "2026-10-24T20:50:39Z",
       "evidence": [
         {
           "channel": "Record (TV aberta — consulte sua região)",
@@ -109,7 +109,7 @@
           "programmeStart": "2026-10-24T21:20:00Z",
           "programmeStop": "2026-10-24T23:30:00Z",
           "matchedTeams": ["vasco", "corinthians"],
-          "collectedAt": "2026-10-24T15:57:41Z"
+          "collectedAt": "2026-10-24T20:50:39Z"
         },
         {
           "channel": "Record (TV aberta — consulte sua região)",
@@ -121,7 +121,7 @@
           "programmeStart": "2026-10-24T21:20:00Z",
           "programmeStop": "2026-10-24T23:30:00Z",
           "matchedTeams": ["vasco", "corinthians"],
-          "collectedAt": "2026-10-24T15:57:41Z"
+          "collectedAt": "2026-10-24T20:50:39Z"
         },
         {
           "channel": "Premiere 2",
@@ -132,7 +132,7 @@
           "programmeStart": "2026-10-24T21:30:00Z",
           "programmeStop": "2026-10-25T00:30:00Z",
           "matchedTeams": ["vasco", "corinthians"],
-          "collectedAt": "2026-10-24T15:57:41Z"
+          "collectedAt": "2026-10-24T20:50:39Z"
         }
       ]
     },
@@ -145,7 +145,7 @@
       "origin": "epg",
       "source": "EPG XMLTV epgshare01 (BR1/BR2) — corroboração automática: programa cita os dois clubes no horário do kickoff",
       "confirmedAt": "2026-10-24",
-      "collectedAt": "2026-10-24T15:57:41Z",
+      "collectedAt": "2026-10-24T20:50:39Z",
       "evidence": [
         {
           "channel": "Premiere",
@@ -156,7 +156,7 @@
           "programmeStart": "2026-10-24T21:30:00Z",
           "programmeStop": "2026-10-24T23:40:00Z",
           "matchedTeams": ["palmeiras", "bragantino"],
-          "collectedAt": "2026-10-24T15:57:41Z"
+          "collectedAt": "2026-10-24T20:50:39Z"
         },
         {
           "channel": "Premiere",
@@ -168,7 +168,7 @@
           "programmeStart": "2026-10-24T21:30:00Z",
           "programmeStop": "2026-10-24T23:40:00Z",
           "matchedTeams": ["palmeiras", "bragantino"],
-          "collectedAt": "2026-10-24T15:57:41Z"
+          "collectedAt": "2026-10-24T20:50:39Z"
         }
       ]
     },
@@ -181,7 +181,7 @@
       "origin": "epg",
       "source": "EPG XMLTV epgshare01 (BR1/BR2) — corroboração automática: programa cita os dois clubes no horário do kickoff",
       "confirmedAt": "2026-10-24",
-      "collectedAt": "2026-10-24T15:57:41Z",
+      "collectedAt": "2026-10-24T20:50:39Z",
       "evidence": [
         {
           "channel": "SporTV",
@@ -192,7 +192,7 @@
           "programmeStart": "2026-10-25T00:00:00Z",
           "programmeStop": "2026-10-25T02:00:00Z",
           "matchedTeams": ["santos", "bahia"],
-          "collectedAt": "2026-10-24T15:57:41Z"
+          "collectedAt": "2026-10-24T20:50:39Z"
         },
         {
           "channel": "SporTV",
@@ -204,7 +204,7 @@
           "programmeStart": "2026-10-25T00:00:00Z",
           "programmeStop": "2026-10-25T02:00:00Z",
           "matchedTeams": ["santos", "bahia"],
-          "collectedAt": "2026-10-24T15:57:41Z"
+          "collectedAt": "2026-10-24T20:50:39Z"
         },
         {
           "channel": "Premiere 5",
@@ -215,7 +215,7 @@
           "programmeStart": "2026-10-25T00:00:00Z",
           "programmeStop": "2026-10-25T03:00:00Z",
           "matchedTeams": ["santos", "bahia"],
-          "collectedAt": "2026-10-24T15:57:41Z"
+          "collectedAt": "2026-10-24T20:50:39Z"
         }
       ]
     },
@@ -228,7 +228,7 @@
       "origin": "epg",
       "source": "EPG XMLTV epgshare01 (BR1/BR2) — corroboração automática: programa cita os dois clubes no horário do kickoff",
       "confirmedAt": "2026-10-24",
-      "collectedAt": "2026-10-24T15:57:41Z",
+      "collectedAt": "2026-10-24T20:50:39Z",
       "evidence": [
         {
           "channel": "SporTV",
@@ -239,7 +239,7 @@
           "programmeStart": "2026-10-26T23:00:00Z",
           "programmeStop": "2026-10-27T01:00:00Z",
           "matchedTeams": ["flamengo", "atletico-mg"],
-          "collectedAt": "2026-10-24T15:57:41Z"
+          "collectedAt": "2026-10-24T20:50:39Z"
         },
         {
           "channel": "SporTV",
@@ -251,7 +251,7 @@
           "programmeStart": "2026-10-26T23:00:00Z",
           "programmeStop": "2026-10-27T01:00:00Z",
           "matchedTeams": ["flamengo", "atletico-mg"],
-          "collectedAt": "2026-10-24T15:57:41Z"
+          "collectedAt": "2026-10-24T20:50:39Z"
         },
         {
           "channel": "Premiere",
@@ -263,7 +263,7 @@
           "programmeStart": "2026-10-26T23:00:00Z",
           "programmeStop": "2026-10-27T01:10:00Z",
           "matchedTeams": ["flamengo", "atletico-mg"],
-          "collectedAt": "2026-10-24T15:57:41Z"
+          "collectedAt": "2026-10-24T20:50:39Z"
         }
       ]
     }
