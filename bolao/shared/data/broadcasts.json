@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "sourceModel": "EPG_CORROBORATED_WITH_CURATED_OVERRIDE",
   "_comment": "Fonte de dados de 'Onde assistir' (bolao/shared/js/where_to_watch.js). Modelo EPG_CORROBORATED_WITH_CURATED_OVERRIDE (#431): registros sem 'origin' são curadoria humana e sempre vencem; registros 'origin: epg' são gerados por bolao/shared/scripts/sync_epg_broadcasts.mjs a partir da grade de TV — não edite esses à mão. Ver docs/bolao/BROADCAST_OPERATIONS.md antes de editar este arquivo.",
-  "updatedAt": "2026-10-23T21:24:57Z",
+  "updatedAt": "2026-10-24T04:37:55Z",
   "entries": [
     {
       "espnId": "401909114",
@@ -42,42 +42,6 @@
       "source": "maquinadoesporte.com.br + cnnbrasil.com.br + vavel.com (Globo regional: RJ, BA, ES, SE, RN, PB, MA, Santarém-PA, Juiz de Fora-MG)"
     },
     {
-      "espnId": "401841287",
-      "kickoffUtc": "2026-10-23T23:00Z",
-      "home": "Cruzeiro",
-      "away": "Remo",
-      "channels": ["SporTV"],
-      "origin": "epg",
-      "source": "EPG XMLTV epgshare01 (BR1/BR2) — corroboração automática: programa cita os dois clubes no horário do kickoff",
-      "confirmedAt": "2026-10-23",
-      "collectedAt": "2026-10-23T21:24:57Z",
-      "evidence": [
-        {
-          "channel": "SporTV",
-          "source": "epgshare-br1",
-          "epgChannelId": "São.Paulo/SP..SporTV.br",
-          "programmeTitle": "Cruzeiro x Remo",
-          "programmeSubTitle": "Ao Vivo",
-          "programmeStart": "2026-10-23T23:00:00Z",
-          "programmeStop": "2026-10-24T01:00:00Z",
-          "matchedTeams": ["cruzeiro", "remo"],
-          "collectedAt": "2026-10-23T21:24:57Z"
-        },
-        {
-          "channel": "SporTV",
-          "source": "epgshare-br2",
-          "epgChannelId": "SporTV.br",
-          "programmeTitle": "Cruzeiro x Remo - Ao Vivo",
-          "programmeSubTitle": null,
-          "programmeCategories": ["Esporte", "Futebol"],
-          "programmeStart": "2026-10-23T23:00:00Z",
-          "programmeStop": "2026-10-24T01:00:00Z",
-          "matchedTeams": ["cruzeiro", "remo"],
-          "collectedAt": "2026-10-23T21:24:57Z"
-        }
-      ]
-    },
-    {
       "espnId": "401841283",
       "kickoffUtc": "2026-10-24T21:30Z",
       "home": "Palmeiras",
@@ -85,8 +49,8 @@
       "channels": ["Premiere"],
       "origin": "epg",
       "source": "EPG XMLTV epgshare01 (BR1/BR2) — corroboração automática: programa cita os dois clubes no horário do kickoff",
-      "confirmedAt": "2026-10-23",
-      "collectedAt": "2026-10-23T21:24:57Z",
+      "confirmedAt": "2026-10-24",
+      "collectedAt": "2026-10-24T04:37:55Z",
       "evidence": [
         {
           "channel": "Premiere",
@@ -97,7 +61,7 @@
           "programmeStart": "2026-10-24T21:30:00Z",
           "programmeStop": "2026-10-24T23:40:00Z",
           "matchedTeams": ["palmeiras", "bragantino"],
-          "collectedAt": "2026-10-23T21:24:57Z"
+          "collectedAt": "2026-10-24T04:37:55Z"
         }
       ]
     }
