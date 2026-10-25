@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-10-25T01:09:16Z",
-  "sourceUpdatedAt": "2026-10-25T01:09:16Z",
+  "generatedAt": "2026-10-25T06:08:18Z",
+  "sourceUpdatedAt": "2026-10-25T06:08:18Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "7471911780b8ca4a9dddcddf9cf092e2fc858a8e17c2e841661bb42971898a58",
+  "payloadHash": "f754ea5bc435e6367ec657a125a3fc59ff6b225b186e345bdd83db889d14b72b",
   "matches": [
     {
       "id": "401840808",
@@ -53447,25 +53447,25 @@
     {
       "id": "401841282",
       "date": "2026-10-25T00:00Z",
-      "state": "in",
-      "statusName": "STATUS_HALFTIME",
-      "statusDescription": "Halftime",
-      "statusShortDetail": "HT",
-      "statusDetail": "HT",
-      "completed": false,
+      "state": "post",
+      "statusName": "STATUS_FULL_TIME",
+      "statusDescription": "Full Time",
+      "statusShortDetail": "FT",
+      "statusDetail": "FT",
+      "completed": true,
       "homeTeam": "Santos",
       "awayTeam": "Bahia",
       "homeTeamId": "2674",
       "awayTeamId": "9967",
-      "homeScore": 0,
+      "homeScore": 1,
       "awayScore": 1,
       "homeWinner": false,
       "awayWinner": false,
       "venue": "Estádio Vila Belmiro (Urbano Caldeira)",
       "city": "Santos",
-      "clockSec": 0.0,
-      "clockStr": "0'",
-      "period": 1,
+      "clockSec": 5400.0,
+      "clockStr": "90'+6'",
+      "period": 2,
       "details": [
         {
           "type": {
@@ -53521,6 +53521,82 @@
             {
               "displayName": "Nicolás Acevedo",
               "shortName": "N. Acevedo"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Red Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "2674"
+          },
+          "clock": {
+            "value": 2700.0,
+            "displayValue": "45'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Neymar",
+              "shortName": "Neymar"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "9967"
+          },
+          "clock": {
+            "value": 2965.0,
+            "displayValue": "50'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Kanu",
+              "shortName": "Kanu"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "2674"
+          },
+          "clock": {
+            "value": 5297.0,
+            "displayValue": "89'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "João Schmidt",
+              "shortName": "J. Schmidt"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Goal - Header"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "2674"
+          },
+          "clock": {
+            "value": 5400.0,
+            "displayValue": "90'+3'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Luan Peres",
+              "shortName": "L. Peres"
             }
           ]
         }
