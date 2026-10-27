@@ -150,6 +150,8 @@ const CHECKS = [
   // e o `data.js`, que ainda carrega verdade financeira enquanto a reconciliacao nao fecha.
   { id: "powerball-operator-payments", group: "security", cmd: ["python3", "bolao/loterias/powerball/scripts/test_operator_payments.py"],
     why: "corrigir dinheiro apagando o passado, e reexecutar um dispatch cobrando duas vezes, sao os dois modos de falha (Issue #130)" },
+  { id: "powerball-operator-open-draw", group: "security", cmd: ["python3", "bolao/loterias/powerball/scripts/test_operator_open_draw.py"],
+    why: "abrir sorteio no banco: nome que nao resolve grava ZERO; reexecutar o manifesto nao cria sorteio, participacao nem cobranca em dobro; referencia de pagamento nunca entra no manifesto (repo publico)" },
   // Issue #130 — a ferramenta de reconciliacao do backfill historico. Ela nao escreve nada; o que
   // ela protege e a decisao de NAO escrever: classifica cada registro da origem e recusa importar
   // qualquer um cuja identidade dependa de adivinhacao (a unica chave entre as duas fontes e o

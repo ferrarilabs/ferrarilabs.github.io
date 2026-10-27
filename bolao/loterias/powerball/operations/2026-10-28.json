@@ -1,0 +1,18 @@
+{
+  "_o_que_e": "Manifesto de abertura do sorteio Powerball de 2026-10-28, aplicado por operator_open_draw.py. Contribuicoes reconciliadas dos e-mails de Zelle/Venmo/Cash App de 2026-10-27 e aprovadas pelo Eduardo. Sem referencia de pagamento: o repositorio e publico.",
+  "draw_date": "2026-10-28",
+  "jackpot": 716000000,
+  "cash_value": 307200000,
+  "contributions": [
+    {"name": "Rodrigo Hajj",          "amount": 10, "method": "Zelle",    "paid_at": "2026-10-27T13:01:51-04:00"},
+    {"name": "Marcelo Moreira",       "amount": 10, "method": "Zelle",    "paid_at": "2026-10-27T13:20:47-04:00"},
+    {"name": "Gustavo Bossle",        "amount": 10, "method": "Zelle",    "paid_at": "2026-10-27T13:22:21-04:00"},
+    {"name": "Thiago Locatelli",      "amount": 10, "method": "Zelle",    "paid_at": "2026-10-27T13:22:23-04:00"},
+    {"name": "Simone Hirle da Costa", "amount": 10, "method": "Venmo",    "paid_at": "2026-10-27T13:32:08-04:00"},
+    {"name": "Ewerton Gruba Silva",   "amount": 10, "method": "Zelle",    "paid_at": "2026-10-27T13:34:14-04:00"},
+    {"name": "Camila Ribeiro",        "amount": 10, "method": "Zelle",    "paid_at": "2026-10-27T13:35:02-04:00"},
+    {"name": "Marcelo G de Jesus",    "amount": 10, "method": "Zelle",    "paid_at": "2026-10-27T13:37:18-04:00"},
+    {"name": "Alan Rech",             "amount": 10, "method": "Cash App", "paid_at": "2026-10-27T14:51:16-04:00"},
+    {"name": "Leandro Augustineli",   "amount": 10, "method": "Zelle",    "paid_at": "2026-10-27T14:55:24-04:00"}
+  ]
+}

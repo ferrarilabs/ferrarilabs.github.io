@@ -48,8 +48,36 @@ function checa(nome, cond, detalhe = "") {
 const pw = await import("playwright");
 const server = await startStaticServer(PORT, ROOT);
 
+// FIXTURE: o estado de produção de 13/08 (12/08 LIQUIDADO e último da lista). Os valores
+// fixados abaixo ($39, $38, $1) são DESSE estado. Medir o data.js corrente fazia o teste quebrar
+// toda vez que um sorteio novo era aberto -- o que é operação normal, não regressão. Então o
+// data.js real é servido cortado em 12/08, e o status com 12/08 como sorteio corrente.
+const DATA_JS_REAL = readFileSync(join(ROOT, "bolao/loterias/powerball/js/data.js"), "utf8");
+const DATA_JS_1208 = (() => {
+  const ini = DATA_JS_REAL.indexOf('    id: "2026-08-12",');
+  if (ini < 0) throw new Error("formato do data.js mudou: não achei o sorteio 2026-08-12");
+  const depois = DATA_JS_REAL.indexOf('\n  {\n    id: "', ini);
+  if (depois < 0) return DATA_JS_REAL;
+  const corte = DATA_JS_REAL.lastIndexOf(",", depois);
+  const fimArray = DATA_JS_REAL.indexOf("\n];", depois);
+  if (corte < ini || fimArray < 0) throw new Error("formato do data.js mudou: não consegui cortar em 12/08");
+  return DATA_JS_REAL.slice(0, corte) + DATA_JS_REAL.slice(fimArray);
+})();
+const STATUS_REAL = JSON.parse(
+  readFileSync(join(ROOT, "bolao/loterias/config/lottery_status.json"), "utf8"));
+const STATUS_1208 = JSON.parse(JSON.stringify(STATUS_REAL));
+STATUS_1208.currentDraw = {
+  id: "2026-08-12", lifecycleState: "SETTLED",
+  reason: "resultado oficial gravado e prêmio creditado", result: null,
+};
+const FIXTURE_1208 = {
+  "/bolao/loterias/powerball/js/data.js": DATA_JS_1208,
+  "/bolao/loterias/config/lottery_status.json": JSON.stringify(STATUS_1208),
+};
+
 /** Carrega a página e devolve os tiles de dinheiro que ela realmente renderizou. */
-async function medir(rotas = {}) {
+async function medir(extra = {}) {
+  const rotas = { ...FIXTURE_1208, ...extra };
   const browser = await pw.chromium.launch();
   try {
     // `serviceWorkers: "block"`: a página registra um SW de cache-busting. Sem bloquear, ele
@@ -149,15 +177,13 @@ try {
   // página com o `result` do último removido, que é o estado em que ela viveu de 11/08 até a
   // madrugada de 13/08. Não é um fixture inventado: é o arquivo de produção menos um campo.
   console.log("\n2. antes da liquidação (sorteio corrente ainda sem resultado)");
-  const dataJs = readFileSync(join(ROOT, "bolao/loterias/powerball/js/data.js"), "utf8");
+  const dataJs = DATA_JS_1208;
   const marca = dataJs.lastIndexOf("    result: {");
   const fim = dataJs.indexOf("\n    },\n", marca) + "\n    },\n".length;
   if (marca < 0 || fim <= marca) throw new Error("formato do data.js mudou: não achei o result");
   const dataAberto = dataJs.slice(0, marca) + "    result: null,\n" + dataJs.slice(fim);
 
-  const statusReal = JSON.parse(
-    readFileSync(join(ROOT, "bolao/loterias/config/lottery_status.json"), "utf8"));
-  const statusAberto = JSON.parse(JSON.stringify(statusReal));
+  const statusAberto = JSON.parse(JSON.stringify(STATUS_1208));
   statusAberto.currentDraw.lifecycleState = "AWAITING_RESULT";
 
   const pre = await medir({

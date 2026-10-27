@@ -1,0 +1,79 @@
+name: Powerball — Abrir sorteio no banco (operador)
+
+# Cria no banco (sistema de registro desde 2026-08-22) o sorteio, as participacoes e as
+# contribuicoes descritas num manifesto VERSIONADO em bolao/loterias/powerball/operations/.
+# Sem `apply` e simulacao: le o banco, resolve tudo e mostra o plano, sem gravar.
+#
+# Em seguida regenera `data/public_projection.generated.json` a partir do banco e o publica como
+# artifact da execucao. NAO commita nada: o artifact entra no PR que atualiza `data.js`, e o
+# `--check` do CI confere os dois.
+#
+# Nenhum dado de pagamento entra como input: o repositorio e publico e o GitHub imprime no log os
+# valores de `inputs`. O unico input e o CAMINHO do manifesto, que ja foi revisado em PR.
+
+on:
+  workflow_dispatch:
+    inputs:
+      manifest:
+        description: "Manifesto (ex.: bolao/loterias/powerball/operations/2026-10-28.json)"
+        type: string
+        required: true
+      apply:
+        description: "Gravar de verdade (sem isto e simulacao)"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+# Mesmo grupo do registro de pagamento: as duas escrevem no razao e nao podem correr juntas.
+concurrency:
+  group: powerball-operator-payment
+  cancel-in-progress: false
+
+jobs:
+  abrir:
+    name: Abrir sorteio (server-side)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Manifesto dentro da pasta de operacoes
+        env:
+          MANIFEST: ${{ inputs.manifest }}
+        run: |
+          set -euo pipefail
+          case "$MANIFEST" in
+            bolao/loterias/powerball/operations/*.json) ;;
+            *) echo "::error::manifesto fora de bolao/loterias/powerball/operations/"; exit 1 ;;
+          esac
+          case "$MANIFEST" in *..*) echo "::error::caminho com '..'"; exit 1 ;; esac
+          test -f "$MANIFEST"
+
+      - name: Abrir sorteio
+        env:
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          GITHUB_ACTOR: ${{ github.actor }}
+          MANIFEST: ${{ inputs.manifest }}
+          APPLY: ${{ inputs.apply }}
+        run: |
+          set -euo pipefail
+          ARGS=(--manifest "$GITHUB_WORKSPACE/$MANIFEST")
+          [ "$APPLY" = "true" ] && ARGS+=(--apply)
+          python3 bolao/loterias/powerball/scripts/operator_open_draw.py "${ARGS[@]}"
+
+      - name: Regenerar a projecao publica a partir do banco
+        env:
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: node bolao/loterias/powerball/scripts/generate_public_projection.mjs --write
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: public-projection
+          path: bolao/loterias/powerball/data/public_projection.generated.json
+          retention-days: 14
