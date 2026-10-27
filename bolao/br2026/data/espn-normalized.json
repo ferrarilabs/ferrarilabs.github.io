@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-10-18T20:50:01Z",
-  "sourceUpdatedAt": "2026-10-18T20:50:01Z",
+  "generatedAt": "2026-10-27T19:33:28Z",
+  "sourceUpdatedAt": "2026-10-27T19:33:28Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "3c461ed486639ccd45ed3f3fb8b3f21619feb2f0cbb4540ab751ab7a65bdfb0d",
+  "payloadHash": "245f8850f77130d67ff31534c19505aa3de63dec55de3cf921fc7c5b2266bade",
   "matches": [
     {
       "id": "401840808",
@@ -52533,50 +52533,242 @@
     {
       "id": "401841279",
       "date": "2026-10-26T22:30Z",
-      "state": "pre",
-      "statusName": "STATUS_SCHEDULED",
-      "statusDescription": "Scheduled",
-      "statusShortDetail": "Scheduled",
-      "statusDetail": "Mon, October 26th at 6:30 PM EDT",
-      "completed": false,
+      "state": "post",
+      "statusName": "STATUS_FULL_TIME",
+      "statusDescription": "Full Time",
+      "statusShortDetail": "FT",
+      "statusDetail": "FT",
+      "completed": true,
       "homeTeam": "Coritiba",
       "awayTeam": "Grêmio",
       "homeTeamId": "3456",
       "awayTeamId": "6273",
       "homeScore": 0,
-      "awayScore": 0,
+      "awayScore": 1,
       "homeWinner": false,
-      "awayWinner": false,
+      "awayWinner": true,
       "venue": "Couto Pereira",
       "city": "Curitiba",
-      "clockSec": 0.0,
-      "clockStr": "0'",
-      "period": null,
-      "details": []
+      "clockSec": 5400.0,
+      "clockStr": "90'+4'",
+      "period": 2,
+      "details": [
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "3456"
+          },
+          "clock": {
+            "value": 2383.0,
+            "displayValue": "40'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Tinga",
+              "shortName": "Tinga"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Goal - Header"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "6273"
+          },
+          "clock": {
+            "value": 5400.0,
+            "displayValue": "90'+2'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Martin Braithwaite",
+              "shortName": "M. Braithwaite"
+            }
+          ]
+        }
+      ]
     },
     {
       "id": "401841286",
       "date": "2026-10-26T23:00Z",
-      "state": "pre",
-      "statusName": "STATUS_SCHEDULED",
-      "statusDescription": "Scheduled",
-      "statusShortDetail": "Scheduled",
-      "statusDetail": "Mon, October 26th at 7:00 PM EDT",
-      "completed": false,
+      "state": "post",
+      "statusName": "STATUS_FULL_TIME",
+      "statusDescription": "Full Time",
+      "statusShortDetail": "FT",
+      "statusDetail": "FT",
+      "completed": true,
       "homeTeam": "Flamengo",
       "awayTeam": "Atlético-MG",
       "homeTeamId": "819",
       "awayTeamId": "7632",
-      "homeScore": 0,
-      "awayScore": 0,
-      "homeWinner": false,
+      "homeScore": 3,
+      "awayScore": 2,
+      "homeWinner": true,
       "awayWinner": false,
       "venue": "Estadio do Maracana",
       "city": "Rio de Janeiro",
-      "clockSec": 0.0,
-      "clockStr": "0'",
-      "period": null,
-      "details": []
+      "clockSec": 5400.0,
+      "clockStr": "90'+10'",
+      "period": 2,
+      "details": [
+        {
+          "type": {
+            "text": "Goal"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "7632"
+          },
+          "clock": {
+            "value": 367.0,
+            "displayValue": "7'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Bernard",
+              "shortName": "Bernard"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Goal"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "819"
+          },
+          "clock": {
+            "value": 1988.0,
+            "displayValue": "34'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Gonzalo Plata",
+              "shortName": "G. Plata"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Goal"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "819"
+          },
+          "clock": {
+            "value": 2415.0,
+            "displayValue": "41'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Giorgian de Arrascaeta",
+              "shortName": "G. de Arrascaeta"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Goal - Volley"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "7632"
+          },
+          "clock": {
+            "value": 3539.0,
+            "displayValue": "59'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Renan Lodi",
+              "shortName": "R. Lodi"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "819"
+          },
+          "clock": {
+            "value": 4470.0,
+            "displayValue": "75'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Léo Pereira",
+              "shortName": "L. Pereira"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "819"
+          },
+          "clock": {
+            "value": 4536.0,
+            "displayValue": "76'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Jorge Carrascal",
+              "shortName": "J. Carrascal"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "7632"
+          },
+          "clock": {
+            "value": 5400.0,
+            "displayValue": "90'+8'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Vitor Hugo",
+              "shortName": "Vitor Hugo"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Penalty - Scored"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "819"
+          },
+          "clock": {
+            "value": 5400.0,
+            "displayValue": "90'+9'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Jorge Carrascal",
+              "shortName": "J. Carrascal"
+            }
+          ]
+        }
+      ]
     },
     {
       "id": "401841289",
@@ -52723,30 +52915,6 @@
       "details": []
     },
     {
-      "id": "401841294",
-      "date": "2026-10-29T22:30Z",
-      "state": "pre",
-      "statusName": "STATUS_SCHEDULED",
-      "statusDescription": "Scheduled",
-      "statusShortDetail": "Scheduled",
-      "statusDetail": "Thu, October 29th at 6:30 PM EDT",
-      "completed": false,
-      "homeTeam": "Coritiba",
-      "awayTeam": "Vitória",
-      "homeTeamId": "3456",
-      "awayTeamId": "3457",
-      "homeScore": 0,
-      "awayScore": 0,
-      "homeWinner": false,
-      "awayWinner": false,
-      "venue": "Couto Pereira",
-      "city": "Curitiba",
-      "clockSec": 0.0,
-      "clockStr": "0'",
-      "period": null,
-      "details": []
-    },
-    {
       "id": "401841292",
       "date": "2026-10-29T23:00Z",
       "state": "pre",
@@ -52763,8 +52931,8 @@
       "awayScore": 0,
       "homeWinner": false,
       "awayWinner": false,
-      "venue": null,
-      "city": "",
+      "venue": "Joao Havelange Stadium",
+      "city": "Rio de Janeiro",
       "clockSec": 0.0,
       "clockStr": "0'",
       "period": null,
@@ -52819,23 +52987,23 @@
       "details": []
     },
     {
-      "id": "401841306",
-      "date": "2026-11-04T20:00Z",
+      "id": "401841294",
+      "date": "2026-10-31T19:00Z",
       "state": "pre",
       "statusName": "STATUS_SCHEDULED",
       "statusDescription": "Scheduled",
-      "statusShortDetail": "TBD",
-      "statusDetail": "TBD",
+      "statusShortDetail": "Scheduled",
+      "statusDetail": "Sat, October 31st at 3:00 PM EDT",
       "completed": false,
-      "homeTeam": "Athletico Paranaense",
-      "awayTeam": "Vasco da Gama",
-      "homeTeamId": "3458",
-      "awayTeamId": "3454",
+      "homeTeam": "Coritiba",
+      "awayTeam": "Vitória",
+      "homeTeamId": "3456",
+      "awayTeamId": "3457",
       "homeScore": 0,
       "awayScore": 0,
       "homeWinner": false,
       "awayWinner": false,
-      "venue": "Arena da Baixada",
+      "venue": "Couto Pereira",
       "city": "Curitiba",
       "clockSec": 0.0,
       "clockStr": "0'",
@@ -52843,157 +53011,13 @@
       "details": []
     },
     {
-      "id": "401841305",
-      "date": "2026-11-04T20:00Z",
-      "state": "pre",
-      "statusName": "STATUS_SCHEDULED",
-      "statusDescription": "Scheduled",
-      "statusShortDetail": "TBD",
-      "statusDetail": "TBD",
-      "completed": false,
-      "homeTeam": "Botafogo",
-      "awayTeam": "Atlético-MG",
-      "homeTeamId": "6086",
-      "awayTeamId": "7632",
-      "homeScore": 0,
-      "awayScore": 0,
-      "homeWinner": false,
-      "awayWinner": false,
-      "venue": "Joao Havelange Stadium",
-      "city": "Rio de Janeiro",
-      "clockSec": 0.0,
-      "clockStr": "0'",
-      "period": null,
-      "details": []
-    },
-    {
-      "id": "401841304",
-      "date": "2026-11-04T20:00Z",
-      "state": "pre",
-      "statusName": "STATUS_SCHEDULED",
-      "statusDescription": "Scheduled",
-      "statusShortDetail": "TBD",
-      "statusDetail": "TBD",
-      "completed": false,
-      "homeTeam": "Chapecoense",
-      "awayTeam": "Mirassol",
-      "homeTeamId": "9318",
-      "awayTeamId": "9169",
-      "homeScore": 0,
-      "awayScore": 0,
-      "homeWinner": false,
-      "awayWinner": false,
-      "venue": "Arena Condá",
-      "city": "Chapecó",
-      "clockSec": 0.0,
-      "clockStr": "0'",
-      "period": null,
-      "details": []
-    },
-    {
-      "id": "401841303",
-      "date": "2026-11-04T20:00Z",
-      "state": "pre",
-      "statusName": "STATUS_SCHEDULED",
-      "statusDescription": "Scheduled",
-      "statusShortDetail": "TBD",
-      "statusDetail": "TBD",
-      "completed": false,
-      "homeTeam": "Cruzeiro",
-      "awayTeam": "Bahia",
-      "homeTeamId": "2022",
-      "awayTeamId": "9967",
-      "homeScore": 0,
-      "awayScore": 0,
-      "homeWinner": false,
-      "awayWinner": false,
-      "venue": "Estadio Mineirão",
-      "city": "Belo Horizonte",
-      "clockSec": 0.0,
-      "clockStr": "0'",
-      "period": null,
-      "details": []
-    },
-    {
-      "id": "401841307",
-      "date": "2026-11-04T20:00Z",
-      "state": "pre",
-      "statusName": "STATUS_SCHEDULED",
-      "statusDescription": "Scheduled",
-      "statusShortDetail": "TBD",
-      "statusDetail": "TBD",
-      "completed": false,
-      "homeTeam": "Flamengo",
-      "awayTeam": "Grêmio",
-      "homeTeamId": "819",
-      "awayTeamId": "6273",
-      "homeScore": 0,
-      "awayScore": 0,
-      "homeWinner": false,
-      "awayWinner": false,
-      "venue": "Estadio do Maracana",
-      "city": "Rio de Janeiro",
-      "clockSec": 0.0,
-      "clockStr": "0'",
-      "period": null,
-      "details": []
-    },
-    {
-      "id": "401841301",
-      "date": "2026-11-04T20:00Z",
-      "state": "pre",
-      "statusName": "STATUS_SCHEDULED",
-      "statusDescription": "Scheduled",
-      "statusShortDetail": "TBD",
-      "statusDetail": "TBD",
-      "completed": false,
-      "homeTeam": "Internacional",
-      "awayTeam": "Coritiba",
-      "homeTeamId": "1936",
-      "awayTeamId": "3456",
-      "homeScore": 0,
-      "awayScore": 0,
-      "homeWinner": false,
-      "awayWinner": false,
-      "venue": "Estadio Beira-Rio",
-      "city": "Porto Alegre",
-      "clockSec": 0.0,
-      "clockStr": "0'",
-      "period": null,
-      "details": []
-    },
-    {
-      "id": "401841300",
-      "date": "2026-11-04T20:00Z",
-      "state": "pre",
-      "statusName": "STATUS_SCHEDULED",
-      "statusDescription": "Scheduled",
-      "statusShortDetail": "TBD",
-      "statusDetail": "TBD",
-      "completed": false,
-      "homeTeam": "Palmeiras",
-      "awayTeam": "Remo",
-      "homeTeamId": "2029",
-      "awayTeamId": "4936",
-      "homeScore": 0,
-      "awayScore": 0,
-      "homeWinner": false,
-      "awayWinner": false,
-      "venue": "Allianz Parque",
-      "city": "Sao Paulo",
-      "clockSec": 0.0,
-      "clockStr": "0'",
-      "period": null,
-      "details": []
-    },
-    {
       "id": "401841299",
-      "date": "2026-11-04T20:00Z",
+      "date": "2026-11-02T23:00Z",
       "state": "pre",
       "statusName": "STATUS_SCHEDULED",
       "statusDescription": "Scheduled",
-      "statusShortDetail": "TBD",
-      "statusDetail": "TBD",
+      "statusShortDetail": "Scheduled",
+      "statusDetail": "Mon, November 2nd at 6:00 PM EST",
       "completed": false,
       "homeTeam": "Red Bull Bragantino",
       "awayTeam": "Santos",
@@ -53011,13 +53035,133 @@
       "details": []
     },
     {
-      "id": "401841298",
-      "date": "2026-11-04T20:00Z",
+      "id": "401841304",
+      "date": "2026-11-03T22:30Z",
       "state": "pre",
       "statusName": "STATUS_SCHEDULED",
       "statusDescription": "Scheduled",
-      "statusShortDetail": "TBD",
-      "statusDetail": "TBD",
+      "statusShortDetail": "Scheduled",
+      "statusDetail": "Tue, November 3rd at 5:30 PM EST",
+      "completed": false,
+      "homeTeam": "Chapecoense",
+      "awayTeam": "Mirassol",
+      "homeTeamId": "9318",
+      "awayTeamId": "9169",
+      "homeScore": 0,
+      "awayScore": 0,
+      "homeWinner": false,
+      "awayWinner": false,
+      "venue": "Arena Condá",
+      "city": "Chapecó",
+      "clockSec": 0.0,
+      "clockStr": "0'",
+      "period": null,
+      "details": []
+    },
+    {
+      "id": "401841301",
+      "date": "2026-11-04T00:30Z",
+      "state": "pre",
+      "statusName": "STATUS_SCHEDULED",
+      "statusDescription": "Scheduled",
+      "statusShortDetail": "Scheduled",
+      "statusDetail": "Tue, November 3rd at 7:30 PM EST",
+      "completed": false,
+      "homeTeam": "Internacional",
+      "awayTeam": "Coritiba",
+      "homeTeamId": "1936",
+      "awayTeamId": "3456",
+      "homeScore": 0,
+      "awayScore": 0,
+      "homeWinner": false,
+      "awayWinner": false,
+      "venue": "Estadio Beira-Rio",
+      "city": "Porto Alegre",
+      "clockSec": 0.0,
+      "clockStr": "0'",
+      "period": null,
+      "details": []
+    },
+    {
+      "id": "401841306",
+      "date": "2026-11-04T22:30Z",
+      "state": "pre",
+      "statusName": "STATUS_SCHEDULED",
+      "statusDescription": "Scheduled",
+      "statusShortDetail": "Scheduled",
+      "statusDetail": "Wed, November 4th at 5:30 PM EST",
+      "completed": false,
+      "homeTeam": "Athletico Paranaense",
+      "awayTeam": "Vasco da Gama",
+      "homeTeamId": "3458",
+      "awayTeamId": "3454",
+      "homeScore": 0,
+      "awayScore": 0,
+      "homeWinner": false,
+      "awayWinner": false,
+      "venue": "Arena da Baixada",
+      "city": "Curitiba",
+      "clockSec": 0.0,
+      "clockStr": "0'",
+      "period": null,
+      "details": []
+    },
+    {
+      "id": "401841307",
+      "date": "2026-11-04T22:30Z",
+      "state": "pre",
+      "statusName": "STATUS_SCHEDULED",
+      "statusDescription": "Scheduled",
+      "statusShortDetail": "Scheduled",
+      "statusDetail": "Wed, November 4th at 5:30 PM EST",
+      "completed": false,
+      "homeTeam": "Flamengo",
+      "awayTeam": "Grêmio",
+      "homeTeamId": "819",
+      "awayTeamId": "6273",
+      "homeScore": 0,
+      "awayScore": 0,
+      "homeWinner": false,
+      "awayWinner": false,
+      "venue": "Estadio do Maracana",
+      "city": "Rio de Janeiro",
+      "clockSec": 0.0,
+      "clockStr": "0'",
+      "period": null,
+      "details": []
+    },
+    {
+      "id": "401841305",
+      "date": "2026-11-05T00:30Z",
+      "state": "pre",
+      "statusName": "STATUS_SCHEDULED",
+      "statusDescription": "Scheduled",
+      "statusShortDetail": "Scheduled",
+      "statusDetail": "Wed, November 4th at 7:30 PM EST",
+      "completed": false,
+      "homeTeam": "Botafogo",
+      "awayTeam": "Atlético-MG",
+      "homeTeamId": "6086",
+      "awayTeamId": "7632",
+      "homeScore": 0,
+      "awayScore": 0,
+      "homeWinner": false,
+      "awayWinner": false,
+      "venue": "Joao Havelange Stadium",
+      "city": "Rio de Janeiro",
+      "clockSec": 0.0,
+      "clockStr": "0'",
+      "period": null,
+      "details": []
+    },
+    {
+      "id": "401841298",
+      "date": "2026-11-05T00:30Z",
+      "state": "pre",
+      "statusName": "STATUS_SCHEDULED",
+      "statusDescription": "Scheduled",
+      "statusShortDetail": "Scheduled",
+      "statusDetail": "Wed, November 4th at 7:30 PM EST",
       "completed": false,
       "homeTeam": "São Paulo",
       "awayTeam": "Corinthians",
@@ -53027,7 +53171,31 @@
       "awayScore": 0,
       "homeWinner": false,
       "awayWinner": false,
-      "venue": "Estádio Cícero Pompeu de Toledo",
+      "venue": "Estádio Vila Belmiro (Urbano Caldeira)",
+      "city": "Santos",
+      "clockSec": 0.0,
+      "clockStr": "0'",
+      "period": null,
+      "details": []
+    },
+    {
+      "id": "401841300",
+      "date": "2026-11-05T22:30Z",
+      "state": "pre",
+      "statusName": "STATUS_SCHEDULED",
+      "statusDescription": "Scheduled",
+      "statusShortDetail": "Scheduled",
+      "statusDetail": "Thu, November 5th at 5:30 PM EST",
+      "completed": false,
+      "homeTeam": "Palmeiras",
+      "awayTeam": "Remo",
+      "homeTeamId": "2029",
+      "awayTeamId": "4936",
+      "homeScore": 0,
+      "awayScore": 0,
+      "homeWinner": false,
+      "awayWinner": false,
+      "venue": "Allianz Parque",
       "city": "Sao Paulo",
       "clockSec": 0.0,
       "clockStr": "0'",
@@ -53035,13 +53203,37 @@
       "details": []
     },
     {
-      "id": "401841302",
-      "date": "2026-11-04T20:00Z",
+      "id": "401841303",
+      "date": "2026-11-06T00:30Z",
       "state": "pre",
       "statusName": "STATUS_SCHEDULED",
       "statusDescription": "Scheduled",
-      "statusShortDetail": "TBD",
-      "statusDetail": "TBD",
+      "statusShortDetail": "Scheduled",
+      "statusDetail": "Thu, November 5th at 7:30 PM EST",
+      "completed": false,
+      "homeTeam": "Cruzeiro",
+      "awayTeam": "Bahia",
+      "homeTeamId": "2022",
+      "awayTeamId": "9967",
+      "homeScore": 0,
+      "awayScore": 0,
+      "homeWinner": false,
+      "awayWinner": false,
+      "venue": "Estadio Mineirão",
+      "city": "Belo Horizonte",
+      "clockSec": 0.0,
+      "clockStr": "0'",
+      "period": null,
+      "details": []
+    },
+    {
+      "id": "401841302",
+      "date": "2026-11-06T23:00Z",
+      "state": "pre",
+      "statusName": "STATUS_SCHEDULED",
+      "statusDescription": "Scheduled",
+      "statusShortDetail": "Scheduled",
+      "statusDetail": "Fri, November 6th at 6:00 PM EST",
       "completed": false,
       "homeTeam": "Vitória",
       "awayTeam": "Fluminense",
