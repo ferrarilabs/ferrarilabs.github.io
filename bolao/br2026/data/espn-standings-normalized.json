@@ -2,17 +2,31 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-10-26T23:19:18Z",
-  "sourceUpdatedAt": "2026-10-26T23:19:18Z",
+  "generatedAt": "2026-10-27T02:10:38Z",
+  "sourceUpdatedAt": "2026-10-27T02:10:38Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "c7694be095cb7e654cb6a6eba218a8da0de00647cd091d86b7b932726f9cd776",
+  "payloadHash": "40b605025067f51cb412f192126d9245d75df8abaeb3f52c963f031676e21a90",
   "matches": [
+    {
+      "name": "Flamengo",
+      "abbr": "FLA",
+      "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/819.png",
+      "rank": 1.0,
+      "points": 70.0,
+      "played": 32.0,
+      "wins": 21.0,
+      "draws": 7.0,
+      "losses": 4.0,
+      "gf": 64.0,
+      "ga": 27.0,
+      "gd": 37.0
+    },
     {
       "name": "Palmeiras",
       "abbr": "PAL",
       "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/2029.png",
-      "rank": 1.0,
+      "rank": 2.0,
       "points": 69.0,
       "played": 32.0,
       "wins": 20.0,
@@ -21,20 +35,6 @@
       "gf": 56.0,
       "ga": 22.0,
       "gd": 34.0
-    },
-    {
-      "name": "Flamengo",
-      "abbr": "FLA",
-      "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/819.png",
-      "rank": 2.0,
-      "points": 67.0,
-      "played": 31.0,
-      "wins": 20.0,
-      "draws": 7.0,
-      "losses": 4.0,
-      "gf": 61.0,
-      "ga": 25.0,
-      "gd": 36.0
     },
     {
       "name": "Cruzeiro",
@@ -84,13 +84,13 @@
       "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/7632.png",
       "rank": 6.0,
       "points": 50.0,
-      "played": 31.0,
+      "played": 32.0,
       "wins": 14.0,
       "draws": 8.0,
-      "losses": 9.0,
-      "gf": 42.0,
-      "ga": 35.0,
-      "gd": 7.0
+      "losses": 10.0,
+      "gf": 44.0,
+      "ga": 38.0,
+      "gd": 6.0
     },
     {
       "name": "Bahia",
@@ -168,13 +168,13 @@
       "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/3456.png",
       "rank": 12.0,
       "points": 39.0,
-      "played": 31.0,
+      "played": 32.0,
       "wins": 10.0,
       "draws": 9.0,
-      "losses": 12.0,
+      "losses": 13.0,
       "gf": 38.0,
-      "ga": 49.0,
-      "gd": -11.0
+      "ga": 50.0,
+      "gd": -12.0
     },
     {
       "name": "Vasco da Gama",
@@ -233,10 +233,24 @@
       "gd": -4.0
     },
     {
+      "name": "Grêmio",
+      "abbr": "GRE",
+      "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/6273.png",
+      "rank": 17.0,
+      "points": 34.0,
+      "played": 32.0,
+      "wins": 8.0,
+      "draws": 10.0,
+      "losses": 14.0,
+      "gf": 35.0,
+      "ga": 44.0,
+      "gd": -9.0
+    },
+    {
       "name": "Corinthians",
       "abbr": "COR",
       "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/874.png",
-      "rank": 17.0,
+      "rank": 18.0,
       "points": 33.0,
       "played": 32.0,
       "wins": 8.0,
@@ -245,20 +259,6 @@
       "gf": 34.0,
       "ga": 42.0,
       "gd": -8.0
-    },
-    {
-      "name": "Grêmio",
-      "abbr": "GRE",
-      "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/6273.png",
-      "rank": 18.0,
-      "points": 31.0,
-      "played": 31.0,
-      "wins": 7.0,
-      "draws": 10.0,
-      "losses": 14.0,
-      "gf": 34.0,
-      "ga": 44.0,
-      "gd": -10.0
     },
     {
       "name": "Remo",
