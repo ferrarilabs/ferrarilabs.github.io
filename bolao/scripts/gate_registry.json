@@ -301,6 +301,9 @@
     "bolao/loterias/powerball/scripts/test_open_draw_metadata.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
     },
+    "bolao/loterias/powerball/scripts/test_operator_open_draw.py": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
     "bolao/loterias/powerball/scripts/test_operator_payments.py": {
       "classification": "REGISTERED_AND_EXECUTED"
     },

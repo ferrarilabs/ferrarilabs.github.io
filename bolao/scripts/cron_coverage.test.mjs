@@ -308,6 +308,10 @@ const UNSCHEDULED = new Map([
    "leitura e nao declara BOLAO_ALLOW_REAL_SEND -- o caminho seguro e o que acontece quando " +
    "ninguem pensa. Envio real exige escolher `send` a mao E o alvo estar em READY_FOR_EXPLICIT_" +
    "RECOVERY, reavaliado no proprio passo de envio."],
+  ["powerball_open_draw.yml",
+   "Abertura de sorteio no banco a partir de um manifesto revisado em PR. NAO e agendada de " +
+   "proposito: abrir sorteio e decisao do operador (o ciclo so RECOMENDA via ELIGIBLE), e cada " +
+   "execucao grava fato financeiro. Um cron aqui criaria sorteio sem ninguem decidir."],
   ["powerball_record_payment.yml",
    "Painel de administracao do Powerball (Issue #130, Opcao C). NAO e agendado porque nao e um " +
    "ciclo: e um operador humano registrando um pagamento que acabou de acontecer. Um cron aqui nao " +
