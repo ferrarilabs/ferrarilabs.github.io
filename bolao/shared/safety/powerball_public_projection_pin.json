@@ -41,6 +41,14 @@
       "cotas": 16,
       "valor": 160,
       "totalArrecadado": 160
+    },
+    {
+      "id": "2026-10-28",
+      "participants": 13,
+      "cotas": 13,
+      "valor": 130,
+      "totalArrecadado": 130,
+      "_porque": "Sorteio aberto em 2026-10-27 (jackpot oficial US$716M > limiar de US$500M). 13 contribuicoes de US$10 reconciliadas por e-mail (Zelle/Venmo/Cash App) e aprovadas pelo Eduardo. Gravadas no banco pelo powerball_open_draw.yml (manifesto operations/2026-10-28.json, runs 40608159237 e seguinte); data.js confere com a projecao derivada do banco."
     }
   ],
   "cutoverAt": "2026-08-22",
