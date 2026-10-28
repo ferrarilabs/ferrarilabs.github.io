@@ -748,7 +748,7 @@ window.POWERBALL_DRAWS = [
       // arbitrado aqui.
       creditoSorteioAnterior: 39,
       valorUtilizado: 168,
-      valorGuardadoProximoSorteio: 1,
+      valorGuardadoProximoSorteio: 11,
       ajustesPendentes: 0
     },
 
