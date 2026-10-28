@@ -483,6 +483,12 @@
         "metodo": "Cash App"
       },
       {
+        "name": "Amanda Quaresma",
+        "cotas": 1,
+        "valor": 10,
+        "metodo": "Venmo"
+      },
+      {
         "name": "Camila Ribeiro",
         "cotas": 1,
         "valor": 10,
@@ -519,7 +525,19 @@
         "metodo": "Zelle"
       },
       {
+        "name": "Marcus Steffenon",
+        "cotas": 1,
+        "valor": 10,
+        "metodo": "Zelle"
+      },
+      {
         "name": "Rodrigo Hajj",
+        "cotas": 1,
+        "valor": 10,
+        "metodo": "Zelle"
+      },
+      {
+        "name": "Samuel Huller",
         "cotas": 1,
         "valor": 10,
         "metodo": "Zelle"
