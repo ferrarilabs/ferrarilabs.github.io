@@ -1,0 +1,42 @@
+{
+  "declarations": [
+    {
+      "surface_id": "NOTIFICATION_WORKFLOWS",
+      "reason": "lottery_poll.yml empurrava o estado direto para main; desde 2026-10-14 o ruleset main-protection recusa (GH013) e o workflow saia verde com um ::warning::. O estado publicado parou em 2026-10-08 com a Powerball ja acima de US$500M, e nada avisou o operador: o bolao de 2026-10-28 so abriu porque ele olhou.",
+      "expected_behavior_change": "lottery_poll.yml publica lottery_status.json e lottery_results.jsonl por PR rolante (auto/data/lottery-status, scripts/ci/publish_data_via_pr.sh), so quando o estado muda alem do relogio; falha de publicacao fica vermelha. Remove o pedido de deploy direto (o deploy roda no merge). Adiciona pull-requests: write e checkout com historico completo. Novo job `aviso` (issues: write so nele) abre uma issue atribuida ao operador quando ha jackpot acima do limiar sem bolao aberto e a fecha quando deixa de valer; nao envia e-mail por provedor. Cron, coleta, formato dos dados e pagamento nao mudam.",
+      "tests_required": [
+        "lottery-poll-publish",
+        "lottery-eligibility-alert",
+        "cron-coverage",
+        "email-send-safety"
+      ]
+    },
+    {
+      "surface_id": "VERIFY_RUNNER",
+      "reason": "O gate antigo exigia exatamente o comportamento que esta mudanca remove: um `git push origin HEAD:main` em lottery_poll.yml seguido de pedido de deploy. Com a publicacao por PR rolante esse push deixa de existir, entao o gate e SUBSTITUIDO, nao enfraquecido.",
+      "expected_behavior_change": "O check `lottery-poll-deploy-dispatch` e substituido por `lottery-poll-publish` (proibe push em main, exige PR rolante, falha vermelha e aviso independente; 15 casos incluindo 14 mutacoes) e e acrescentado `lottery-eligibility-alert`. A contagem de checks sobe de 266 para 267.",
+      "tests_required": [
+        "lottery-poll-publish",
+        "lottery-eligibility-alert"
+      ]
+    },
+    {
+      "surface_id": "GATE_REGISTRY",
+      "reason": "O gate antigo exigia exatamente o comportamento que esta mudanca remove: um `git push origin HEAD:main` em lottery_poll.yml seguido de pedido de deploy. Com a publicacao por PR rolante esse push deixa de existir, entao o gate e SUBSTITUIDO, nao enfraquecido.",
+      "expected_behavior_change": "A entrada bolao/loterias/scripts/test_lottery_poll_deploy_dispatch.mjs e substituida por bolao/loterias/scripts/test_lottery_poll_publish.mjs, e entra bolao/loterias/scripts/test_eligibility_alert.py. O registro sobe de 310 para 311 entradas.",
+      "tests_required": [
+        "lottery-poll-publish",
+        "lottery-eligibility-alert"
+      ]
+    },
+    {
+      "surface_id": "TEST_CHAIN",
+      "reason": "O gate antigo exigia exatamente o comportamento que esta mudanca remove: um `git push origin HEAD:main` em lottery_poll.yml seguido de pedido de deploy. Com a publicacao por PR rolante esse push deixa de existir, entao o gate e SUBSTITUIDO, nao enfraquecido.",
+      "expected_behavior_change": "bolao/loterias/scripts/test_lottery_poll_deploy_dispatch.mjs (apagado) e renomeado para bolao/loterias/scripts/test_lottery_poll_publish.mjs com as assercoes reescritas para a nova invariante: 15 casos contra 11 do arquivo antigo. test_eligibility_alert.py entra na cadeia do npm test.",
+      "tests_required": [
+        "lottery-poll-publish",
+        "lottery-eligibility-alert"
+      ]
+    }
+  ]
+}

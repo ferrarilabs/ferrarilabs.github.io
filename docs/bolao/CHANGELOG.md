@@ -4,6 +4,30 @@ This file consolidates the full version history. The source of truth for the lat
 
 ---
 
+## Loterias — estado por PR rolante e aviso de bolão elegível (2026-10-28)
+
+**Sintoma.** A Powerball passou de US$500M em 2026-10-08 e ninguém foi avisado; o bolão só abriu
+em 2026-10-27, com o jackpot em US$716M. Depois de aberto, a página ainda dizia "Próximo bolão —
+Novo bolão somente quando o jackpot anunciado ultrapassar US$500 milhões".
+
+**Causa raiz.** Desde 2026-10-14 o ruleset `main-protection` recusa push direto em `main` (GH013).
+`lottery_poll.yml` tentava três vezes, emitia um `::warning::` e saía verde: o estado publicado
+parou em 2026-10-08. E a elegibilidade, por desenho, não avisava ninguém — vivia só no runner.
+
+**Correção.**
+- A coleta publica por PR rolante (`auto/data/lottery-status`, via `scripts/ci/publish_data_via_pr.sh`,
+  o mecanismo do #473), só quando o estado muda de fato (relógio não conta). Falha é vermelha.
+  O pedido de deploy direto saiu: o deploy roda no merge.
+- `eligibility_alert.py` decide, a partir do mesmo `lottery_status.json`, se há jackpot acima do
+  limiar sem bolão aberto. Um job separado (`issues: write` só nele) abre uma issue atribuída ao
+  operador e a fecha quando o bolão abre. Roda mesmo se a publicação falhar.
+- Com sorteio em andamento a seção da página passa a se chamar "Bolão aberto".
+
+**Gates.** `test_lottery_poll_publish.mjs` (substitui `test_lottery_poll_deploy_dispatch.mjs`) e
+`test_eligibility_alert.py`.
+
+---
+
 ## Loterias — a coleta que chega a `main` agora é publicada (2026-09-23)
 
 **Sintoma.** A página do Powerball podia ficar desatualizada em produção por muitas horas: o
