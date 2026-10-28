@@ -696,7 +696,7 @@ window.POWERBALL_DRAWS = [
 
     sharedTickets: {
       compradoPor: "Eduardo Ferrari (organizador)",
-      dataComprovante: "28/10/2026 1:44 PM ET",
+      dataComprovante: "28/10/2026 1:44 PM ET (+ compra complementar no mesmo dia)",
       valorPorTicket: 3, // Power Play
       series: [
         {
@@ -733,13 +733,19 @@ window.POWERBALL_DRAWS = [
             "20-24-29-55-59 — PB 02", "21-30-43-54-67 — PB 12", "21-33-36-44-50 — PB 09",
             "22-25-43-52-59 — PB 20", "22-29-35-68-69 — PB 07"
           ]
+        },
+        {
+          serial: "24FB3868DF05CEC00", qtd: 3, jogos: "1–3",
+          numeros: [
+            "08-09-19-50-65 — PB 05", "23-37-45-62-68 — PB 23", "24-28-43-46-63 — PB 19"
+          ]
         }
       ]
     },
 
-    // 56 tickets (1 + 5 + 50) x US$3 (Power Play) = US$168. Arrecadado US$140 + credito de
-    // US$39 do sorteio anterior (2026-08-12) = US$179 disponivel — sobra US$11 (pagamento de
-    // 28/10 13:51, depois da compra; vira bilhete numa compra complementar). Deposito no
+    // 59 tickets (1 + 5 + 50 + 3) x US$3 (Power Play) = US$177. Arrecadado US$140 + credito de
+    // US$39 do sorteio anterior (2026-08-12) = US$179 disponivel — sobra US$2. A serie de 3
+    // tickets e uma compra complementar, depois do pagamento de 28/10 13:51. Deposito no
     // saldo da NC Education Lottery (cartao) + saldo ja existente cobriram a compra; referencia
     // de transacao fica so no comprovante privado, nunca aqui.
     finance: {
@@ -747,8 +753,8 @@ window.POWERBALL_DRAWS = [
       // Premio do sorteio anterior + o que ficou guardado. Derivado do que esta gravado, nao
       // arbitrado aqui.
       creditoSorteioAnterior: 39,
-      valorUtilizado: 168,
-      valorGuardadoProximoSorteio: 11,
+      valorUtilizado: 177,
+      valorGuardadoProximoSorteio: 2,
       ajustesPendentes: 0
     },
 
