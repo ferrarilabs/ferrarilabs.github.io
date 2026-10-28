@@ -875,7 +875,18 @@
     var sec = document.getElementById("lotStatus");
     if (!sec || !doc || !doc.games) return;
 
-    document.getElementById("lotRule").textContent = doc.threshold.label;
+    // Com um sorteio em andamento a seção não pode abrir com "novo bolão somente quando...":
+    // lido de cima, isso diz que ainda não há bolão — exatamente o contrário do estado real. A
+    // regra continua visível, mas como explicação de por que este bolão foi aberto.
+    var atual = doc.currentDraw || {};
+    var emAndamento = ["OPEN", "LOCKED", "AWAITING_RESULT"].indexOf(atual.lifecycleState) !== -1;
+    var dataAtual = /^\d{4}-\d{2}-\d{2}$/.test(atual.id || "")
+      ? atual.id.split("-").reverse().join("/") : (atual.id || "");
+    document.getElementById("lotTitle").textContent = emAndamento ? "Bolão aberto" : "Próximo bolão";
+    document.getElementById("lotRule").textContent = emAndamento
+      ? "O bolão do sorteio de " + dataAtual + " está em andamento. Ele foi aberto porque o jackpot "
+        + "anunciado passou de US$ 500 milhões — a mesma regra vale para os próximos."
+      : doc.threshold.label;
 
     var ordem = ["powerball", "megamillions"];
     var cartoes = [];
@@ -887,7 +898,9 @@
     var next = document.getElementById("lotNext");
     if (doc.nextPool) {
       next.className = "lot-next";
-      next.innerHTML = '<div class="lot-next__label">Próximo bolão</div>'
+      next.innerHTML = '<div class="lot-next__label">'
+        + (emAndamento && doc.nextPool.drawDate === atual.id ? "Bolão em andamento" : "Próximo bolão")
+        + '</div>'
         + '<div class="lot-next__value">' + esc(doc.nextPool.label) + ' — '
         + esc(lotDinheiro(doc.nextPool.jackpotCents))
         + ' <small>(sorteio ' + esc(doc.nextPool.drawDate) + ')</small></div>';

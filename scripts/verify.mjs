@@ -239,8 +239,10 @@ const CHECKS = [
     why: "todos os incidentes do pipeline ao vivo em 2026-08 foram descobertos por alguem abrir o site e ver que estava errado; a CI de browser chegou a tropecar em alguns por acidente, o que e pior que nao detectar. Este gate prova que o vigia classifica certo, NAO repete alarme enquanto o mesmo incidente persiste (uma indisponibilidade de 3h e UM incidente, nao um por ciclo), reconhece recuperacao sozinho, usa os limiares do contrato compartilhado em vez de numeros proprios, e nao le nada de participante" },
   { id: "cron-coverage", group: "scheduling", cmd: ["node", "bolao/scripts/cron_coverage.test.mjs"],
     why: "scheduled workflows cover the expected event calendar" },
-  { id: "lottery-poll-deploy-dispatch", group: "scheduling", cmd: ["node", "bolao/loterias/scripts/test_lottery_poll_deploy_dispatch.mjs"],
-    why: "lottery_poll.yml empurra com GITHUB_TOKEN, que nao dispara o push de deploy-pages.yml; sem pedir o deploy explicitamente o estado da loteria chega a main e nao ao ar" },
+  { id: "lottery-poll-publish", group: "scheduling", cmd: ["node", "bolao/loterias/scripts/test_lottery_poll_publish.mjs"],
+    why: "2026-10-08 a 2026-10-27: o push direto de lottery_poll.yml era recusado (GH013), o workflow saia verde com um warning e o estado do site parou com a Powerball ja acima de US$500M. O gate exige publicacao por PR rolante, falha vermelha e o aviso decidido antes e independente da publicacao" },
+  { id: "lottery-eligibility-alert", group: "scheduling", cmd: ["python3", "bolao/loterias/scripts/test_eligibility_alert.py"],
+    why: "jackpot acima do limiar sem bolao aberto vira issue atribuida ao operador; bolao ja aberto nao avisa, e fonte fora do ar nao abre nem fecha aviso" },
   // Issue #259 — o agendamento fora da janela era inerte por aritmetica (30 min de cadencia contra
   // um teto de 10 min de ultimo-bom-conhecido) e nem exercitava o caminho, porque o produtor pula
   // antes da rede. Removido; este gate fixa a decisao e a aritmetica, para que a proxima cadencia
