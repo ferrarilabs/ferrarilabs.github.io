@@ -690,25 +690,71 @@ window.POWERBALL_DRAWS = [
       { name: "Leandro Augustineli", cotas: 1, valor: 10, metodo: "Zelle", data: "27/10/2026", hora: "2:55:24 PM", status: "verificado", state: "NC" },
       { name: "Samuel Huller", cotas: 1, valor: 10, metodo: "Zelle", data: "27/10/2026", hora: "6:16:27 PM", status: "verificado", state: "NC" },
       { name: "Marcus Steffenon", cotas: 1, valor: 10, metodo: "Zelle", data: "27/10/2026", hora: "6:26:30 PM", status: "verificado", state: "NC" },
-      { name: "Amanda Quaresma", cotas: 1, valor: 10, metodo: "Venmo", data: "27/10/2026", hora: "6:29:17 PM", status: "verificado", state: "NC" }
+      { name: "Amanda Quaresma", cotas: 1, valor: 10, metodo: "Venmo", data: "27/10/2026", hora: "6:29:17 PM", status: "verificado", state: "NC" },
+      { name: "Marcelo Minghetti Pereira", cotas: 1, valor: 10, metodo: "Zelle", data: "28/10/2026", hora: "1:51:40 PM", status: "verificado", state: "NC" }
     ],
 
-    // Sem bilhetes ainda. Os numeros entram depois da compra -- abrir o bolao nunca dependeu
-    // de ja existirem jogos.
     sharedTickets: {
-      compradoPor: null,
-      dataComprovante: null,
-      valorPorTicket: 3,
-      series: []
+      compradoPor: "Eduardo Ferrari (organizador)",
+      dataComprovante: "28/10/2026 1:44 PM ET (+ compra complementar no mesmo dia)",
+      valorPorTicket: 3, // Power Play
+      series: [
+        {
+          serial: "24FDE3900D43FAD2F", qtd: 1, jogos: "1",
+          numeros: [
+            "39-42-44-56-61 — PB 26"
+          ]
+        },
+        {
+          serial: "214F3A88C84CC678B", qtd: 5, jogos: "1–5",
+          numeros: [
+            "24-37-38-57-65 — PB 13", "26-29-32-33-63 — PB 16", "26-45-46-61-66 — PB 14",
+            "28-36-47-49-66 — PB 15", "32-34-45-55-69 — PB 04"
+          ]
+        },
+        {
+          serial: "2A62882BEAAB59CAF", qtd: 50, jogos: "1–50",
+          numeros: [
+            "01-02-40-49-64 — PB 11", "01-10-21-42-55 — PB 17", "01-19-24-45-60 — PB 09",
+            "01-41-58-66-67 — PB 15", "02-04-17-62-69 — PB 08", "02-05-27-32-54 — PB 11",
+            "02-08-31-38-55 — PB 08", "02-13-26-41-42 — PB 25", "03-06-11-39-48 — PB 26",
+            "03-15-32-38-41 — PB 22", "03-22-47-58-61 — PB 24", "03-24-35-50-56 — PB 10",
+            "04-13-19-39-40 — PB 16", "04-53-56-57-64 — PB 01", "05-10-16-39-41 — PB 02",
+            "05-14-18-35-66 — PB 22", "05-37-40-50-61 — PB 06", "06-10-25-34-47 — PB 24",
+            "06-16-23-43-66 — PB 19", "06-21-49-52-53 — PB 01", "06-30-31-46-59 — PB 13",
+            "07-11-28-35-64 — PB 14", "07-17-30-33-68 — PB 10", "07-38-42-63-67 — PB 23",
+            "08-25-37-41-46 — PB 04", "08-29-48-51-57 — PB 06", "09-16-25-54-64 — PB 21",
+            "09-22-23-46-48 — PB 16", "09-26-27-36-43 — PB 07", "11-12-18-33-42 — PB 25",
+            "11-25-32-56-58 — PB 18", "11-27-38-51-52 — PB 21", "12-15-23-44-51 — PB 12",
+            "12-17-29-60-67 — PB 05", "12-21-26-57-62 — PB 18", "13-16-20-57-60 — PB 03",
+            "13-22-31-56-65 — PB 22", "14-28-51-54-61 — PB 19", "14-36-52-63-69 — PB 05",
+            "14-47-48-55-60 — PB 03", "15-27-60-62-64 — PB 15", "15-50-54-58-59 — PB 20",
+            "18-34-49-65-68 — PB 23", "19-20-35-51-58 — PB 17", "20-23-36-39-53 — PB 11",
+            "20-24-29-55-59 — PB 02", "21-30-43-54-67 — PB 12", "21-33-36-44-50 — PB 09",
+            "22-25-43-52-59 — PB 20", "22-29-35-68-69 — PB 07"
+          ]
+        },
+        {
+          serial: "24FB3868DF05CEC00", qtd: 3, jogos: "1–3",
+          numeros: [
+            "08-09-19-50-65 — PB 05", "23-37-45-62-68 — PB 23", "24-28-43-46-63 — PB 19"
+          ]
+        }
+      ]
     },
 
+    // 59 tickets (1 + 5 + 50 + 3) x US$3 (Power Play) = US$177. Arrecadado US$140 + credito de
+    // US$39 do sorteio anterior (2026-08-12) = US$179 disponivel — sobra US$2. A serie de 3
+    // tickets e uma compra complementar, depois do pagamento de 28/10 13:51. Deposito no
+    // saldo da NC Education Lottery (cartao) + saldo ja existente cobriram a compra; referencia
+    // de transacao fica so no comprovante privado, nunca aqui.
     finance: {
-      totalArrecadado: 130, // 13 participantes x $10 (pagamentos de 27/10/2026)
+      totalArrecadado: 140, // 14 participantes x $10 (pagamentos de 27 e 28/10/2026)
       // Premio do sorteio anterior + o que ficou guardado. Derivado do que esta gravado, nao
       // arbitrado aqui.
       creditoSorteioAnterior: 39,
-      valorUtilizado: 0,
-      valorGuardadoProximoSorteio: 0,
+      valorUtilizado: 177,
+      valorGuardadoProximoSorteio: 2,
       ajustesPendentes: 0
     },
 
