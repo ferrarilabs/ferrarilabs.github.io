@@ -690,7 +690,8 @@ window.POWERBALL_DRAWS = [
       { name: "Leandro Augustineli", cotas: 1, valor: 10, metodo: "Zelle", data: "27/10/2026", hora: "2:55:24 PM", status: "verificado", state: "NC" },
       { name: "Samuel Huller", cotas: 1, valor: 10, metodo: "Zelle", data: "27/10/2026", hora: "6:16:27 PM", status: "verificado", state: "NC" },
       { name: "Marcus Steffenon", cotas: 1, valor: 10, metodo: "Zelle", data: "27/10/2026", hora: "6:26:30 PM", status: "verificado", state: "NC" },
-      { name: "Amanda Quaresma", cotas: 1, valor: 10, metodo: "Venmo", data: "27/10/2026", hora: "6:29:17 PM", status: "verificado", state: "NC" }
+      { name: "Amanda Quaresma", cotas: 1, valor: 10, metodo: "Venmo", data: "27/10/2026", hora: "6:29:17 PM", status: "verificado", state: "NC" },
+      { name: "Marcelo Minghetti Pereira", cotas: 1, valor: 10, metodo: "Zelle", data: "28/10/2026", hora: "1:51:40 PM", status: "verificado", state: "NC" }
     ],
 
     sharedTickets: {
@@ -736,12 +737,13 @@ window.POWERBALL_DRAWS = [
       ]
     },
 
-    // 56 tickets (1 + 5 + 50) x US$3 (Power Play) = US$168. Arrecadado US$130 + credito de
-    // US$39 do sorteio anterior (2026-08-12) = US$169 disponivel — sobra US$1. Deposito no
+    // 56 tickets (1 + 5 + 50) x US$3 (Power Play) = US$168. Arrecadado US$140 + credito de
+    // US$39 do sorteio anterior (2026-08-12) = US$179 disponivel — sobra US$11 (pagamento de
+    // 28/10 13:51, depois da compra; vira bilhete numa compra complementar). Deposito no
     // saldo da NC Education Lottery (cartao) + saldo ja existente cobriram a compra; referencia
     // de transacao fica so no comprovante privado, nunca aqui.
     finance: {
-      totalArrecadado: 130, // 13 participantes x $10 (pagamentos de 27/10/2026)
+      totalArrecadado: 140, // 14 participantes x $10 (pagamentos de 27 e 28/10/2026)
       // Premio do sorteio anterior + o que ficou guardado. Derivado do que esta gravado, nao
       // arbitrado aqui.
       creditoSorteioAnterior: 39,

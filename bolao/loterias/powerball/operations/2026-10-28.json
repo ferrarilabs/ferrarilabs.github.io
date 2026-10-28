@@ -16,6 +16,7 @@
     {"name": "Leandro Augustineli",   "amount": 10, "method": "Zelle",    "paid_at": "2026-10-27T14:55:24-04:00"},
     {"name": "Samuel Huller",         "amount": 10, "method": "Zelle",    "paid_at": "2026-10-27T18:16:27-04:00"},
     {"name": "Marcus Steffenon",      "amount": 10, "method": "Zelle",    "paid_at": "2026-10-27T18:26:30-04:00"},
-    {"name": "Amanda Quaresma",       "amount": 10, "method": "Venmo",    "paid_at": "2026-10-27T18:29:17-04:00"}
+    {"name": "Amanda Quaresma",       "amount": 10, "method": "Venmo",    "paid_at": "2026-10-27T18:29:17-04:00"},
+    {"name": "Marcelo Minghetti Pereira", "amount": 10, "method": "Zelle",    "paid_at": "2026-10-28T13:51:40-04:00"}
   ]
 }
