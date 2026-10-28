@@ -1,0 +1,95 @@
+name: Powerball — E-mail de bilhetes publicados (operador)
+
+# Envia o e-mail "Bilhetes publicados" de um sorteio, com os links do PDF/CSV/manifesto que JA
+# estao no site (bolao/loterias/powerball/tickets/<draw>-v<versao>/, commitados em PR antes).
+#
+# Ate 2026-08 este envio rodava de uma maquina com um arquivo local de contatos, que nao existe
+# mais. Os contatos agora sao montados no runner pelo MESMO caminho do e-mail de resultado
+# (`build_ticket_email_contacts.py`: segredo principal + resolucao entre sorteios + suplementar),
+# com o portao TUDO-OU-NADA: um participante sem contato bloqueia o envio inteiro.
+#
+# Sem `send` e dry-run: monta contatos, valida e renderiza, sem chamar o provedor. O controle de
+# duplicidade do script JS e um arquivo local, que NAO persiste entre execucoes: rode o envio real
+# UMA vez por sorteio/versao.
+#
+# Nenhum dado pessoal entra como input (repo publico; o GitHub imprime inputs no log).
+
+on:
+  workflow_dispatch:
+    inputs:
+      draw_id:
+        description: "Sorteio (AAAA-MM-DD)"
+        type: string
+        required: true
+      version:
+        description: "Versao da publicacao dos bilhetes"
+        type: string
+        default: "1"
+      send:
+        description: "Enviar de verdade (sem isto e dry-run)"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: powerball-ticket-email
+  cancel-in-progress: false
+
+jobs:
+  enviar:
+    name: Bilhetes publicados
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Validar entradas e evidencia publicada
+        env:
+          DRAW_ID: ${{ inputs.draw_id }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          [[ "$DRAW_ID" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]] || { echo "::error::draw_id invalido"; exit 1; }
+          [[ "$VERSION" =~ ^[0-9]{1,3}$ ]] || { echo "::error::version invalida"; exit 1; }
+          # Os links do e-mail apontam para estes arquivos; sem eles commitados o e-mail leva 404.
+          for f in manifest.json tickets.csv tickets.pdf; do
+            test -s "bolao/loterias/powerball/tickets/${DRAW_ID}-v${VERSION}/$f" \
+              || { echo "::error::evidencia publica ausente: ${DRAW_ID}-v${VERSION}/$f"; exit 1; }
+          done
+
+      - name: Montar contatos (tudo ou nada)
+        working-directory: bolao/loterias/powerball/scripts
+        env:
+          DRAW_ID: ${{ inputs.draw_id }}
+          POWERBALL_PRIVATE_PARTICIPANT_DATA: ${{ secrets.POWERBALL_PRIVATE_PARTICIPANT_DATA }}
+          POWERBALL_PRIVATE_CONTACTS_EXTRA: ${{ secrets.POWERBALL_PRIVATE_CONTACTS_EXTRA }}
+        run: python3 build_ticket_email_contacts.py --draw "$DRAW_ID" --out "$RUNNER_TEMP/contatos.json"
+
+      - name: Enviar (ou simular)
+        working-directory: bolao/loterias/powerball/scripts/email
+        env:
+          DRAW_ID: ${{ inputs.draw_id }}
+          VERSION: ${{ inputs.version }}
+          SEND: ${{ inputs.send }}
+        run: |
+          set -euo pipefail
+          ARGS=(--draw-id "$DRAW_ID" --version "$VERSION")
+          [ "$SEND" = "true" ] || ARGS+=(--dry-run)
+          # Endereco nunca vai para o log publico, nem em mensagem de erro do provedor.
+          POWERBALL_PRIVATE_PARTICIPANT_DATA="$(cat "$RUNNER_TEMP/contatos.json")" \
+            node send_ticket_publication_real.mjs "${ARGS[@]}" 2>&1 \
+            | sed -E 's/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/<email>/g'
+
+      - name: Apagar contatos do runner
+        if: always()
+        run: rm -f "$RUNNER_TEMP/contatos.json"

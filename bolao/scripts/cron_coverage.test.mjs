@@ -312,6 +312,10 @@ const UNSCHEDULED = new Map([
    "Abertura de sorteio no banco a partir de um manifesto revisado em PR. NAO e agendada de " +
    "proposito: abrir sorteio e decisao do operador (o ciclo so RECOMENDA via ELIGIBLE), e cada " +
    "execucao grava fato financeiro. Um cron aqui criaria sorteio sem ninguem decidir."],
+  ["powerball_ticket_email.yml",
+   "E-mail de bilhetes publicados, disparado pelo operador depois de os bilhetes e a evidencia " +
+   "publica entrarem em PR. NAO e agendado de proposito: o controle de duplicidade do envio e local " +
+   "a execucao, entao um cron reenviaria o mesmo e-mail a cada disparo."],
   ["powerball_record_payment.yml",
    "Painel de administracao do Powerball (Issue #130, Opcao C). NAO e agendado porque nao e um " +
    "ciclo: e um operador humano registrando um pagamento que acabou de acontecer. Um cron aqui nao " +
