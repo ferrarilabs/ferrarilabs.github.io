@@ -654,6 +654,66 @@ window.POWERBALL_DRAWS = [
       breakdown: ["2x 1 + Powerball", "1x 3 acertos", "1x Powerball"]
     },
     profit: null
+  },
+
+  {
+    id: "2026-10-28",
+    gameType: "powerball",
+    status: "planejamento",
+    createdAt: "2026-10-27T15:10:40-04:00",
+    previousDrawId: "2026-08-12",
+
+    drawing: {
+      name: "Powerball Jackpot",
+      // jackpot/cashValue sao publicados pela loteria; ficam null ate serem informados.
+      jackpot: 716000000,
+      cashValue: 307200000,
+      jackpotSource: "powerball_official",
+      jackpotFetchedAt: "2026-10-27T19:13:22Z",
+      jackpotDrawId: "2026-10-28",
+      drawDateIso: "2026-10-28T22:59:00-04:00",
+      drawDateLabel: "28/10/2026 22:59 ET"
+    },
+
+    // BOLAO ABERTO. Pagamentos de 27/10/2026 reconciliados via Gmail (Zelle/Venmo/Cash App);
+    // referencias de transacao apenas no registro privado, nunca aqui.
+    participants: [
+      { name: "Rodrigo Hajj", cotas: 1, valor: 10, metodo: "Zelle", data: "27/10/2026", hora: "1:01:51 PM", status: "verificado", state: "NC" },
+      { name: "Marcelo Moreira", cotas: 1, valor: 10, metodo: "Zelle", data: "27/10/2026", hora: "1:20:47 PM", status: "verificado", state: "NC" },
+      { name: "Gustavo Bossle", cotas: 1, valor: 10, metodo: "Zelle", data: "27/10/2026", hora: "1:22:21 PM", status: "verificado", state: "NC" },
+      { name: "Thiago Locatelli", cotas: 1, valor: 10, metodo: "Zelle", data: "27/10/2026", hora: "1:22:23 PM", status: "verificado", state: "TX" },
+      { name: "Simone Hirle da Costa", cotas: 1, valor: 10, metodo: "Venmo", data: "27/10/2026", hora: "1:32:08 PM", status: "verificado", state: "NC" },
+      { name: "Ewerton Gruba Silva", cotas: 1, valor: 10, metodo: "Zelle", data: "27/10/2026", hora: "1:34:14 PM", status: "verificado", state: "NC" },
+      { name: "Camila Ribeiro", cotas: 1, valor: 10, metodo: "Zelle", data: "27/10/2026", hora: "1:35:02 PM", status: "verificado", state: "NC" },
+      { name: "Marcelo G de Jesus", cotas: 1, valor: 10, metodo: "Zelle", data: "27/10/2026", hora: "1:37:18 PM", status: "verificado", state: "FL" },
+      { name: "Alan Rech", cotas: 1, valor: 10, metodo: "Cash App", data: "27/10/2026", hora: "2:51:16 PM", status: "verificado", state: "FL" },
+      { name: "Leandro Augustineli", cotas: 1, valor: 10, metodo: "Zelle", data: "27/10/2026", hora: "2:55:24 PM", status: "verificado", state: "NC" },
+      { name: "Samuel Huller", cotas: 1, valor: 10, metodo: "Zelle", data: "27/10/2026", hora: "6:16:27 PM", status: "verificado", state: "NC" },
+      { name: "Marcus Steffenon", cotas: 1, valor: 10, metodo: "Zelle", data: "27/10/2026", hora: "6:26:30 PM", status: "verificado", state: "NC" },
+      { name: "Amanda Quaresma", cotas: 1, valor: 10, metodo: "Venmo", data: "27/10/2026", hora: "6:29:17 PM", status: "verificado", state: "NC" }
+    ],
+
+    // Sem bilhetes ainda. Os numeros entram depois da compra -- abrir o bolao nunca dependeu
+    // de ja existirem jogos.
+    sharedTickets: {
+      compradoPor: null,
+      dataComprovante: null,
+      valorPorTicket: 3,
+      series: []
+    },
+
+    finance: {
+      totalArrecadado: 130, // 13 participantes x $10 (pagamentos de 27/10/2026)
+      // Premio do sorteio anterior + o que ficou guardado. Derivado do que esta gravado, nao
+      // arbitrado aqui.
+      creditoSorteioAnterior: 39,
+      valorUtilizado: 0,
+      valorGuardadoProximoSorteio: 0,
+      ajustesPendentes: 0
+    },
+
+    result: null,
+    profit: null
   }
 ];
 
