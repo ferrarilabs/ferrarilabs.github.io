@@ -758,7 +758,15 @@ window.POWERBALL_DRAWS = [
       ajustesPendentes: 0
     },
 
-    result: null,
+    result: {
+      numbers: [11, 13, 16, 47, 60],
+      special: 13,
+      multiplier: 2,
+      checkedAt: "29/10/2026 06:59 ET",
+      premiosGanhos: 30,
+      jackpotHit: false,
+      breakdown: ["2x Powerball", "1x 3 acertos"]
+    },
     profit: null
   }
 ];
