@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-28T17:57:29Z",
+  "generatedAt": "2026-10-29T11:14:49Z",
   "threshold": {
     "minJackpotCents": 50000000000,
     "comparison": "strictly_greater",
@@ -10,14 +10,14 @@
     "powerball": {
       "game": "powerball",
       "label": "Powerball",
-      "advertisedAnnuityCents": 71600000000,
-      "cashValueCents": 30720000000,
-      "nextDrawDate": "2026-10-28",
-      "nextDrawAt": "2026-10-29T02:59:00Z",
-      "source": "https://nclottery.com/powerball",
-      "verificationState": "SECONDARY_ONLY",
-      "fetchedAt": "2026-10-28T17:57:29Z",
-      "sourceHash": "21090de2b2d1ef92",
+      "advertisedAnnuityCents": 76000000000,
+      "cashValueCents": 32600000000,
+      "nextDrawDate": "2026-10-31",
+      "nextDrawAt": "2026-11-01T02:59:00Z",
+      "source": "https://www.powerball.com/",
+      "verificationState": "PRIMARY_CONFIRMED",
+      "fetchedAt": "2026-10-29T11:14:49Z",
+      "sourceHash": "5247685005ba9ae8",
       "eligible": true,
       "state": "ELIGIBLE",
       "error": null
@@ -31,7 +31,7 @@
       "nextDrawAt": "2026-10-31T03:00:00Z",
       "source": "https://www.megamillions.com/cmspages/utilservice.asmx/GetLatestDrawData",
       "verificationState": "PRIMARY_CONFIRMED",
-      "fetchedAt": "2026-10-28T17:57:29Z",
+      "fetchedAt": "2026-10-29T11:14:49Z",
       "sourceHash": "7259dabb5a76d6e0",
       "eligible": false,
       "state": "BELOW_THRESHOLD",
@@ -41,20 +41,37 @@
   "nextPool": {
     "game": "powerball",
     "label": "Powerball",
-    "jackpotCents": 71600000000,
-    "drawDate": "2026-10-28"
+    "jackpotCents": 76000000000,
+    "drawDate": "2026-10-31"
   },
   "funds": {
-    "lastDrawWinningsCents": 3800,
-    "lastDrawId": "2026-08-12",
-    "carryoverAvailableCents": 3900,
-    "ledgerEntries": 4
+    "lastDrawWinningsCents": 3000,
+    "lastDrawId": "2026-10-28",
+    "carryoverAvailableCents": 3200,
+    "ledgerEntries": 9
   },
   "currentDraw": {
     "id": "2026-10-28",
-    "lifecycleState": "LOCKED",
-    "reason": "bilhetes comprados; entradas encerradas",
-    "result": null
+    "lifecycleState": "SETTLED",
+    "reason": "resultado oficial gravado e prêmio creditado",
+    "result": {
+      "numbers": [
+        11,
+        13,
+        16,
+        47,
+        60
+      ],
+      "special": 13,
+      "multiplier": 2,
+      "checkedAt": "29/10/2026 06:59 ET",
+      "premiosGanhos": 30,
+      "jackpotHit": false,
+      "breakdown": [
+        "2x Powerball",
+        "1x 3 acertos"
+      ]
+    }
   },
   "autoPurchase": false,
   "_doc": "Documento gerado; nao editar a mao. A UI e o e-mail leem daqui para que exista UMA resposta para 'ha bolao novo?'. Elegibilidade e ESTRITAMENTE > US$500M sobre a anuidade anunciada do PROXIMO sorteio."
