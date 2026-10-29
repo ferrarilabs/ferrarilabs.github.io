@@ -70,6 +70,11 @@ STATUS_1208.currentDraw = {
   id: "2026-08-12", lifecycleState: "SETTLED",
   reason: "resultado oficial gravado e prêmio creditado", result: null,
 };
+// O caixa também é o DAQUELE estado: o livro real seguiu em frente (28/10 liquidado em 29/10).
+STATUS_1208.funds = {
+  lastDrawWinningsCents: 3800, lastDrawId: "2026-08-12",
+  carryoverAvailableCents: 3900, ledgerEntries: 4,
+};
 const FIXTURE_1208 = {
   "/bolao/loterias/powerball/js/data.js": DATA_JS_1208,
   "/bolao/loterias/config/lottery_status.json": JSON.stringify(STATUS_1208),
