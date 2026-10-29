@@ -793,7 +793,8 @@ window.POWERBALL_DRAWS = [
     participants: [
       { name: "Marcelo Moreira", cotas: 1, valor: 10, metodo: "Zelle", data: "29/10/2026", hora: "7:03:23 AM", status: "verificado", state: "NC" },
       { name: "Gustavo Bossle", cotas: 1, valor: 10, metodo: "Zelle", data: "29/10/2026", hora: "7:04:07 AM", status: "verificado", state: "NC" },
-      { name: "Eduardo Ferrari", cotas: 1, valor: 10, metodo: "Fundo próprio (organizador)", data: "29/10/2026", hora: "7:15:08 AM", status: "organizador", state: "NC" }
+      { name: "Eduardo Ferrari", cotas: 1, valor: 10, metodo: "Fundo próprio (organizador)", data: "29/10/2026", hora: "7:15:08 AM", status: "organizador", state: "NC" },
+      { name: "Ewerton Gruba Silva", cotas: 1, valor: 10, metodo: "Zelle", data: "29/10/2026", hora: "7:45:40 AM", status: "verificado", state: "NC" }
     ],
 
     // Sem bilhetes ainda. Os numeros entram depois da compra -- abrir o bolao nunca dependeu
@@ -806,7 +807,7 @@ window.POWERBALL_DRAWS = [
     },
 
     finance: {
-      totalArrecadado: 30, // 3 participantes x $10 (29/10/2026)
+      totalArrecadado: 40, // 4 participantes x $10 (29/10/2026)
       // Premio do sorteio anterior (US$30) + o que ficou guardado (US$2). Derivado do que esta
       // gravado, nao arbitrado aqui.
       creditoSorteioAnterior: 32,
