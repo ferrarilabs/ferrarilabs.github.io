@@ -4,8 +4,29 @@
   "jackpot": 760000000,
   "cash_value": 326000000,
   "contributions": [
-    {"name": "Marcelo Moreira", "amount": 10, "method": "Zelle", "paid_at": "2026-10-29T07:03:23-04:00"},
-    {"name": "Gustavo Bossle", "amount": 10, "method": "Zelle", "paid_at": "2026-10-29T07:04:07-04:00"},
-    {"name": "Eduardo Ferrari", "amount": 10, "method": "Fundo próprio (organizador)", "paid_at": "2026-10-29T07:15:08-04:00"}
+    {
+      "name": "Marcelo Moreira",
+      "amount": 10,
+      "method": "Zelle",
+      "paid_at": "2026-10-29T07:03:23-04:00"
+    },
+    {
+      "name": "Gustavo Bossle",
+      "amount": 10,
+      "method": "Zelle",
+      "paid_at": "2026-10-29T07:04:07-04:00"
+    },
+    {
+      "name": "Eduardo Ferrari",
+      "amount": 10,
+      "method": "Fundo próprio (organizador)",
+      "paid_at": "2026-10-29T07:15:08-04:00"
+    },
+    {
+      "name": "Ewerton Gruba Silva",
+      "amount": 10,
+      "method": "Zelle",
+      "paid_at": "2026-10-29T07:45:40-04:00"
+    }
   ]
 }
