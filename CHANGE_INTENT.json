@@ -1,0 +1,13 @@
+{
+  "declarations": [
+    {
+      "surface_id": "NOTIFICATION_WORKFLOWS",
+      "reason": "Cada contribuicao gravada no banco pelo powerball_open_draw.yml exigia um PR feito a mao para levar o participante ao site (data.js, projecao e pin). O owner ligou 'Allow GitHub Actions to create and approve pull requests' para que o proprio workflow publique.",
+      "expected_behavior_change": "Novo job `site` no powerball_open_draw.yml, so com apply: deriva do banco os participantes do sorteio no data.js (sync_draw_participants.mjs, escrita cirurgica so no sorteio alvo), regenera e confere a projecao, publica por publish_data_via_pr.sh no branch auto/data/powerball-<sorteio>, espera o npm run check do commit, faz squash merge com mensagem explicita (sem Co-authored-by) e dispara deploy-pages.yml. Nao envia e-mail; o job `abrir` e o dry-run nao mudam.",
+      "tests_required": [
+        "powerball-sync-draw-participants",
+        "cron-coverage"
+      ]
+    }
+  ]
+}
