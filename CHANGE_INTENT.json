@@ -1,0 +1,13 @@
+{
+  "declarations": [
+    {
+      "surface_id": "NOTIFICATION_WORKFLOWS",
+      "reason": "No teste ponta a ponta do job `site` do powerball_open_draw.yml (run 40934577291) o PR automatico abriu e o npm run check foi disparado, mas a espera escolheu o run de pull_request do mesmo commit, que fica em action_required sem rodar, e o job falhou antes do merge.",
+      "expected_behavior_change": "A espera do job `site` filtra os runs do safety_check.yml por --event workflow_dispatch, alem do commit. Nada mais muda: mesmo PR rolante, mesma mensagem de merge, mesmo disparo do deploy.",
+      "tests_required": [
+        "powerball-sync-draw-participants",
+        "cron-coverage"
+      ]
+    }
+  ]
+}
