@@ -587,6 +587,12 @@
         "metodo": "Zelle"
       },
       {
+        "name": "Jorge Augusto Junqueira Ferreira",
+        "cotas": 1,
+        "valor": 10,
+        "metodo": "Zelle"
+      },
+      {
         "name": "Leandro Augustineli",
         "cotas": 1,
         "valor": 10,
@@ -594,6 +600,30 @@
       },
       {
         "name": "Marcelo Moreira",
+        "cotas": 1,
+        "valor": 10,
+        "metodo": "Zelle"
+      },
+      {
+        "name": "Marcus Steffenon",
+        "cotas": 1,
+        "valor": 10,
+        "metodo": "Zelle"
+      },
+      {
+        "name": "Rodrigo Hajj",
+        "cotas": 1,
+        "valor": 10,
+        "metodo": "Zelle"
+      },
+      {
+        "name": "Simone Hirle da Costa",
+        "cotas": 1,
+        "valor": 10,
+        "metodo": "Venmo"
+      },
+      {
+        "name": "Thiago Locatelli",
         "cotas": 1,
         "valor": 10,
         "metodo": "Zelle"

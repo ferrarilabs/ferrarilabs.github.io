@@ -52,10 +52,10 @@
     },
     {
       "id": "2026-10-31",
-      "participants": 6,
-      "cotas": 6,
-      "valor": 60,
-      "totalArrecadado": 60
+      "participants": 11,
+      "cotas": 11,
+      "valor": 110,
+      "totalArrecadado": 110
     }
   ],
   "cutoverAt": "2026-08-22",
