@@ -1,0 +1,44 @@
+{
+  "_o_que_e": "Manifesto de abertura do sorteio Powerball de 2026-10-31, aplicado por operator_open_draw.py. Contribuicoes reconciliadas dos e-mails de Zelle de 2026-10-29 mais a cota do organizador, aprovadas pelo Eduardo. Sem referencia de pagamento: o repositorio e publico.",
+  "draw_date": "2026-10-31",
+  "jackpot": 760000000,
+  "cash_value": 326000000,
+  "contributions": [
+    {
+      "name": "Marcelo Moreira",
+      "amount": 10,
+      "method": "Zelle",
+      "paid_at": "2026-10-29T07:03:23-04:00"
+    },
+    {
+      "name": "Gustavo Bossle",
+      "amount": 10,
+      "method": "Zelle",
+      "paid_at": "2026-10-29T07:04:07-04:00"
+    },
+    {
+      "name": "Eduardo Ferrari",
+      "amount": 10,
+      "method": "Fundo próprio (organizador)",
+      "paid_at": "2026-10-29T07:15:08-04:00"
+    },
+    {
+      "name": "Ewerton Gruba Silva",
+      "amount": 10,
+      "method": "Zelle",
+      "paid_at": "2026-10-29T07:45:40-04:00"
+    },
+    {
+      "name": "Leandro Augustineli",
+      "amount": 10,
+      "method": "Zelle",
+      "paid_at": "2026-10-29T07:56:16-04:00"
+    },
+    {
+      "name": "Alan Rech",
+      "amount": 10,
+      "method": "Cash App",
+      "paid_at": "2026-10-29T08:05:22-04:00"
+    }
+  ]
+}
