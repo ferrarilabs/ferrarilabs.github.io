@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-29T01:12:08Z",
+  "generatedAt": "2026-10-29T09:52:03Z",
   "threshold": {
     "minJackpotCents": 50000000000,
     "comparison": "strictly_greater",
@@ -10,17 +10,12 @@
     "powerball": {
       "game": "powerball",
       "label": "Powerball",
-      "advertisedAnnuityCents": 71600000000,
-      "cashValueCents": 30720000000,
-      "nextDrawDate": "2026-10-28",
-      "nextDrawAt": "2026-10-29T02:59:00Z",
-      "source": "https://www.powerball.com/",
-      "verificationState": "PRIMARY_CONFIRMED",
-      "fetchedAt": "2026-10-29T01:12:08Z",
-      "sourceHash": "52c48665ffb4523a",
-      "eligible": true,
-      "state": "ELIGIBLE",
-      "error": null
+      "advertisedAnnuityCents": null,
+      "cashValueCents": null,
+      "nextDrawDate": null,
+      "eligible": false,
+      "state": "UNKNOWN",
+      "error": "ResultadoInvalido: oficial: ResultadoInvalido: CASCA_SEM_CONTEUDO: 10 de 10 respostas de https://www.powerball.com/ vieram sem 'Estimated Jackpot'; nc_education_lottery: ResultadoInvalido: JACKPOT_NAO"
     },
     "megamillions": {
       "game": "megamillions",
@@ -31,19 +26,14 @@
       "nextDrawAt": "2026-10-31T03:00:00Z",
       "source": "https://www.megamillions.com/cmspages/utilservice.asmx/GetLatestDrawData",
       "verificationState": "PRIMARY_CONFIRMED",
-      "fetchedAt": "2026-10-29T01:12:08Z",
+      "fetchedAt": "2026-10-29T09:52:03Z",
       "sourceHash": "7259dabb5a76d6e0",
       "eligible": false,
       "state": "BELOW_THRESHOLD",
       "error": null
     }
   },
-  "nextPool": {
-    "game": "powerball",
-    "label": "Powerball",
-    "jackpotCents": 71600000000,
-    "drawDate": "2026-10-28"
-  },
+  "nextPool": null,
   "funds": {
     "lastDrawWinningsCents": 3800,
     "lastDrawId": "2026-08-12",
@@ -52,8 +42,8 @@
   },
   "currentDraw": {
     "id": "2026-10-28",
-    "lifecycleState": "LOCKED",
-    "reason": "bilhetes comprados; entradas encerradas",
+    "lifecycleState": "AWAITING_RESULT",
+    "reason": "o sorteio já ocorreu; aguardando publicação oficial",
     "result": null
   },
   "autoPurchase": false,
