@@ -38,16 +38,20 @@ const DATA_JS = `window.POWERBALL_DRAWS = [
 `;
 
 const linhas = {
+  draws: [
+    { draw_id: "uuid-a", draw_date: "2026-10-28" },
+    { draw_id: "uuid-b", draw_date: "2026-10-31" },
+  ],
   participantes: [
     { participant_id: "p1", display_name: "Ana", state: "NC" },
     { participant_id: "p2", display_name: "Bruno", state: "FL" },
     { participant_id: "p3", display_name: "Eduardo Ferrari", state: "NC" },
   ],
   participacoes: [
-    { participation_id: "x3", participant_id: "p3", draw_id: "2026-10-31", cotas: 1 },
-    { participation_id: "x1", participant_id: "p1", draw_id: "2026-10-31", cotas: 1 },
-    { participation_id: "x2", participant_id: "p2", draw_id: "2026-10-31", cotas: 1 },
-    { participation_id: "y1", participant_id: "p1", draw_id: "2026-10-28", cotas: 1 },
+    { participation_id: "x3", participant_id: "p3", draw_id: "uuid-b", cotas: 1 },
+    { participation_id: "x1", participant_id: "p1", draw_id: "uuid-b", cotas: 1 },
+    { participation_id: "x2", participant_id: "p2", draw_id: "uuid-b", cotas: 1 },
+    { participation_id: "y1", participant_id: "p1", draw_id: "uuid-a", cotas: 1 },
   ],
   transacoes: [
     { participation_id: "x1", type: "contribution", amount: "10.00", method: "Zelle", paid_at: "2026-10-29T11:03:23+00:00" },
@@ -76,6 +80,13 @@ const reaplicado = aplicarNoDataJs(src, "2026-10-31", rows).src;
 checa("idempotente", reaplicado === src);
 const avaliado = new Function(src.replace("window.POWERBALL_DRAWS =", "return"))();
 checa("data.js continua JavaScript valido", avaliado[1].participants.length === 3);
+
+let semLinhas = false;
+try { participantesDoSorteio({ ...linhas, draws: [] }, "2026-10-31"); } catch { semLinhas = true; }
+checa("sorteio fora de lottery_draws e recusado (nunca zera o data.js)", semLinhas);
+let semParticipacao = false;
+try { participantesDoSorteio({ ...linhas, participacoes: [] }, "2026-10-31"); } catch { semParticipacao = true; }
+checa("sorteio sem participacao e recusado", semParticipacao);
 
 let recusou = false;
 try { aplicarNoDataJs(DATA_JS, "2026-11-02", rows); } catch { recusou = true; }
