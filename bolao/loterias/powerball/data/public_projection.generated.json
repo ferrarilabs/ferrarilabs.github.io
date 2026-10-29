@@ -563,6 +563,12 @@
     ],
     [
       {
+        "name": "Alan Rech",
+        "cotas": 1,
+        "valor": 10,
+        "metodo": "Cash App"
+      },
+      {
         "name": "Eduardo Ferrari",
         "cotas": 1,
         "valor": 10,
@@ -576,6 +582,12 @@
       },
       {
         "name": "Gustavo Bossle",
+        "cotas": 1,
+        "valor": 10,
+        "metodo": "Zelle"
+      },
+      {
+        "name": "Leandro Augustineli",
         "cotas": 1,
         "valor": 10,
         "metodo": "Zelle"
