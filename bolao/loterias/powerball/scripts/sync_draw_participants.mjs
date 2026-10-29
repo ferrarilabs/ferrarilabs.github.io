@@ -25,8 +25,12 @@ const PIN = join(RAIZ, "bolao/shared/safety/powerball_public_projection_pin.json
 const ORGANIZADOR = "Fundo próprio (organizador)";
 
 /** Linhas publicas do sorteio, na ordem em que as contribuicoes chegaram. */
-export function participantesDoSorteio(linhas, drawId) {
-  const participacoes = linhas.participacoes.filter((p) => p.draw_id === drawId);
+export function participantesDoSorteio(linhas, drawDate) {
+  // No banco, `draw_id` e UUID; o sorteio e identificado pela DATA (`draw_date`).
+  const draws = linhas.draws.filter((d) => String(d.draw_date).slice(0, 10) === drawDate);
+  if (draws.length !== 1) throw new Error(`sorteio ${drawDate}: ${draws.length} linha(s) em lottery_draws`);
+  const participacoes = linhas.participacoes.filter((p) => p.draw_id === draws[0].draw_id);
+  if (participacoes.length === 0) throw new Error(`sorteio ${drawDate}: nenhuma participacao no banco`);
   const overrides = {};
   const chegada = new Map();
   for (const pa of participacoes) {
