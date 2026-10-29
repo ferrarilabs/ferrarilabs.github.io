@@ -560,6 +560,26 @@
         "valor": 10,
         "metodo": "Zelle"
       }
+    ],
+    [
+      {
+        "name": "Eduardo Ferrari",
+        "cotas": 1,
+        "valor": 10,
+        "metodo": "Fundo próprio (organizador)"
+      },
+      {
+        "name": "Gustavo Bossle",
+        "cotas": 1,
+        "valor": 10,
+        "metodo": "Zelle"
+      },
+      {
+        "name": "Marcelo Moreira",
+        "cotas": 1,
+        "valor": 10,
+        "metodo": "Zelle"
+      }
     ]
   ]
 }

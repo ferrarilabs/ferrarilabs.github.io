@@ -768,6 +768,55 @@ window.POWERBALL_DRAWS = [
       breakdown: ["2x Powerball", "1x 3 acertos"]
     },
     profit: null
+  },
+  {
+    id: "2026-10-31",
+    gameType: "powerball",
+    status: "planejamento",
+    createdAt: "2026-10-29T07:16:00-04:00",
+    previousDrawId: "2026-10-28",
+
+    drawing: {
+      name: "Powerball Jackpot",
+      // jackpot/cashValue sao publicados pela loteria; ficam null ate serem informados.
+      jackpot: 760000000,
+      cashValue: 326000000,
+      jackpotSource: "powerball_official",
+      jackpotFetchedAt: "2026-10-29T11:10:00Z",
+      jackpotDrawId: "2026-10-31",
+      drawDateIso: "2026-10-31T22:59:00-04:00",
+      drawDateLabel: "31/10/2026 22:59 ET"
+    },
+
+    // BOLAO ABERTO. Pagamentos de 29/10/2026 reconciliados via Gmail (Zelle) + cota do
+    // organizador; referencias de transacao apenas no registro privado, nunca aqui.
+    participants: [
+      { name: "Marcelo Moreira", cotas: 1, valor: 10, metodo: "Zelle", data: "29/10/2026", hora: "7:03:23 AM", status: "verificado", state: "NC" },
+      { name: "Gustavo Bossle", cotas: 1, valor: 10, metodo: "Zelle", data: "29/10/2026", hora: "7:04:07 AM", status: "verificado", state: "NC" },
+      { name: "Eduardo Ferrari", cotas: 1, valor: 10, metodo: "Fundo próprio (organizador)", data: "29/10/2026", hora: "7:15:08 AM", status: "organizador", state: "NC" }
+    ],
+
+    // Sem bilhetes ainda. Os numeros entram depois da compra -- abrir o bolao nunca dependeu
+    // de ja existirem jogos.
+    sharedTickets: {
+      compradoPor: null,
+      dataComprovante: null,
+      valorPorTicket: 3,
+      series: []
+    },
+
+    finance: {
+      totalArrecadado: 30, // 3 participantes x $10 (29/10/2026)
+      // Premio do sorteio anterior (US$30) + o que ficou guardado (US$2). Derivado do que esta
+      // gravado, nao arbitrado aqui.
+      creditoSorteioAnterior: 32,
+      valorUtilizado: 0,
+      valorGuardadoProximoSorteio: 0,
+      ajustesPendentes: 0
+    },
+
+    result: null,
+    profit: null
   }
 ];
 
