@@ -4,7 +4,7 @@
  *
  * Uso: node bolao/loterias/powerball/scripts/test_sync_draw_participants.mjs
  */
-import { participantesDoSorteio, aplicarNoDataJs, aplicarNoPin } from "./sync_draw_participants.mjs";
+import { participantesDoSorteio, aplicarNoDataJs, aplicarNoPin, herdarEstados } from "./sync_draw_participants.mjs";
 
 const falhas = [];
 function checa(nome, cond, detalhe = "") {
@@ -16,6 +16,7 @@ const DATA_JS = `window.POWERBALL_DRAWS = [
   {
     id: "2026-10-28",
     participants: [
+      { name: "Bruno", cotas: 1, valor: 10, metodo: "Zelle", data: "27/10/2026", hora: "1:00:00 PM", status: "verificado", state: "FL" },
       { name: "Antigo", cotas: 1, valor: 10, metodo: "Zelle", data: "27/10/2026", hora: "1:01:51 PM", status: "verificado", state: "NC" }
     ],
     finance: {
@@ -43,9 +44,9 @@ const linhas = {
     { draw_id: "uuid-b", draw_date: "2026-10-31" },
   ],
   participantes: [
-    { participant_id: "p1", display_name: "Ana", state: "NC" },
-    { participant_id: "p2", display_name: "Bruno", state: "FL" },
-    { participant_id: "p3", display_name: "Eduardo Ferrari", state: "NC" },
+    { participant_id: "p1", display_name: "Ana", state: "active" },
+    { participant_id: "p2", display_name: "Bruno", state: "active" },
+    { participant_id: "p3", display_name: "Eduardo Ferrari", state: "active" },
   ],
   participacoes: [
     { participation_id: "x3", participant_id: "p3", draw_id: "uuid-b", cotas: 1 },
@@ -61,7 +62,11 @@ const linhas = {
   ],
 };
 
-const rows = participantesDoSorteio(linhas, "2026-10-31");
+const rows = herdarEstados(participantesDoSorteio(linhas, "2026-10-31"), DATA_JS);
+checa("state vem do data.js, nunca da coluna de status do banco",
+      rows.every((r) => r.state !== "active") && rows.find((r) => r.name === "Ana").state === "NC"
+      && rows.find((r) => r.name === "Bruno").state === "FL", rows.map((r) => r.state).join(","));
+checa("sem historico no data.js, state fica null", rows.find((r) => r.name === "Eduardo Ferrari").state === null);
 checa("ordem de chegada", rows.map((r) => r.name).join(",") === "Ana,Eduardo Ferrari,Bruno",
       rows.map((r) => r.name).join(","));
 checa("organizador marcado", rows[1].status === "organizador");

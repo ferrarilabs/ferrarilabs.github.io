@@ -16,7 +16,7 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join, resolve } from "node:path";
 import { projetarSorteio } from "./public_projection.mjs";
-import { lerBanco, lerArquivo } from "./generate_public_projection.mjs";
+import { lerBanco, lerArquivo, participantesDoDataJs } from "./generate_public_projection.mjs";
 
 const AQUI = dirname(fileURLToPath(import.meta.url));
 const RAIZ = join(AQUI, "..", "..", "..", "..");
@@ -49,6 +49,20 @@ export function participantesDoSorteio(linhas, drawDate) {
 }
 
 // O ICU do Node 20 separa "PM" com U+202F; o data.js usa espaco comum.
+/**
+ * `state` (NC, FL...) e campo de APRESENTACAO: o banco nao o guarda. A coluna `state` de
+ * `lottery_participants` e o status do cadastro ("active") -- em 29/10/2026 o PR automatico #492
+ * trocou o NC/FL de todo mundo por "active" e foi fechado sem merge. O estado vem do proprio
+ * data.js: o ultimo informado para aquele nome em qualquer sorteio; sem historico, null.
+ */
+export function herdarEstados(rows, srcDataJs) {
+  const estado = new Map();
+  for (const sorteio of participantesDoDataJs(srcDataJs)) {
+    for (const p of sorteio) if (p && p.name && p.state) estado.set(p.name, p.state);
+  }
+  return rows.map((r) => ({ ...r, state: estado.get(r.name) ?? null }));
+}
+
 const js = (v) => (v === null || v === undefined ? "null"
   : JSON.stringify(typeof v === "string" ? v.replace(/[\u202f\u00a0]/g, " ") : v));
 function linhaJs(r) {
@@ -93,8 +107,9 @@ if (process.argv[1] && resolve(process.argv[1]) === resolve(fileURLToPath(import
   if (!/^\d{4}-\d{2}-\d{2}$/.test(drawId || "")) { console.log("uso: --draw AAAA-MM-DD [--from f]"); process.exit(2); }
   const dataJs = arg("--data-js") || DATA_JS, pinPath = arg("--pin") || PIN;
   const linhas = arg("--from") ? lerArquivo(arg("--from")) : await lerBanco();
-  const rows = participantesDoSorteio(linhas, drawId);
-  const { src, total } = aplicarNoDataJs(readFileSync(dataJs, "utf-8"), drawId, rows);
+  const original = readFileSync(dataJs, "utf-8");
+  const rows = herdarEstados(participantesDoSorteio(linhas, drawId), original);
+  const { src, total } = aplicarNoDataJs(original, drawId, rows);
   writeFileSync(dataJs, src);
   const pin = aplicarNoPin(JSON.parse(readFileSync(pinPath, "utf-8")), drawId, rows, total);
   writeFileSync(pinPath, JSON.stringify(pin, null, 2) + "\n");
