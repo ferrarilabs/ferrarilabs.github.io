@@ -52,18 +52,18 @@
     },
     {
       "id": "2026-10-31",
-      "participants": 6,
-      "cotas": 6,
-      "valor": 60,
-      "totalArrecadado": 60
+      "participants": 14,
+      "cotas": 14,
+      "valor": 140,
+      "totalArrecadado": 140
     }
   ],
   "cutoverAt": "2026-08-22",
   "_reconciliacao": {
     "sourceRows": 75,
     "dbContributions": 75,
-    "sourceTotal": 888.0,
-    "dbContributionTotal": 888.0,
+    "sourceTotal": 888,
+    "dbContributionTotal": 888,
     "missingImportable": 0,
     "conflicts": 0,
     "ambiguous": 0,

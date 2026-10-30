@@ -796,7 +796,15 @@ window.POWERBALL_DRAWS = [
       { name: "Eduardo Ferrari", cotas: 1, valor: 10, metodo: "Fundo próprio (organizador)", data: "29/10/2026", hora: "7:15:08 AM", status: "organizador", state: "NC" },
       { name: "Ewerton Gruba Silva", cotas: 1, valor: 10, metodo: "Zelle", data: "29/10/2026", hora: "7:45:40 AM", status: "verificado", state: "NC" },
       { name: "Leandro Augustineli", cotas: 1, valor: 10, metodo: "Zelle", data: "29/10/2026", hora: "7:56:16 AM", status: "verificado", state: "NC" },
-      { name: "Alan Rech", cotas: 1, valor: 10, metodo: "Cash App", data: "29/10/2026", hora: "8:05:22 AM", status: "verificado", state: "FL" }
+      { name: "Alan Rech", cotas: 1, valor: 10, metodo: "Cash App", data: "29/10/2026", hora: "8:05:22 AM", status: "verificado", state: "FL" },
+      { name: "Simone Hirle da Costa", cotas: 1, valor: 10, metodo: "Venmo", data: "29/10/2026", hora: "9:48:22 AM", status: "verificado", state: "NC" },
+      { name: "Jorge Augusto Junqueira Ferreira", cotas: 1, valor: 10, metodo: "Zelle", data: "29/10/2026", hora: "10:38:37 AM", status: "verificado", state: "FL" },
+      { name: "Thiago Locatelli", cotas: 1, valor: 10, metodo: "Zelle", data: "29/10/2026", hora: "10:49:33 AM", status: "verificado", state: "TX" },
+      { name: "Rodrigo Hajj", cotas: 1, valor: 10, metodo: "Zelle", data: "29/10/2026", hora: "10:59:09 AM", status: "verificado", state: "NC" },
+      { name: "Marcus Steffenon", cotas: 1, valor: 10, metodo: "Zelle", data: "29/10/2026", hora: "12:55:43 PM", status: "verificado", state: "NC" },
+      { name: "Marcelo G de Jesus", cotas: 1, valor: 10, metodo: "Zelle", data: "29/10/2026", hora: "2:03:11 PM", status: "verificado", state: "FL" },
+      { name: "Camila Ribeiro", cotas: 1, valor: 10, metodo: "Zelle", data: "29/10/2026", hora: "7:14:47 PM", status: "verificado", state: "NC" },
+      { name: "Marcelo Minghetti Pereira", cotas: 1, valor: 10, metodo: "Zelle", data: "29/10/2026", hora: "8:00:41 PM", status: "verificado", state: "NC" }
     ],
 
     // Sem bilhetes ainda. Os numeros entram depois da compra -- abrir o bolao nunca dependeu
@@ -809,7 +817,7 @@ window.POWERBALL_DRAWS = [
     },
 
     finance: {
-      totalArrecadado: 60, // 6 participantes x $10 (29/10/2026)
+      totalArrecadado: 140, // 14 participante(s), soma das contribuicoes no banco
       // Premio do sorteio anterior (US$30) + o que ficou guardado (US$2). Derivado do que esta
       // gravado, nao arbitrado aqui.
       creditoSorteioAnterior: 32,

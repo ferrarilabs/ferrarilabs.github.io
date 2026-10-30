@@ -243,6 +243,8 @@ const CHECKS = [
     why: "2026-10-08 a 2026-10-27: o push direto de lottery_poll.yml era recusado (GH013), o workflow saia verde com um warning e o estado do site parou com a Powerball ja acima de US$500M. O gate exige publicacao por PR rolante, falha vermelha e o aviso decidido antes e independente da publicacao" },
   { id: "powerball-ticket-email-contacts", group: "security", cmd: ["python3", "bolao/loterias/powerball/scripts/test_build_ticket_email_contacts.py"],
     why: "o e-mail de bilhetes publicados so recebe contatos se TODO participante do sorteio resolver; o lado JS pulava quem nao tinha e-mail e enviaria um conjunto parcial como se fosse completo" },
+  { id: "powerball-sync-draw-participants", group: "app", cmd: ["node", "bolao/loterias/powerball/scripts/test_sync_draw_participants.mjs"],
+    why: "o data.js derivado do banco pelo workflow de abertura precisa sair identico ao escrito a mao e mexer so no sorteio alvo; senao o PR automatico reescreve dinheiro de outro sorteio" },
   { id: "lottery-eligibility-alert", group: "scheduling", cmd: ["python3", "bolao/loterias/scripts/test_eligibility_alert.py"],
     why: "jackpot acima do limiar sem bolao aberto vira issue atribuida ao operador; bolao ja aberto nao avisa, e fonte fora do ar nao abre nem fecha aviso" },
   // Issue #259 — o agendamento fora da janela era inerte por aritmetica (30 min de cadencia contra
