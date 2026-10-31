@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-31T01:00:22Z",
+  "generatedAt": "2026-10-31T09:43:16Z",
   "threshold": {
     "minJackpotCents": 50000000000,
     "comparison": "strictly_greater",
@@ -16,7 +16,7 @@
       "nextDrawAt": "2026-11-01T02:59:00Z",
       "source": "https://www.powerball.com/",
       "verificationState": "PRIMARY_CONFIRMED",
-      "fetchedAt": "2026-10-31T01:00:22Z",
+      "fetchedAt": "2026-10-31T09:43:16Z",
       "sourceHash": "2c6a8d7701c37ece",
       "eligible": true,
       "state": "ELIGIBLE",
@@ -25,14 +25,14 @@
     "megamillions": {
       "game": "megamillions",
       "label": "Mega Millions",
-      "advertisedAnnuityCents": 46300000000,
-      "cashValueCents": 19490000000,
-      "nextDrawDate": "2026-10-30",
-      "nextDrawAt": "2026-10-31T03:00:00Z",
+      "advertisedAnnuityCents": 48200000000,
+      "cashValueCents": 20360000000,
+      "nextDrawDate": "2026-11-03",
+      "nextDrawAt": "2026-11-04T04:00:00Z",
       "source": "https://www.megamillions.com/cmspages/utilservice.asmx/GetLatestDrawData",
       "verificationState": "PRIMARY_CONFIRMED",
-      "fetchedAt": "2026-10-31T01:00:22Z",
-      "sourceHash": "7259dabb5a76d6e0",
+      "fetchedAt": "2026-10-31T09:43:16Z",
+      "sourceHash": "0bac7601b53a7946",
       "eligible": false,
       "state": "BELOW_THRESHOLD",
       "error": null
