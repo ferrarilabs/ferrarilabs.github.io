@@ -87,6 +87,12 @@
       "amount": 10,
       "method": "Zelle",
       "paid_at": "2026-10-29T20:00:41-04:00"
+    },
+    {
+      "name": "Samuel Huller",
+      "amount": 10,
+      "method": "Zelle",
+      "paid_at": "2026-10-31T11:18:45-04:00"
     }
   ]
 }
