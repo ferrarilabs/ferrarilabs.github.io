@@ -609,6 +609,9 @@
     "bolao/cdb2026/scripts/test_apply_correction.py": {
       "classification": "REGISTERED_AND_EXECUTED"
     },
+    "bolao/cdb2026/scripts/test_send_leg_correction.py": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
     "bolao/cdb2026/scripts/test_email_scoring_parity.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
     },

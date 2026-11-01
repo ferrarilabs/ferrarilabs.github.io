@@ -1282,12 +1282,87 @@ def _main_render(args):
     print(f"  html: {out} ({len(html)} bytes)")
 
 
+# ── Correção de uma perna já gravada (2026-11-01) ─────────────────────────────────────────────
+#
+# `--send-leg <phaseId> <tieId> <leg> --note-file <aviso.html> [--only-entry <nome> | --all]`
+#
+# Reenvia o e-mail de UMA perna já gravada no servidor, com um aviso de correção no topo. Nasceu da
+# semifinal de 2026-11-01: o 1-0 da ida foi gravado na volta e saiu e-mail errado; depois de corrigir
+# o dado (apply_correction.py), a ida já está salva, então o --auto nunca a redescobre e nenhum
+# e-mail certo sairia sozinho.
+#
+#   --only-entry <nome>  TESTE: só para o e-mail daquela entrada, assunto com [TESTE], sem ledger.
+#   --all                todos, registrando no ledger na identidade (fase, confronto, perna).
+#                        RECUSA se o ledger já tiver entrega dessa perna -- duas correções iguais na
+#                        caixa de 12 pessoas é o incidente #221 de novo.
+# Um dos dois é obrigatório: não existe padrão que mande para todos.
+def _send_leg(args):
+    idx = args.index("--send-leg")
+    try:
+        phase_id, tie_id, leg = args[idx + 1], args[idx + 2], args[idx + 3]
+    except IndexError:
+        raise SystemExit("Usage: --send-leg <phaseId> <tieId> <leg> --note-file <html> (--only-entry <nome> | --all)")
+
+    def _opt(name):
+        if name not in args:
+            return None
+        j = args.index(name)
+        if j + 1 >= len(args):
+            raise SystemExit(f"{name} precisa de um valor")
+        return args[j + 1]
+    note_file, only = _opt("--note-file"), _opt("--only-entry")
+    todos = "--all" in args
+    if not note_file or (bool(only) == todos):
+        raise SystemExit("--send-leg exige --note-file e exatamente um entre --only-entry <nome> e --all")
+    nota = Path(note_file).read_text(encoding="utf-8")
+
+    state = sb_fetch()
+    tie = (state.get("phases", {}).get(phase_id, {}).get("ties", {}) or {}).get(tie_id)
+    if not tie:
+        raise SystemExit(f"confronto {phase_id}/{tie_id} inexistente")
+    m = (tie.get("matches", {}) or {}).get(leg) or {}
+    if m.get("goalsHome") is None or m.get("goalsAway") is None:
+        raise SystemExit(f"{phase_id}/{tie_id}/{leg} sem placar gravado -- nada a corrigir")
+    home = tie["teamB"] if leg == "second" else tie["teamA"]
+    away = tie["teamA"] if leg == "second" else tie["teamB"]
+    html = nota + build_html(state, phase_id, tie_id, leg, tie_just_decided=bool(tie.get("qualifiedTeamId")))
+    texto = f"CORREÇÃO — Resultado Parcial — {tie['teamA']} × {tie['teamB']}: {home} {m['goalsHome']}–{m['goalsAway']} {away}"
+
+    if only:
+        alvo = [e for e in state.get("entries", []) if (e.get("entryName") or "").strip() == only.strip()
+                and e.get("id") not in set(state.get("deletedIds", []))]
+        if len(alvo) != 1:
+            raise SystemExit(f"--only-entry {only!r}: esperava 1 entrada, achei {len(alvo)}")
+        teste = dict(state)
+        teste["entries"] = alvo
+        subject = _subject_policy.assunto("FUTEBOL_RESULTADO_PARCIAL", "[TESTE] " + texto)
+        sent, errors = _send_to_all(teste, html, subject, ledger_ref=None)
+    else:
+        reg = _default_ledger()
+        if reg is None:
+            raise SystemExit("ledger indisponivel: sem ele nao da para provar que esta correcao ainda nao saiu")
+        from result_email_ledger import entity_id
+        if entity_id(phase_id, tie_id, leg) in reg.delivered_entity_ids("2026-01-01T00:00:00Z"):
+            raise SystemExit(f"o ledger ja tem entrega de {phase_id}/{tie_id}/{leg}: correcao NAO reenviada")
+        subject = _subject_policy.assunto("FUTEBOL_RESULTADO_PARCIAL", texto)
+        sent, errors = _send_to_all(state, html, subject, ledger_ref=(phase_id, tie_id, leg), ledger=reg)
+    print(f"\n{'✓' if not errors else '⚠'} {sent} sent, {len(errors)} errors  [{subject}]")
+    for err in errors:
+        print(f"  ERROR: {err}")
+    if errors:
+        sys.exit(1)
+
+
 # ── Main ──────────────────────────────────────────────────────────────────────
 def main():
     args = sys.argv[1:]
 
     if "--render" in args:
         _main_render(args)
+        return
+
+    if "--send-leg" in args:
+        _send_leg(args)
         return
 
     if "--auto" in args:
