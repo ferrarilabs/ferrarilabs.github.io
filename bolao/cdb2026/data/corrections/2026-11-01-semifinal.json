@@ -14,26 +14,27 @@
       "goalsHome": 0, "goalsAway": 1,
       "_placar": "Vasco 0 x 1 Palmeiras na orientacao do bolao (ida: Vasco/teamA em casa) = Palmeiras 1 x 0 Vasco da ESPN",
       "expectBefore": { "homeTeam": "Vasco", "awayTeam": "Palmeiras", "goalsHome": null, "goalsAway": null },
-      "expectAfter": { "homeTeam": "Vasco", "awayTeam": "Palmeiras", "goalsHome": 0, "goalsAway": 1, "status": "FINAL", "resultSource": "admin" }
+      "expectAfter": { "homeTeam": "Vasco", "awayTeam": "Palmeiras", "goalsHome": 0, "goalsAway": 1, "status": "FINAL" }
     },
     {
       "op": "kickoff", "phaseId": "semifinal", "tieId": "espn-palmeiras_vasco", "leg": "first",
       "kickoff": "2026-11-01T19:00:00Z", "_espn": "401913105",
       "expectBefore": { "kickoff": "2026-11-01T20:00:00+00:00" },
-      "expectAfter": { "kickoff": "2026-11-01T19:00:00Z" }
+      "expectAfter": { "kickoff": "2026-11-01T19:00:00+00:00" }
     },
     {
       "op": "kickoff", "phaseId": "semifinal", "tieId": "espn-atletico-mg_gremio", "leg": "first",
       "kickoff": "2026-11-01T21:30:00Z", "_espn": "401913109",
       "expectBefore": { "kickoff": "2026-11-01T20:00:00+00:00" },
-      "expectAfter": { "kickoff": "2026-11-01T21:30:00Z" }
+      "expectAfter": { "kickoff": "2026-11-01T21:30:00+00:00" }
     },
     {
       "op": "kickoff", "phaseId": "semifinal", "tieId": "espn-atletico-mg_gremio", "leg": "second",
       "kickoff": "2026-11-07T21:00:00Z", "_espn": "401913108",
       "expectBefore": { "kickoff": "2026-11-08T20:00:00+00:00" },
-      "expectAfter": { "kickoff": "2026-11-07T21:00:00Z" }
+      "expectAfter": { "kickoff": "2026-11-07T21:00:00+00:00" }
     }
   ],
+  "_aplicado": "2026-11-01 ~22:24Z, cdb2026_operator.yml apply-correction: as 5 operacoes com applied:true (auditLog 78-82). A releitura do servidor devolve kickoff como +00:00 e nao devolve resultSource; expectAfter ajustado a essa forma para que uma nova execucao diga ja aplicada.",
   "_nao_muda": "espn-palmeiras_vasco second continua 2026-11-08T20:00 (ESPN 401913107 confirma). teamA/teamB e palpites NAO mudam: a orientacao nominal do bolao e preservada e os gols sao gravados por time."
 }
