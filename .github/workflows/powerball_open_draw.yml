@@ -8,6 +8,12 @@ name: Powerball — Abrir sorteio no banco (operador)
 # artifact da execucao. NAO commita nada: o artifact entra no PR que atualiza `data.js`, e o
 # `--check` do CI confere os dois.
 #
+# Com `apply`, o job `site` leva o resultado ao site sem PR feito a mao: deriva do banco os
+# participantes do sorteio no `data.js` (sync_draw_participants.mjs), publica por PR rolante
+# (scripts/ci/publish_data_via_pr.sh), espera o `npm run check` exigido, faz o merge e dispara o
+# deploy. O merge feito pelo GITHUB_TOKEN nao acorda o `push` do deploy-pages (anti-loop do
+# GitHub), por isso o deploy e disparado explicitamente.
+#
 # Nenhum dado de pagamento entra como input: o repositorio e publico e o GitHub imprime no log os
 # valores de `inputs`. O unico input e o CAMINHO do manifesto, que ja foi revisado em PR.
 
@@ -77,3 +83,61 @@ jobs:
           name: public-projection
           path: bolao/loterias/powerball/data/public_projection.generated.json
           retention-days: 14
+
+  site:
+    name: Publicar no site (PR automatico)
+    needs: abrir
+    if: inputs.apply
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    permissions:
+      contents: write
+      pull-requests: write
+      actions: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Derivar participantes, projecao e pin do banco
+        env:
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          MANIFEST: ${{ inputs.manifest }}
+        run: |
+          set -euo pipefail
+          DRAW="$(node -e 'process.stdout.write(JSON.parse(require("fs").readFileSync(process.argv[1],"utf8")).draw_date)' "$MANIFEST")"
+          echo "DRAW=$DRAW" >> "$GITHUB_ENV"
+          node bolao/loterias/powerball/scripts/generate_public_projection.mjs --write
+          node bolao/loterias/powerball/scripts/sync_draw_participants.mjs --draw "$DRAW"
+          node bolao/loterias/powerball/scripts/generate_public_projection.mjs --check
+
+      - name: Publicar via PR, esperar o check e fazer o merge
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          MANIFEST: ${{ inputs.manifest }}
+        run: |
+          set -euo pipefail
+          FILES=(bolao/loterias/powerball/js/data.js
+                 bolao/loterias/powerball/data/public_projection.generated.json
+                 bolao/shared/safety/powerball_public_projection_pin.json
+                 "$MANIFEST")
+          git fetch --quiet origin main
+          if git diff --quiet origin/main -- "${FILES[@]}"; then
+            echo "Site ja reflete o banco — nada a publicar."; exit 0
+          fi
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "${FILES[@]}"
+          git commit --quiet -m "Powerball: participantes do sorteio de $DRAW a partir do banco (automatico)"
+          BRANCH="auto/data/powerball-$DRAW"
+          scripts/ci/publish_data_via_pr.sh "$BRANCH" \
+            "Powerball: participantes do sorteio de $DRAW (automatico)" \
+            "Participantes, projecao e pin do sorteio de $DRAW derivados do banco por powerball_open_draw.yml depois do apply. Merge automatico com \`npm run check\` verde." \
+            "${FILES[@]}"
+          scripts/ci/merge_data_pr.sh "$BRANCH" \
+            "Powerball: participantes do sorteio de $DRAW (automatico)" \
+            "Participantes, projecao e pin derivados do banco por powerball_open_draw.yml."

@@ -654,6 +654,269 @@ window.POWERBALL_DRAWS = [
       breakdown: ["2x 1 + Powerball", "1x 3 acertos", "1x Powerball"]
     },
     profit: null
+  },
+
+  {
+    id: "2026-10-28",
+    gameType: "powerball",
+    status: "planejamento",
+    createdAt: "2026-10-27T15:10:40-04:00",
+    previousDrawId: "2026-08-12",
+
+    drawing: {
+      name: "Powerball Jackpot",
+      // jackpot/cashValue sao publicados pela loteria; ficam null ate serem informados.
+      jackpot: 716000000,
+      cashValue: 307200000,
+      jackpotSource: "powerball_official",
+      jackpotFetchedAt: "2026-10-27T19:13:22Z",
+      jackpotDrawId: "2026-10-28",
+      drawDateIso: "2026-10-28T22:59:00-04:00",
+      drawDateLabel: "28/10/2026 22:59 ET"
+    },
+
+    // BOLAO ABERTO. Pagamentos de 27/10/2026 reconciliados via Gmail (Zelle/Venmo/Cash App);
+    // referencias de transacao apenas no registro privado, nunca aqui.
+    participants: [
+      { name: "Rodrigo Hajj", cotas: 1, valor: 10, metodo: "Zelle", data: "27/10/2026", hora: "1:01:51 PM", status: "verificado", state: "NC" },
+      { name: "Marcelo Moreira", cotas: 1, valor: 10, metodo: "Zelle", data: "27/10/2026", hora: "1:20:47 PM", status: "verificado", state: "NC" },
+      { name: "Gustavo Bossle", cotas: 1, valor: 10, metodo: "Zelle", data: "27/10/2026", hora: "1:22:21 PM", status: "verificado", state: "NC" },
+      { name: "Thiago Locatelli", cotas: 1, valor: 10, metodo: "Zelle", data: "27/10/2026", hora: "1:22:23 PM", status: "verificado", state: "TX" },
+      { name: "Simone Hirle da Costa", cotas: 1, valor: 10, metodo: "Venmo", data: "27/10/2026", hora: "1:32:08 PM", status: "verificado", state: "NC" },
+      { name: "Ewerton Gruba Silva", cotas: 1, valor: 10, metodo: "Zelle", data: "27/10/2026", hora: "1:34:14 PM", status: "verificado", state: "NC" },
+      { name: "Camila Ribeiro", cotas: 1, valor: 10, metodo: "Zelle", data: "27/10/2026", hora: "1:35:02 PM", status: "verificado", state: "NC" },
+      { name: "Marcelo G de Jesus", cotas: 1, valor: 10, metodo: "Zelle", data: "27/10/2026", hora: "1:37:18 PM", status: "verificado", state: "FL" },
+      { name: "Alan Rech", cotas: 1, valor: 10, metodo: "Cash App", data: "27/10/2026", hora: "2:51:16 PM", status: "verificado", state: "FL" },
+      { name: "Leandro Augustineli", cotas: 1, valor: 10, metodo: "Zelle", data: "27/10/2026", hora: "2:55:24 PM", status: "verificado", state: "NC" },
+      { name: "Samuel Huller", cotas: 1, valor: 10, metodo: "Zelle", data: "27/10/2026", hora: "6:16:27 PM", status: "verificado", state: "NC" },
+      { name: "Marcus Steffenon", cotas: 1, valor: 10, metodo: "Zelle", data: "27/10/2026", hora: "6:26:30 PM", status: "verificado", state: "NC" },
+      { name: "Amanda Quaresma", cotas: 1, valor: 10, metodo: "Venmo", data: "27/10/2026", hora: "6:29:17 PM", status: "verificado", state: "NC" },
+      { name: "Marcelo Minghetti Pereira", cotas: 1, valor: 10, metodo: "Zelle", data: "28/10/2026", hora: "1:51:40 PM", status: "verificado", state: "NC" }
+    ],
+
+    sharedTickets: {
+      compradoPor: "Eduardo Ferrari (organizador)",
+      dataComprovante: "28/10/2026 1:44 PM ET (+ compra complementar no mesmo dia)",
+      valorPorTicket: 3, // Power Play
+      series: [
+        {
+          serial: "24FDE3900D43FAD2F", qtd: 1, jogos: "1",
+          numeros: [
+            "39-42-44-56-61 — PB 26"
+          ]
+        },
+        {
+          serial: "214F3A88C84CC678B", qtd: 5, jogos: "1–5",
+          numeros: [
+            "24-37-38-57-65 — PB 13", "26-29-32-33-63 — PB 16", "26-45-46-61-66 — PB 14",
+            "28-36-47-49-66 — PB 15", "32-34-45-55-69 — PB 04"
+          ]
+        },
+        {
+          serial: "2A62882BEAAB59CAF", qtd: 50, jogos: "1–50",
+          numeros: [
+            "01-02-40-49-64 — PB 11", "01-10-21-42-55 — PB 17", "01-19-24-45-60 — PB 09",
+            "01-41-58-66-67 — PB 15", "02-04-17-62-69 — PB 08", "02-05-27-32-54 — PB 11",
+            "02-08-31-38-55 — PB 08", "02-13-26-41-42 — PB 25", "03-06-11-39-48 — PB 26",
+            "03-15-32-38-41 — PB 22", "03-22-47-58-61 — PB 24", "03-24-35-50-56 — PB 10",
+            "04-13-19-39-40 — PB 16", "04-53-56-57-64 — PB 01", "05-10-16-39-41 — PB 02",
+            "05-14-18-35-66 — PB 22", "05-37-40-50-61 — PB 06", "06-10-25-34-47 — PB 24",
+            "06-16-23-43-66 — PB 19", "06-21-49-52-53 — PB 01", "06-30-31-46-59 — PB 13",
+            "07-11-28-35-64 — PB 14", "07-17-30-33-68 — PB 10", "07-38-42-63-67 — PB 23",
+            "08-25-37-41-46 — PB 04", "08-29-48-51-57 — PB 06", "09-16-25-54-64 — PB 21",
+            "09-22-23-46-48 — PB 16", "09-26-27-36-43 — PB 07", "11-12-18-33-42 — PB 25",
+            "11-25-32-56-58 — PB 18", "11-27-38-51-52 — PB 21", "12-15-23-44-51 — PB 12",
+            "12-17-29-60-67 — PB 05", "12-21-26-57-62 — PB 18", "13-16-20-57-60 — PB 03",
+            "13-22-31-56-65 — PB 22", "14-28-51-54-61 — PB 19", "14-36-52-63-69 — PB 05",
+            "14-47-48-55-60 — PB 03", "15-27-60-62-64 — PB 15", "15-50-54-58-59 — PB 20",
+            "18-34-49-65-68 — PB 23", "19-20-35-51-58 — PB 17", "20-23-36-39-53 — PB 11",
+            "20-24-29-55-59 — PB 02", "21-30-43-54-67 — PB 12", "21-33-36-44-50 — PB 09",
+            "22-25-43-52-59 — PB 20", "22-29-35-68-69 — PB 07"
+          ]
+        },
+        {
+          serial: "24FB3868DF05CEC00", qtd: 3, jogos: "1–3",
+          numeros: [
+            "08-09-19-50-65 — PB 05", "23-37-45-62-68 — PB 23", "24-28-43-46-63 — PB 19"
+          ]
+        }
+      ]
+    },
+
+    // 59 tickets (1 + 5 + 50 + 3) x US$3 (Power Play) = US$177. Arrecadado US$140 + credito de
+    // US$39 do sorteio anterior (2026-08-12) = US$179 disponivel — sobra US$2. A serie de 3
+    // tickets e uma compra complementar, depois do pagamento de 28/10 13:51. Deposito no
+    // saldo da NC Education Lottery (cartao) + saldo ja existente cobriram a compra; referencia
+    // de transacao fica so no comprovante privado, nunca aqui.
+    finance: {
+      totalArrecadado: 140, // 14 participantes x $10 (pagamentos de 27 e 28/10/2026)
+      // Premio do sorteio anterior + o que ficou guardado. Derivado do que esta gravado, nao
+      // arbitrado aqui.
+      creditoSorteioAnterior: 39,
+      valorUtilizado: 177,
+      valorGuardadoProximoSorteio: 2,
+      ajustesPendentes: 0
+    },
+
+    result: {
+      numbers: [11, 13, 16, 47, 60],
+      special: 13,
+      multiplier: 2,
+      checkedAt: "29/10/2026 06:59 ET",
+      premiosGanhos: 30,
+      jackpotHit: false,
+      breakdown: ["2x Powerball", "1x 3 acertos"]
+    },
+    profit: null
+  },
+  {
+    id: "2026-10-31",
+    gameType: "powerball",
+    status: "planejamento",
+    createdAt: "2026-10-29T07:16:00-04:00",
+    previousDrawId: "2026-10-28",
+
+    drawing: {
+      name: "Powerball Jackpot",
+      // jackpot/cashValue sao publicados pela loteria; ficam null ate serem informados.
+      jackpot: 760000000,
+      cashValue: 326000000,
+      jackpotSource: "powerball_official",
+      jackpotFetchedAt: "2026-10-29T11:10:00Z",
+      jackpotDrawId: "2026-10-31",
+      drawDateIso: "2026-10-31T22:59:00-04:00",
+      drawDateLabel: "31/10/2026 22:59 ET"
+    },
+
+    // BOLAO ABERTO. Pagamentos de 29/10/2026 reconciliados via Gmail (Zelle) + cota do
+    // organizador; referencias de transacao apenas no registro privado, nunca aqui.
+    participants: [
+      { name: "Marcelo Moreira", cotas: 1, valor: 10, metodo: "Zelle", data: "29/10/2026", hora: "7:03:23 AM", status: "verificado", state: "NC" },
+      { name: "Gustavo Bossle", cotas: 1, valor: 10, metodo: "Zelle", data: "29/10/2026", hora: "7:04:07 AM", status: "verificado", state: "NC" },
+      { name: "Eduardo Ferrari", cotas: 1, valor: 10, metodo: "Fundo próprio (organizador)", data: "29/10/2026", hora: "7:15:08 AM", status: "organizador", state: "NC" },
+      { name: "Ewerton Gruba Silva", cotas: 1, valor: 10, metodo: "Zelle", data: "29/10/2026", hora: "7:45:40 AM", status: "verificado", state: "NC" },
+      { name: "Leandro Augustineli", cotas: 1, valor: 10, metodo: "Zelle", data: "29/10/2026", hora: "7:56:16 AM", status: "verificado", state: "NC" },
+      { name: "Alan Rech", cotas: 1, valor: 10, metodo: "Cash App", data: "29/10/2026", hora: "8:05:22 AM", status: "verificado", state: "FL" },
+      { name: "Simone Hirle da Costa", cotas: 1, valor: 10, metodo: "Venmo", data: "29/10/2026", hora: "9:48:22 AM", status: "verificado", state: "NC" },
+      { name: "Jorge Augusto Junqueira Ferreira", cotas: 1, valor: 10, metodo: "Zelle", data: "29/10/2026", hora: "10:38:37 AM", status: "verificado", state: "FL" },
+      { name: "Thiago Locatelli", cotas: 1, valor: 10, metodo: "Zelle", data: "29/10/2026", hora: "10:49:33 AM", status: "verificado", state: "TX" },
+      { name: "Rodrigo Hajj", cotas: 1, valor: 10, metodo: "Zelle", data: "29/10/2026", hora: "10:59:09 AM", status: "verificado", state: "NC" },
+      { name: "Marcus Steffenon", cotas: 1, valor: 10, metodo: "Zelle", data: "29/10/2026", hora: "12:55:43 PM", status: "verificado", state: "NC" },
+      { name: "Marcelo G de Jesus", cotas: 1, valor: 10, metodo: "Zelle", data: "29/10/2026", hora: "2:03:11 PM", status: "verificado", state: "FL" },
+      { name: "Camila Ribeiro", cotas: 1, valor: 10, metodo: "Zelle", data: "29/10/2026", hora: "7:14:47 PM", status: "verificado", state: "NC" },
+      { name: "Marcelo Minghetti Pereira", cotas: 1, valor: 10, metodo: "Zelle", data: "29/10/2026", hora: "8:00:41 PM", status: "verificado", state: "NC" },
+      { name: "Samuel Huller", cotas: 1, valor: 10, metodo: "Zelle", data: "31/10/2026", hora: "11:18:45 AM", status: "verificado", state: "NC" }
+    ],
+
+    sharedTickets: {
+      compradoPor: "Eduardo Ferrari (organizador)",
+      dataComprovante: "31/10/2026",
+      valorPorTicket: 3, // Power Play
+      series: [
+        {
+          serial: "24574BF67FEC6E21A", qtd: 10, jogos: "1–10",
+          numeros: [
+            "19-37-50-59-64 — PB 22", "20-24-31-39-55 — PB 20", "21-22-36-57-61 — PB 05",
+            "21-26-30-41-48 — PB 13", "22-26-64-67-69 — PB 12", "23-25-32-44-68 — PB 19",
+            "23-36-48-53-56 — PB 17", "25-27-36-42-66 — PB 14", "26-35-47-60-68 — PB 19",
+            "29-30-43-46-55 — PB 02"
+          ]
+        },
+        {
+          serial: "27323FD3B649CE903", qtd: 50, jogos: "1–50",
+          numeros: [
+            "01-02-46-49-67 — PB 15", "01-04-22-38-51 — PB 12", "01-16-37-48-61 — PB 13",
+            "01-43-45-52-58 — PB 03", "02-04-45-63-64 — PB 26", "02-07-09-42-68 — PB 14",
+            "02-17-31-52-53 — PB 06", "03-04-16-55-65 — PB 26", "03-05-13-40-64 — PB 21",
+            "03-08-30-33-56 — PB 06", "03-26-27-59-62 — PB 24", "03-28-34-45-67 — PB 23",
+            "04-12-13-57-60 — PB 20", "04-23-33-42-49 — PB 09", "05-09-49-52-56 — PB 07",
+            "05-16-29-36-44 — PB 05", "05-20-41-54-61 — PB 04", "05-30-38-59-65 — PB 20",
+            "06-13-50-51-66 — PB 11", "06-14-35-39-54 — PB 25", "06-15-17-49-62 — PB 04",
+            "06-28-37-47-57 — PB 15", "07-10-24-35-63 — PB 07", "07-23-61-64-66 — PB 08",
+            "07-40-45-53-62 — PB 13", "08-15-19-53-66 — PB 02", "08-17-46-50-57 — PB 18",
+            "08-20-37-43-51 — PB 01", "08-22-25-34-49 — PB 16", "09-11-14-33-58 — PB 01",
+            "09-18-48-62-69 — PB 18", "09-22-24-47-50 — PB 10", "10-17-20-60-65 — PB 10",
+            "10-21-29-37-54 — PB 16", "10-38-47-52-55 — PB 25", "11-12-25-46-69 — PB 07",
+            "11-21-39-40-42 — PB 04", "11-29-31-38-48 — PB 22", "11-32-34-43-56 — PB 08",
+            "12-18-32-47-51 — PB 12", "12-23-28-40-59 — PB 09", "13-27-34-63-68 — PB 24",
+            "14-15-31-44-59 — PB 23", "14-24-27-32-57 — PB 18", "15-28-41-58-69 — PB 21",
+            "16-19-39-43-68 — PB 03", "18-33-44-54-67 — PB 03", "18-35-41-45-66 — PB 17",
+            "19-21-28-60-63 — PB 05", "19-25-40-58-65 — PB 11"
+          ]
+        }
+      ]
+    },
+
+    // 60 tickets (10 + 50) x US$3 (Power Play) = US$180. Arrecadado US$150 + credito de US$32
+    // do sorteio anterior (2026-10-28) = US$182 disponivel — sobra US$2. Referencia de
+    // transacao fica so no comprovante privado, nunca aqui.
+    finance: {
+      totalArrecadado: 150, // 15 participante(s), soma das contribuicoes no banco
+      // Premio do sorteio anterior (US$30) + o que ficou guardado (US$2). Derivado do que esta
+      // gravado, nao arbitrado aqui.
+      creditoSorteioAnterior: 32,
+      valorUtilizado: 180,
+      valorGuardadoProximoSorteio: 2,
+      ajustesPendentes: 0
+    },
+
+    result: {
+      numbers: [2, 4, 18, 50, 56],
+      special: 20,
+      multiplier: 3,
+      checkedAt: "01/11/2026 07:05 ET",
+      premiosGanhos: 36,
+      jackpotHit: false,
+      breakdown: ["2x Powerball", "1x 1 + Powerball"]
+    },
+    profit: null
+  },
+  {
+    id: "2026-11-02",
+    gameType: "powerball",
+    status: "planejamento",
+    createdAt: "2026-11-01T07:19:40-05:00",
+    previousDrawId: "2026-10-31",
+
+    drawing: {
+      name: "Powerball Jackpot",
+      // jackpot/cashValue sao publicados pela loteria; ficam null ate serem informados.
+      jackpot: 793000000,
+      cashValue: 339900000,
+      jackpotSource: "powerball_official",
+      jackpotFetchedAt: "2026-11-01T12:19:00Z",
+      jackpotDrawId: "2026-11-02",
+      drawDateIso: "2026-11-02T22:59:00-05:00",
+      drawDateLabel: "02/11/2026 22:59 ET"
+    },
+
+    // BOLAO ABERTO. Cota do organizador; os pagamentos entram conforme chegam (Zelle/Venmo/
+    // Cash App), referencias de transacao apenas no registro privado, nunca aqui.
+    participants: [
+      { name: "Eduardo Ferrari", cotas: 1, valor: 10, metodo: "Fundo próprio (organizador)", data: "01/11/2026", hora: "7:19:40 AM", status: "organizador", state: "NC" }
+    ],
+
+    // Sem bilhetes ainda. Os numeros entram depois da compra -- abrir o bolao nunca dependeu
+    // de ja existirem jogos.
+    sharedTickets: {
+      compradoPor: null,
+      dataComprovante: null,
+      valorPorTicket: 3,
+      series: []
+    },
+
+    finance: {
+      totalArrecadado: 10, // 1 participante(s), soma das contribuicoes no banco
+      // Premio do sorteio anterior (US$36) + o que ficou guardado (US$2). Derivado do que esta
+      // gravado, nao arbitrado aqui.
+      creditoSorteioAnterior: 38,
+      valorUtilizado: 0,
+      valorGuardadoProximoSorteio: 0,
+      ajustesPendentes: 0
+    },
+
+    result: null,
+    profit: null
   }
 ];
 

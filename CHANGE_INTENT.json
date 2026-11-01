@@ -2,13 +2,11 @@
   "declarations": [
     {
       "surface_id": "NOTIFICATION_WORKFLOWS",
-      "reason": "Primeiro sorteio do Powerball depois do cutover de 2026-08-22 (banco = sistema de registro, data.js = projecao). Nao existia caminho server-side para criar sorteio e participacoes de um sorteio NOVO: operator_payments.py exige participation_id ja existente, e o backfill historico foi SQL avulso. Sem isto, o sorteio de 2026-10-28 so entraria no site editando data.js a mao, o que o gate powerball-projection-drift proibe.",
-      "expected_behavior_change": "Novo workflow_dispatch powerball_open_draw.yml (somente manual, sem cron, sem e-mail). Le um manifesto versionado em bolao/loterias/powerball/operations/, cria lottery_draws/lottery_participations quando faltam e registra contribuicoes pelo SupabasePaymentWriter existente; sem apply e simulacao. Regenera public_projection.generated.json e o publica como artifact, sem commitar. Nenhum workflow existente muda.",
+      "reason": "br2026_broadcast_epg.yml e bolao_provider_snapshot.yml vermelhos em toda execucao com dado novo desde 2026-10-22: com o branch auto/data/ ja existente, publish_data_via_pr.sh fazia merge de origin/main num clone raso e morria com 'refusing to merge unrelated histories'. E os PRs rolantes #475 e #476 ficavam BLOCKED para sempre: o run de pull_request do safety_check.yml fica em action_required (politica de aprovacao de first-time contributors).",
+      "expected_behavior_change": "publish_data_via_pr.sh faz fetch --unshallow quando o clone e raso, antes do merge. Os dois workflows chamam scripts/ci/merge_data_pr.sh depois de publicar (aprova o run de pull_request do mesmo commit, espera os checks verdes, faz o merge e dispara o deploy); timeout dos jobs de 15 e 10 para 30 min para caber o npm run check. Nenhum dos dois envia e-mail; cron, coleta e validacoes nao mudam.",
       "tests_required": [
-        "powerball-operator-open-draw",
-        "powerball-operator-payments",
-        "powerball-reversal-integrity",
-        "email-send-safety"
+        "email-send-safety",
+        "cron-coverage"
       ]
     }
   ]
