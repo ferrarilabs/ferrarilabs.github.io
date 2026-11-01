@@ -804,25 +804,59 @@ window.POWERBALL_DRAWS = [
       { name: "Marcus Steffenon", cotas: 1, valor: 10, metodo: "Zelle", data: "29/10/2026", hora: "12:55:43 PM", status: "verificado", state: "NC" },
       { name: "Marcelo G de Jesus", cotas: 1, valor: 10, metodo: "Zelle", data: "29/10/2026", hora: "2:03:11 PM", status: "verificado", state: "FL" },
       { name: "Camila Ribeiro", cotas: 1, valor: 10, metodo: "Zelle", data: "29/10/2026", hora: "7:14:47 PM", status: "verificado", state: "NC" },
-      { name: "Marcelo Minghetti Pereira", cotas: 1, valor: 10, metodo: "Zelle", data: "29/10/2026", hora: "8:00:41 PM", status: "verificado", state: "NC" }
+      { name: "Marcelo Minghetti Pereira", cotas: 1, valor: 10, metodo: "Zelle", data: "29/10/2026", hora: "8:00:41 PM", status: "verificado", state: "NC" },
+      { name: "Samuel Huller", cotas: 1, valor: 10, metodo: "Zelle", data: "31/10/2026", hora: "11:18:45 AM", status: "verificado", state: "NC" }
     ],
 
-    // Sem bilhetes ainda. Os numeros entram depois da compra -- abrir o bolao nunca dependeu
-    // de ja existirem jogos.
     sharedTickets: {
-      compradoPor: null,
-      dataComprovante: null,
-      valorPorTicket: 3,
-      series: []
+      compradoPor: "Eduardo Ferrari (organizador)",
+      dataComprovante: "31/10/2026",
+      valorPorTicket: 3, // Power Play
+      series: [
+        {
+          serial: "24574BF67FEC6E21A", qtd: 10, jogos: "1–10",
+          numeros: [
+            "19-37-50-59-64 — PB 22", "20-24-31-39-55 — PB 20", "21-22-36-57-61 — PB 05",
+            "21-26-30-41-48 — PB 13", "22-26-64-67-69 — PB 12", "23-25-32-44-68 — PB 19",
+            "23-36-48-53-56 — PB 17", "25-27-36-42-66 — PB 14", "26-35-47-60-68 — PB 19",
+            "29-30-43-46-55 — PB 02"
+          ]
+        },
+        {
+          serial: "27323FD3B649CE903", qtd: 50, jogos: "1–50",
+          numeros: [
+            "01-02-46-49-67 — PB 15", "01-04-22-38-51 — PB 12", "01-16-37-48-61 — PB 13",
+            "01-43-45-52-58 — PB 03", "02-04-45-63-64 — PB 26", "02-07-09-42-68 — PB 14",
+            "02-17-31-52-53 — PB 06", "03-04-16-55-65 — PB 26", "03-05-13-40-64 — PB 21",
+            "03-08-30-33-56 — PB 06", "03-26-27-59-62 — PB 24", "03-28-34-45-67 — PB 23",
+            "04-12-13-57-60 — PB 20", "04-23-33-42-49 — PB 09", "05-09-49-52-56 — PB 07",
+            "05-16-29-36-44 — PB 05", "05-20-41-54-61 — PB 04", "05-30-38-59-65 — PB 20",
+            "06-13-50-51-66 — PB 11", "06-14-35-39-54 — PB 25", "06-15-17-49-62 — PB 04",
+            "06-28-37-47-57 — PB 15", "07-10-24-35-63 — PB 07", "07-23-61-64-66 — PB 08",
+            "07-40-45-53-62 — PB 13", "08-15-19-53-66 — PB 02", "08-17-46-50-57 — PB 18",
+            "08-20-37-43-51 — PB 01", "08-22-25-34-49 — PB 16", "09-11-14-33-58 — PB 01",
+            "09-18-48-62-69 — PB 18", "09-22-24-47-50 — PB 10", "10-17-20-60-65 — PB 10",
+            "10-21-29-37-54 — PB 16", "10-38-47-52-55 — PB 25", "11-12-25-46-69 — PB 07",
+            "11-21-39-40-42 — PB 04", "11-29-31-38-48 — PB 22", "11-32-34-43-56 — PB 08",
+            "12-18-32-47-51 — PB 12", "12-23-28-40-59 — PB 09", "13-27-34-63-68 — PB 24",
+            "14-15-31-44-59 — PB 23", "14-24-27-32-57 — PB 18", "15-28-41-58-69 — PB 21",
+            "16-19-39-43-68 — PB 03", "18-33-44-54-67 — PB 03", "18-35-41-45-66 — PB 17",
+            "19-21-28-60-63 — PB 05", "19-25-40-58-65 — PB 11"
+          ]
+        }
+      ]
     },
 
+    // 60 tickets (10 + 50) x US$3 (Power Play) = US$180. Arrecadado US$150 + credito de US$32
+    // do sorteio anterior (2026-10-28) = US$182 disponivel — sobra US$2. Referencia de
+    // transacao fica so no comprovante privado, nunca aqui.
     finance: {
-      totalArrecadado: 140, // 14 participante(s), soma das contribuicoes no banco
+      totalArrecadado: 150, // 15 participante(s), soma das contribuicoes no banco
       // Premio do sorteio anterior (US$30) + o que ficou guardado (US$2). Derivado do que esta
       // gravado, nao arbitrado aqui.
       creditoSorteioAnterior: 32,
-      valorUtilizado: 0,
-      valorGuardadoProximoSorteio: 0,
+      valorUtilizado: 180,
+      valorGuardadoProximoSorteio: 2,
       ajustesPendentes: 0
     },
 
