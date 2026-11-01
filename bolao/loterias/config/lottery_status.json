@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-01T00:24:32Z",
+  "generatedAt": "2026-11-01T10:22:48Z",
   "threshold": {
     "minJackpotCents": 50000000000,
     "comparison": "strictly_greater",
@@ -10,14 +10,14 @@
     "powerball": {
       "game": "powerball",
       "label": "Powerball",
-      "advertisedAnnuityCents": 76000000000,
-      "cashValueCents": 32600000000,
-      "nextDrawDate": "2026-10-31",
-      "nextDrawAt": "2026-11-01T02:59:00Z",
-      "source": "https://nclottery.com/powerball",
-      "verificationState": "SECONDARY_ONLY",
-      "fetchedAt": "2026-11-01T00:24:32Z",
-      "sourceHash": "6b0ee4c8938533ff",
+      "advertisedAnnuityCents": 79300000000,
+      "cashValueCents": 33990000000,
+      "nextDrawDate": "2026-11-02",
+      "nextDrawAt": "2026-11-03T03:59:00Z",
+      "source": "https://www.powerball.com/",
+      "verificationState": "PRIMARY_CONFIRMED",
+      "fetchedAt": "2026-11-01T10:22:48Z",
+      "sourceHash": "7b033fb19b8aaf3e",
       "eligible": true,
       "state": "ELIGIBLE",
       "error": null
@@ -31,7 +31,7 @@
       "nextDrawAt": "2026-11-04T04:00:00Z",
       "source": "https://www.megamillions.com/cmspages/utilservice.asmx/GetLatestDrawData",
       "verificationState": "PRIMARY_CONFIRMED",
-      "fetchedAt": "2026-11-01T00:24:32Z",
+      "fetchedAt": "2026-11-01T10:22:48Z",
       "sourceHash": "0bac7601b53a7946",
       "eligible": false,
       "state": "BELOW_THRESHOLD",
@@ -41,8 +41,8 @@
   "nextPool": {
     "game": "powerball",
     "label": "Powerball",
-    "jackpotCents": 76000000000,
-    "drawDate": "2026-10-31"
+    "jackpotCents": 79300000000,
+    "drawDate": "2026-11-02"
   },
   "funds": {
     "lastDrawWinningsCents": 3000,
@@ -52,8 +52,8 @@
   },
   "currentDraw": {
     "id": "2026-10-31",
-    "lifecycleState": "LOCKED",
-    "reason": "bilhetes comprados; entradas encerradas",
+    "lifecycleState": "AWAITING_RESULT",
+    "reason": "o sorteio já ocorreu; aguardando publicação oficial",
     "result": null
   },
   "autoPurchase": false,
