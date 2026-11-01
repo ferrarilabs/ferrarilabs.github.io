@@ -1,6 +1,6 @@
 {
-  "generatedAtUtc": "2026-11-01T21:48:34.422Z",
-  "commit": "e47dd1d8",
+  "generatedAtUtc": "2026-08-28T20:55:02.331Z",
+  "commit": "459f742b",
   "referenceApp": "copa2026",
   "apps": [
     "copa2026",
@@ -34,7 +34,7 @@
           "color": "rgb(238, 247, 241)",
           "height": "110.5px",
           "minHeight": "0px",
-          "gridTemplateColumns": "595.406px 189.828px 268.766px 154px"
+          "gridTemplateColumns": "625.562px 179.578px 260.859px 142px"
         },
         "br2026": {
           "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
@@ -50,7 +50,7 @@
           "color": "rgb(238, 247, 241)",
           "height": "110.5px",
           "minHeight": "0px",
-          "gridTemplateColumns": "396.453px 388.781px 268.766px 154px"
+          "gridTemplateColumns": "438.531px 366.609px 260.859px 142px"
         },
         "cdb2026": {
           "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
@@ -66,7 +66,7 @@
           "color": "rgb(238, 247, 241)",
           "height": "110.5px",
           "minHeight": "0px",
-          "gridTemplateColumns": "396.453px 388.781px 268.766px 154px"
+          "gridTemplateColumns": "438.531px 366.609px 260.859px 142px"
         },
         "loterias/powerball": {
           "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
@@ -82,7 +82,7 @@
           "color": "rgb(238, 247, 241)",
           "height": "66.5px",
           "minHeight": "0px",
-          "gridTemplateColumns": "622.047px 325.953px 0px 260px"
+          "gridTemplateColumns": "687.906px 309.25px 0px 210.844px"
         }
       },
       "properties": [
@@ -1135,7 +1135,7 @@
           "borderRadius": "0px",
           "backgroundColor": "rgba(0, 0, 0, 0)",
           "color": "rgb(238, 247, 241)",
-          "height": "2884px",
+          "height": "1597.91px",
           "minHeight": "0px",
           "gridTemplateColumns": "none"
         },
@@ -1167,7 +1167,7 @@
           "borderRadius": "0px",
           "backgroundColor": "rgba(0, 0, 0, 0)",
           "color": "rgb(238, 247, 241)",
-          "height": "2803.39px",
+          "height": "4950.55px",
           "minHeight": "0px",
           "gridTemplateColumns": "none"
         }
@@ -1268,7 +1268,7 @@
           "borderRadius": "18px",
           "backgroundColor": "rgb(13, 32, 40)",
           "color": "rgb(238, 247, 241)",
-          "height": "414.578px",
+          "height": "395.391px",
           "minHeight": "0px",
           "gridTemplateColumns": "none"
         },
@@ -2579,7 +2579,7 @@
           "color": "rgb(238, 247, 241)",
           "height": "65px",
           "minHeight": "0px",
-          "gridTemplateColumns": "48px 876.516px 18.0938px 105.391px"
+          "gridTemplateColumns": "48px 882.484px 18.2031px 99.3125px"
         },
         "br2026": {
           "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
@@ -2595,7 +2595,7 @@
           "color": "rgb(238, 247, 241)",
           "height": "76.5px",
           "minHeight": "0px",
-          "gridTemplateColumns": "48px 981.906px 18.0938px 0px"
+          "gridTemplateColumns": "48px 882.484px 18.2031px 99.3125px"
         },
         "cdb2026": {
           "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
@@ -2611,7 +2611,7 @@
           "color": "rgb(238, 247, 241)",
           "height": "76.5px",
           "minHeight": "0px",
-          "gridTemplateColumns": "48px 876.516px 18.0938px 105.391px"
+          "gridTemplateColumns": "48px 882.484px 18.2031px 99.3125px"
         },
         "loterias/powerball": null
       },
@@ -2683,8 +2683,8 @@
         },
         {
           "property": "gridTemplateColumns",
-          "status": "DIVERGENT",
-          "reason": "CONDITIONAL MISMATCH: a entrada para \"ranking-row:gridTemplateColumns\" é condicional (signature=\"TRAILING_TRACK_COLLAPSE\", gatilho: A 4a trilha do grid e o botao Ver palpites, que so e renderizado depois do prazo de palpites -- BR2026 o condiciona a isPastCutoff() e CDB2026 a isPastEntryCutoff(), ambos por PRIVACIDADE (os palpites de um participante ficam escondidos dos demais ate as inscricoes fecharem). Enquanto um app esta antes do prazo e outro depois, a trilha colapsa para 0px num e resolve para a largura do botao no outro. A regra CSS `grid-template-columns: 48px 1fr auto auto` e IDENTICA nos tres apps: quem muda e o ESTADO do torneio, nunca o CSS. Por isso a divergencia aparece e desaparece sozinha conforme as fases abrem e fecham.), mas a divergência ATUAL não satisfaz esse predicado — copa2026=\"48px 876.516px 18.0938px 105.391px\", br2026=\"48px 981.906px 18.0938px 0px\", cdb2026=\"48px 876.516px 18.0938px 105.391px\". A causa é outra, e a aprovação condicional não a cobre."
+          "status": "EQUAL",
+          "reason": null
         }
       ]
     },
