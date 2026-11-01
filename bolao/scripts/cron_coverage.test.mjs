@@ -364,6 +364,9 @@ const UNSCHEDULED = new Map([
    "nenhum evento de negocio por tras. Executado apos mudanca na ponte M8/M9."],
   ["deploy-pages.yml", "Triggered by push to main."],
   ["sync_version.yml", "Triggered by push to main, path-filtered."],
+  ["cdb2026_result_correction.yml",
+   "E-mail de CORRECAO de uma perna ja gravada (2026-11-01). So existe por decisao humana depois de " +
+   "um dado corrigido; agendar isto seria reenviar e-mail a participantes por relogio."],
   ["cdb2026_operator.yml",
    "Operacao de operador do CDB2026 (snapshot, sorteio oficial, abertura de palpites). E disparada " +
    "por uma DECISAO humana -- aplicar um sorteio oficial nao tem cadencia. Agendar isto seria " +
