@@ -1,0 +1,23 @@
+{
+  "declarations": [
+    {
+      "surface_id": "NOTIFICATION_WORKFLOWS",
+      "reason": "Semifinal da Copa do Brasil 2026-11-01: saiu e-mail errado (ida gravada na volta, todos 'sem palpite'). O dado foi corrigido (#510); como a ida ja esta salva, o --auto nunca a redescobre e nao ha caminho para mandar o e-mail certo de uma perna especifica.",
+      "expected_behavior_change": "Novo cdb2026_result_correction.yml, so workflow_dispatch: roda send_result_email.py --send-leg para UMA perna ja gravada, com aviso de correcao versionado (bolao/cdb2026/data/corrections/*.html, caminho validado, inputs por env). Padrao e TESTE (so a entrada only_entry, assunto [TESTE], sem ledger); para todos exige send_to_all e confirm = ENVIAR PARA TODOS, registra no ledger e recusa se a perna ja tiver entrega. Respeita EMAIL_KILL_SWITCH. Junto: o e-mail pontua como o site (palpites de vaga sf-*/final-1, classificado por time, campeao/vice), com paridade app.js x Python testada.",
+      "tests_required": [
+        "email-send-safety",
+        "cdb-send-leg-correction",
+        "cdb-email-scoring-parity",
+        "cdb-result-email-render"
+      ]
+    },
+    {
+      "surface_id": "REAL_SEND_GUARDS",
+      "reason": "O inventario de senders do audit_email_send_safety.mjs precisa conhecer o workflow novo de correcao; um sender fora do inventario reprova o gate por desenho.",
+      "expected_behavior_change": "PRODUCTION_WORKFLOWS ganha .github/workflows/cdb2026_result_correction.yml, que declara BOLAO_ALLOW_REAL_SEND como os outros workflows de producao. Nenhuma regra do gate foi afrouxada.",
+      "tests_required": [
+        "email-send-safety"
+      ]
+    }
+  ]
+}
