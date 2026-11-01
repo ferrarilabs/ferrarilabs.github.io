@@ -306,6 +306,55 @@ test("mutacao (voltar a testar so um estado) e pega", () => {
     "CONTROLE NEGATIVO: remover a checagem de saude do gateway deveria ser visivel");
 });
 
+// ─── #467: UPCOMING nao pode sobreviver ao proprio kickoff sem confirmacao ao vivo ──────────────
+//
+// Eduardo relatou (2026-10-18, screenshot pos-#465): hero do BR2026 mostrando Bahia x Flamengo
+// como "Em andamento" com o gateway ao vivo fora (UPSTREAM_403). Sem jogo ao vivo confirmado
+// (aoVivo vazio) e com `proxima` cujo kickoff ja passou, `deriveFootballHeroState()` devolvia
+// UPCOMING de qualquer forma -- e os dois apps alimentam esse estado direto em
+// countdownTimerHtml(), cujo contrato (#436) e "diffMs<=0 => Em andamento", sem checar NADA.
+
+const proximaJaComecou = { id: "4", homeTeam: "Bahia", awayTeam: "Flamengo",
+                           kickoff: "2026-08-27T00:30:00Z" }; // 30min antes de AGORA
+
+test("#467: kickoff passado + fonte fora => NAO fica UPCOMING (sem afirmar 'ao vivo' sem prova)", () => {
+  const r = H.deriveFootballHeroState({
+    liveState: "SOURCE_UNAVAILABLE", liveMatches: [], nextMatch: proximaJaComecou,
+    sourceOk: false, now: AGORA,
+  });
+  invariante(r, "#467 fonte fora");
+  assert(r.state !== HERO.UPCOMING,
+    `kickoff ha 30min sem confirmacao ainda vira UPCOMING (${r.state}) -- e de UPCOMING que os ` +
+    "dois apps tiram 'Em andamento' sem checar estado real");
+  assert(r.state === HERO.SOURCE_UNAVAILABLE, r.state);
+});
+
+test("#467: kickoff passado + fonte OK + nada mais conhecido => SCHEDULE_UNKNOWN, nunca UPCOMING", () => {
+  const r = H.deriveFootballHeroState({
+    liveState: "NO_LIVE_MATCH", liveMatches: [], nextMatch: proximaJaComecou,
+    sourceOk: true, now: AGORA,
+  });
+  invariante(r, "#467 fonte ok");
+  assert(r.state === HERO.SCHEDULE_UNKNOWN, r.state);
+});
+
+test("#467: kickoff ainda no futuro continua UPCOMING normalmente (sem regressao)", () => {
+  const r = H.deriveFootballHeroState({
+    liveState: "NO_LIVE_MATCH", liveMatches: [], nextMatch: proxima, // kickoff dias no futuro
+    sourceOk: true, now: AGORA,
+  });
+  assert(r.state === HERO.UPCOMING, r.state);
+});
+
+test("#467: confronto conhecido SEM data (#395) nao tem kickoff pra comparar — continua UPCOMING", () => {
+  const semData = { id: "5", homeTeam: "Vencedor QF1", awayTeam: "Vencedor QF2" }; // sem kickoff
+  const r = H.deriveFootballHeroState({
+    liveState: "NO_LIVE_MATCH", liveMatches: [], nextMatch: semData,
+    sourceOk: true, now: AGORA,
+  });
+  assert(r.state === HERO.UPCOMING, r.state);
+});
+
 console.log(`\n  ${ok} passed, ${fail} failed\n`);
 console.log(fail ? "✗ HERO ALWAYS MOUNTED FAILED" : "✓ HERO ALWAYS MOUNTED OK");
 process.exit(fail ? 1 : 0);

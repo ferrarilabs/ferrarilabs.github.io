@@ -215,14 +215,20 @@ function estadoBr() {
 function cenarios(app) {
   const comuns = [
     { estado: "normal_fresh",        gw: { matches: [] } },
-    { estado: "upcoming_fixture",    gw: { matches: [] } },
+    // `snapshotMatches` torna estes cenarios DETERMINISTICOS. O snapshot commitado e a fonte de
+    // `_schedule` E o fallback do store, e ele contem os jogos que estavam AO VIVO (ou prestes a
+    // comecar) no instante em que o bot o gerou. Sem controla-lo, o cenario vira uma corrida entre
+    // o conteudo REAL do snapshot commitado + o relogio REAL (`AGORA = Date.now()`, nao congelado
+    // nesta suite) e o que o cenario alega testar: passava local e reprovava no CI (mutacao
+    // PRIMARY_HERO_HIDDEN cega, 2026-08-31; mutacao DUPLICATE_PRIMARY_FIXTURE cega, 2026-10-18 —
+    // o #467 passou a tirar o hero de UPCOMING assim que o kickoff REAL passa sem confirmacao ao
+    // vivo, e o snapshot commitado tem jogos de verdade cujo kickoff pode cair bem no meio da
+    // janela de execucao do CI). O cenario passa a declarar o que quer testar em vez de torcer
+    // pelo dado do dia.
+    { estado: "upcoming_fixture",    gw: { matches: [] },
+      snapshotMatches: () => jogosDeHojeAindaNaoComecados() },
     { estado: "live_fixture",        gw: { matches: [jogoAoVivo()] } },
     { estado: "recent_final",        gw: { matches: [jogoFinal()] } },
-    // `snapshotMatches` torna estes cenarios DETERMINISTICOS. O snapshot commitado e a fonte de
-    // `_schedule` E o fallback do store, e ele contem os jogos que estavam AO VIVO no instante em
-    // que o bot o gerou. Sem controla-lo, "sem jogo ao vivo" virava uma corrida entre o fetch do
-    // fallback e a medicao: passava local e reprovava no CI (mutacao PRIMARY_HERO_HIDDEN cega,
-    // 2026-08-31). O cenario passa a declarar o que quer testar em vez de torcer pelo dado do dia.
     { estado: "stale_source",        gw: { matches: [], stale: true, ageH: 14 },
       snapshotMatches: () => jogosDeHojeAindaNaoComecados() },
     { estado: "provider_unavailable", gw: null,
