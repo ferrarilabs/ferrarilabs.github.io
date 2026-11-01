@@ -301,6 +301,15 @@
     "bolao/loterias/powerball/scripts/test_open_draw_metadata.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
     },
+    "bolao/loterias/powerball/scripts/test_build_ticket_email_contacts.py": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/loterias/powerball/scripts/test_sync_draw_participants.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/loterias/powerball/scripts/test_operator_open_draw.py": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
     "bolao/loterias/powerball/scripts/test_operator_payments.py": {
       "classification": "REGISTERED_AND_EXECUTED"
     },
@@ -356,15 +365,18 @@
     "bolao/loterias/scripts/test_failure_injection.py": {
       "classification": "REGISTERED_AND_EXECUTED"
     },
+    "bolao/loterias/scripts/test_eligibility_alert.py": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
     "bolao/loterias/scripts/test_jackpot_identity.py": {
       "classification": "REGISTERED_AND_EXECUTED"
     },
     "bolao/loterias/scripts/test_lottery_core.py": {
       "classification": "REGISTERED_AND_EXECUTED"
     },
-    "bolao/loterias/scripts/test_lottery_poll_deploy_dispatch.mjs": {
+    "bolao/loterias/scripts/test_lottery_poll_publish.mjs": {
       "classification": "REGISTERED_AND_EXECUTED",
-      "coverage": "lottery_poll.yml pede o deploy do Pages quando um commit da coleta chega a main (push com GITHUB_TOKEN nao dispara deploy-pages.yml). Le so o YAML; inclui mutacoes que provam que o gate morde."
+      "coverage": "lottery_poll.yml publica o estado por PR rolante (nunca push em main), falha vermelha se a publicacao falhar, e decide o aviso de elegibilidade antes e independente dela. Le so o YAML; inclui mutacoes que provam que o gate morde."
     },
     "bolao/loterias/scripts/test_prize_authority.py": {
       "classification": "REGISTERED_AND_EXECUTED"

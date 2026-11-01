@@ -32,6 +32,12 @@ esac
 SRC="$(git rev-parse HEAD)"
 MSG="$(git log -1 --format=%B "$SRC")"
 
+# actions/checkout baixa so o ultimo commit. Com o branch ja existente, o merge abaixo nao acha base
+# comum num clone raso e morre com "refusing to merge unrelated histories" (br2026_broadcast_epg.yml
+# e bolao_provider_snapshot.yml vermelhos assim desde 2026-10-22). Historico completo antes do merge.
+if [ "$(git rev-parse --is-shallow-repository)" = "true" ]; then
+  git fetch --quiet --unshallow origin
+fi
 git fetch --quiet origin main
 if git ls-remote --exit-code --heads origin "refs/heads/$BRANCH" >/dev/null; then
   git fetch --quiet origin "refs/heads/$BRANCH:refs/remotes/origin/$BRANCH"

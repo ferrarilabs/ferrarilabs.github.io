@@ -244,6 +244,34 @@ def main():
     checa("toda faixa tem cobertura: real OU exaustiva",
           set(exercitadas + nao_exercitadas) <= cobertas_pela_exaustiva)
 
+    # ═══ CARRYOVER ENTRE DOIS SORTEIOS LIQUIDADOS ═══════════════════════════════════════════
+    # O crédito que entra no sorteio novo tem de SAIR do anterior, senão o saldo derivado conta o
+    # mesmo dinheiro duas vezes (29/10/2026: daria US$71 em vez de US$32).
+    print("\nN. carryover: o crédito sai do sorteio anterior")
+    import tempfile
+    with tempfile.TemporaryDirectory() as td:
+        lz = str(Path(td) / "l.jsonl")
+        ant = {"id": "A", "participants": [{"valor": 10}],
+               "finance": {"creditoSorteioAnterior": 0, "valorGuardadoProximoSorteio": 1},
+               "sharedTickets": {"valorPorTicket": 3, "series": [{"qtd": 3, "numeros": []}]},
+               "result": {"premiosGanhos": 0}}
+        novo = {"id": "B", "previousDrawId": "A", "participants": [{"valor": 10}],
+                "finance": {"creditoSorteioAnterior": 1},
+                "sharedTickets": {"valorPorTicket": 3, "series": [{"qtd": 3, "numeros": []}]}}
+        SD.liquida(ant, None, ledger=lz, verificar_ao_vivo=False)
+        checa("depois do anterior: saldo US$1", L.saldo(lz) == 100, L.dinheiro(L.saldo(lz)))
+        SD.liquida(novo, ant, ledger=lz, verificar_ao_vivo=False)
+        checa("depois do novo: 1 + 10 - 9 = US$2 (sem contar o crédito duas vezes)",
+              L.saldo(lz) == 200, L.dinheiro(L.saldo(lz)))
+        checa("anterior fica zerado", L.saldo(lz, "A") == 0, L.dinheiro(L.saldo(lz, "A")))
+        SD.liquida(novo, ant, ledger=lz, verificar_ao_vivo=False)
+        checa("reliquidar não move o caixa", L.saldo(lz) == 200)
+        lz2 = str(Path(td) / "abertura.jsonl")
+        SD.liquida(novo, ant, ledger=lz2, verificar_ao_vivo=False)
+        checa("anterior fora do livro: o crédito é saldo de abertura (sem CARRYOVER_OUT)",
+              L.saldo(lz2) == 200 and not any(e["type"] == "CARRYOVER_OUT"
+                                              for e in L.le_ledger(lz2)))
+
     print("\n" + "=" * 78)
     if falhas:
         print(f"PRIZE_AUTHORITY = FALHOU ({len(falhas)})")

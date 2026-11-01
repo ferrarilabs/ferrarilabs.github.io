@@ -64,6 +64,8 @@ jobs:
   fetch-and-send:
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    outputs:
+      result_commit: ${{ steps.guardar.outputs.result_commit }}
 
     steps:
       - name: Checkout repository
@@ -172,3 +174,69 @@ jobs:
           [ "${{ github.event.inputs.dry_run }}" = "true" ] && DRY_RUN="--dry-run"
           [ "${{ github.event.inputs.force_resend }}" = "true" ] && FORCE_RESEND="--force-resend"
           python3 fetch_and_send_results.py $DRY_RUN $FORCE_RESEND
+
+      # O passo acima grava o resultado no data.js com commit LOCAL. O ruleset do main exige PR e
+      # `npm run check`, entao o commit sai daqui como patch e o job `site` o publica por PR. Job
+      # proprio porque a espera do check passa dos 30 min que este job pode segurar o lease.
+      # Roda mesmo se o envio falhar: o site nao depende do e-mail.
+      - name: Guardar o commit do resultado
+        id: guardar
+        if: ${{ !cancelled() && github.event.inputs.dry_run != 'true' }}
+        run: |
+          set -euo pipefail
+          if [ "$(git rev-list --count "$GITHUB_SHA"..HEAD)" = "0" ]; then
+            echo "Nenhum resultado novo gravado — nada a publicar."; exit 0
+          fi
+          mkdir -p "$RUNNER_TEMP/resultado"
+          git format-patch -1 HEAD -o "$RUNNER_TEMP/resultado" >/dev/null
+          echo "result_commit=true" >> "$GITHUB_OUTPUT"
+
+      - name: Enviar o patch ao job site
+        if: ${{ steps.guardar.outputs.result_commit == 'true' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: powerball-resultado
+          path: ${{ runner.temp }}/resultado/
+          retention-days: 3
+
+  site:
+    name: Publicar resultado no site (PR automatico)
+    needs: fetch-and-send
+    if: ${{ !cancelled() && needs.fetch-and-send.outputs.result_commit == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    # pull-requests e actions: publish_data_via_pr.sh dispara o `npm run check`; merge_data_pr.sh
+    # aprova o run do PR do bot e faz o merge.
+    permissions:
+      contents: write
+      pull-requests: write
+      actions: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # publish_data_via_pr.sh junta origin/main ao branch de dado; precisa do historico.
+          fetch-depth: 0
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: powerball-resultado
+          path: ${{ runner.temp }}/resultado
+
+      - name: Publicar via PR, esperar o check e fazer o merge
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git am --quiet "$RUNNER_TEMP"/resultado/*.patch
+          DRAW="$(git log -1 --format=%s | sed -nE 's/.*sorteio de ([0-9]{4}-[0-9]{2}-[0-9]{2}).*/\1/p')"
+          [ -n "$DRAW" ] || { echo "::error::commit sem data de sorteio: $(git log -1 --format=%s)"; exit 1; }
+          BRANCH="auto/data/powerball-resultado-$DRAW"
+          scripts/ci/publish_data_via_pr.sh "$BRANCH" \
+            "Powerball: resultado do sorteio de $DRAW (automatico)" \
+            "Resultado oficial e premios do sorteio de $DRAW gravados no data.js por powerball-results-email.yml. Merge automatico com \`npm run check\` verde." \
+            bolao/loterias/powerball/js/data.js
+          scripts/ci/merge_data_pr.sh "$BRANCH" \
+            "Powerball: resultado do sorteio de $DRAW (automatico)" \
+            "Resultado oficial e premios do sorteio de $DRAW gravados por powerball-results-email.yml."

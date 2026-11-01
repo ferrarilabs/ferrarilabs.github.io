@@ -129,7 +129,7 @@ export function divergencias(doDataJs, doArtefato) {
   return problemas;
 }
 
-async function lerBanco() {
+export async function lerBanco() {
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!key) throw new Error("SUPABASE_SERVICE_ROLE_KEY ausente — `--write` le o banco autoritativo");
   const get = async (path) => {
@@ -155,7 +155,7 @@ async function lerBanco() {
  * O CAMINHO DE PROJECAO E O MESMO — muda so de onde as linhas chegam. Fosse um segundo caminho,
  * o artefato poderia ser gerado por uma logica que nenhum teste cobre.
  */
-function lerArquivo(caminho) {
+export function lerArquivo(caminho) {
   const d = JSON.parse(readFileSync(caminho, "utf-8"));
   for (const k of ["draws", "participantes", "participacoes", "transacoes"]) {
     if (!Array.isArray(d[k])) throw new Error(`arquivo de linhas sem \`${k}\``);

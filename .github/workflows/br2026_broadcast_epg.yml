@@ -42,7 +42,8 @@ permissions:
 jobs:
   sync:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    # 30: alem da coleta, espera o `npm run check` do PR (~15 min) para fazer o merge.
+    timeout-minutes: 30
     steps:
       # workflow_dispatch aceita qualquer branch/tag. O checkout cria a branch local com upstream
       # nela, e um push publicaria o commit do bot NAQUELA ref (revisao adversarial do PR #432, S1:
@@ -108,3 +109,8 @@ jobs:
             exit 1
           fi
           echo "committed=true" >> "$GITHUB_OUTPUT"
+          # 2026-11-01: o PR do bot ficava BLOCKED para sempre (run de pull_request em
+          # action_required). merge_data_pr.sh aprova esse run, espera os checks e faz o merge.
+          scripts/ci/merge_data_pr.sh "auto/data/br2026-broadcasts" \
+            "chore(br2026): Onde assistir atualizado pela grade de TV (automatico)" \
+            "broadcasts.json gerado por br2026_broadcast_epg.yml e validado por validate_broadcasts.mjs."
