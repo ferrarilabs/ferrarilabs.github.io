@@ -1,0 +1,2799 @@
+{
+ "_o_que_e": "Snapshot PUBLICO do estado do CDB2026 em 2026-11-01 (antes da correcao da semifinal), reduzido a confrontos/topologia e palpites. Nomes e ids das entradas sao SINTETICOS; sem e-mail, sem pagamento. Usado por test_email_scoring_parity.mjs.",
+ "entries": [
+  {
+   "id": "e01",
+   "entryName": "Entrada 01",
+   "picks": {
+    "matches": {
+     "sf-1": {
+      "first": {
+       "goalsAway": 1,
+       "goalsHome": 1
+      },
+      "second": {
+       "goalsAway": 0,
+       "goalsHome": 2
+      }
+     },
+     "sf-2": {
+      "first": {
+       "goalsAway": 2,
+       "goalsHome": 0
+      },
+      "second": {
+       "goalsAway": 2,
+       "goalsHome": 3
+      }
+     },
+     "final-1": {
+      "single": {
+       "goalsAway": 2,
+       "goalsHome": 0
+      }
+     },
+     "espn-remo_santos": {
+      "first": {
+       "goalsAway": 1,
+       "goalsHome": 1
+      },
+      "second": {
+       "goalsAway": 0,
+       "goalsHome": 1
+      }
+     },
+     "espn-vasco_vitoria": {
+      "first": {
+       "goalsAway": 0,
+       "goalsHome": 3
+      },
+      "second": {
+       "goalsAway": 1,
+       "goalsHome": 2
+      }
+     },
+     "espn-gremio_mirassol": {
+      "first": {
+       "goalsAway": 1,
+       "goalsHome": 1
+      },
+      "second": {
+       "goalsAway": 1,
+       "goalsHome": 2
+      }
+     },
+     "espn-fluminense_vasco": {
+      "first": {
+       "goalsAway": 2,
+       "goalsHome": 1
+      },
+      "second": {
+       "goalsAway": 0,
+       "goalsHome": 2
+      }
+     },
+     "espn-palmeiras_santos": {
+      "first": {
+       "goalsAway": 1,
+       "goalsHome": 3
+      },
+      "second": {
+       "goalsAway": 1,
+       "goalsHome": 1
+      }
+     },
+     "espn-fortaleza_palmeiras": {
+      "first": {
+       "goalsAway": 0,
+       "goalsHome": 2
+      },
+      "second": {
+       "goalsAway": 2,
+       "goalsHome": 0
+      }
+     },
+     "espn-athletico-pr_vitoria": {
+      "first": {
+       "goalsAway": 0,
+       "goalsHome": 2
+      },
+      "second": {
+       "goalsAway": 1,
+       "goalsHome": 1
+      }
+     },
+     "espn-atletico-mg_cruzeiro": {
+      "first": {
+       "goalsAway": 1,
+       "goalsHome": 2
+      },
+      "second": {
+       "goalsAway": 1,
+       "goalsHome": 1
+      }
+     },
+     "espn-chapecoense_cruzeiro": {
+      "first": {
+       "goalsAway": 3,
+       "goalsHome": 0
+      },
+      "second": {
+       "goalsAway": 0,
+       "goalsHome": 2
+      }
+     },
+     "espn-gremio_internacional": {
+      "first": {
+       "goalsAway": 1,
+       "goalsHome": 2
+      },
+      "second": {
+       "goalsAway": 1,
+       "goalsHome": 2
+      }
+     },
+     "espn-atletico-mg_juventude": {
+      "first": {
+       "goalsAway": 1,
+       "goalsHome": 2
+      },
+      "second": {
+       "goalsAway": 0,
+       "goalsHome": 1
+      }
+     },
+     "espn-corinthians_internacional": {
+      "first": {
+       "goalsAway": 1,
+       "goalsHome": 1
+      },
+      "second": {
+       "goalsAway": 0,
+       "goalsHome": 2
+      }
+     }
+    },
+    "qualified": {
+     "sf-1": "B",
+     "sf-2": "B",
+     "final-1": "B",
+     "espn-remo_santos": "B",
+     "espn-vasco_vitoria": "A",
+     "espn-gremio_mirassol": "B",
+     "espn-fluminense_vasco": "B",
+     "espn-palmeiras_santos": "A",
+     "espn-fortaleza_palmeiras": "A",
+     "espn-athletico-pr_vitoria": "A",
+     "espn-atletico-mg_cruzeiro": "A",
+     "espn-chapecoense_cruzeiro": "B",
+     "espn-gremio_internacional": "B",
+     "espn-atletico-mg_juventude": "A",
+     "espn-corinthians_internacional": "B"
+    }
+   }
+  },
+  {
+   "id": "e02",
+   "entryName": "Entrada 02",
+   "picks": {
+    "matches": {
+     "espn-remo_santos": {
+      "first": {
+       "goalsAway": 3,
+       "goalsHome": 1
+      },
+      "second": {
+       "goalsAway": 1,
+       "goalsHome": 2
+      }
+     },
+     "espn-vasco_vitoria": {
+      "first": {
+       "goalsAway": 0,
+       "goalsHome": 3
+      },
+      "second": {
+       "goalsAway": 1,
+       "goalsHome": 2
+      }
+     },
+     "espn-gremio_mirassol": {
+      "first": {
+       "goalsAway": 1,
+       "goalsHome": 0
+      },
+      "second": {
+       "goalsAway": 1,
+       "goalsHome": 1
+      }
+     },
+     "espn-fluminense_vasco": {
+      "first": {
+       "goalsAway": 2,
+       "goalsHome": 0
+      },
+      "second": {
+       "goalsAway": 0,
+       "goalsHome": 1
+      }
+     },
+     "espn-palmeiras_santos": {
+      "first": {
+       "goalsAway": 1,
+       "goalsHome": 3
+      },
+      "second": {
+       "goalsAway": 1,
+       "goalsHome": 1
+      }
+     },
+     "espn-fortaleza_palmeiras": {
+      "first": {
+       "goalsAway": 0,
+       "goalsHome": 1
+      },
+      "second": {
+       "goalsAway": 2,
+       "goalsHome": 1
+      }
+     },
+     "espn-athletico-pr_vitoria": {
+      "first": {
+       "goalsAway": 1,
+       "goalsHome": 0
+      },
+      "second": {
+       "goalsAway": 0,
+       "goalsHome": 2
+      }
+     },
+     "espn-atletico-mg_cruzeiro": {
+      "first": {
+       "goalsAway": 2,
+       "goalsHome": 2
+      },
+      "second": {
+       "goalsAway": 1,
+       "goalsHome": 1
+      }
+     },
+     "espn-chapecoense_cruzeiro": {
+      "first": {
+       "goalsAway": 3,
+       "goalsHome": 0
+      },
+      "second": {
+       "goalsAway": 0,
+       "goalsHome": 2
+      }
+     },
+     "espn-gremio_internacional": {
+      "first": {
+       "goalsAway": 1,
+       "goalsHome": 2
+      },
+      "second": {
+       "goalsAway": 1,
+       "goalsHome": 2
+      }
+     },
+     "espn-atletico-mg_juventude": {
+      "first": {
+       "goalsAway": 0,
+       "goalsHome": 2
+      },
+      "second": {
+       "goalsAway": 2,
+       "goalsHome": 1
+      }
+     },
+     "espn-corinthians_internacional": {
+      "first": {
+       "goalsAway": 1,
+       "goalsHome": 0
+      },
+      "second": {
+       "goalsAway": 1,
+       "goalsHome": 1
+      }
+     }
+    },
+    "qualified": {
+     "sf-1": "B",
+     "sf-2": "B",
+     "final-1": "B",
+     "espn-remo_santos": "B",
+     "espn-vasco_vitoria": "A",
+     "espn-gremio_mirassol": "B",
+     "espn-fluminense_vasco": "B",
+     "espn-palmeiras_santos": "A",
+     "espn-fortaleza_palmeiras": "A",
+     "espn-athletico-pr_vitoria": "B",
+     "espn-atletico-mg_cruzeiro": "A",
+     "espn-chapecoense_cruzeiro": "B",
+     "espn-gremio_internacional": "B",
+     "espn-atletico-mg_juventude": "A",
+     "espn-corinthians_internacional": "B"
+    }
+   }
+  },
+  {
+   "id": "e03",
+   "entryName": "Entrada 03",
+   "picks": {
+    "matches": {
+     "sf-1": {
+      "first": {
+       "goalsAway": 2,
+       "goalsHome": 1
+      },
+      "second": {
+       "goalsAway": 0,
+       "goalsHome": 2
+      }
+     },
+     "sf-2": {
+      "first": {
+       "goalsAway": 1,
+       "goalsHome": 1
+      },
+      "second": {
+       "goalsAway": 0,
+       "goalsHome": 2
+      }
+     },
+     "final-1": {
+      "single": {
+       "goalsAway": 2,
+       "goalsHome": 1
+      }
+     },
+     "espn-remo_santos": {
+      "first": {
+       "goalsAway": 0,
+       "goalsHome": 2
+      },
+      "second": {
+       "goalsAway": 1,
+       "goalsHome": 1
+      }
+     },
+     "espn-vasco_vitoria": {
+      "first": {
+       "goalsAway": 0,
+       "goalsHome": 2
+      },
+      "second": {
+       "goalsAway": 0,
+       "goalsHome": 1
+      }
+     },
+     "espn-gremio_mirassol": {
+      "first": {
+       "goalsAway": 0,
+       "goalsHome": 1
+      },
+      "second": {
+       "goalsAway": 0,
+       "goalsHome": 2
+      }
+     },
+     "espn-fluminense_vasco": {
+      "first": {
+       "goalsAway": 1,
+       "goalsHome": 1
+      },
+      "second": {
+       "goalsAway": 0,
+       "goalsHome": 2
+      }
+     },
+     "espn-palmeiras_santos": {
+      "first": {
+       "goalsAway": 0,
+       "goalsHome": 2
+      },
+      "second": {
+       "goalsAway": 1,
+       "goalsHome": 1
+      }
+     },
+     "espn-fortaleza_palmeiras": {
+      "first": {
+       "goalsAway": 0,
+       "goalsHome": 2
+      },
+      "second": {
+       "goalsAway": 3,
+       "goalsHome": 0
+      }
+     },
+     "espn-athletico-pr_vitoria": {
+      "first": {
+       "goalsAway": 0,
+       "goalsHome": 2
+      },
+      "second": {
+       "goalsAway": 0,
+       "goalsHome": 0
+      }
+     },
+     "espn-atletico-mg_cruzeiro": {
+      "first": {
+       "goalsAway": 1,
+       "goalsHome": 2
+      },
+      "second": {
+       "goalsAway": 0,
+       "goalsHome": 1
+      }
+     },
+     "espn-chapecoense_cruzeiro": {
+      "first": {
+       "goalsAway": 3,
+       "goalsHome": 1
+      },
+      "second": {
+       "goalsAway": 0,
+       "goalsHome": 3
+      }
+     },
+     "espn-gremio_internacional": {
+      "first": {
+       "goalsAway": 0,
+       "goalsHome": 1
+      },
+      "second": {
+       "goalsAway": 0,
+       "goalsHome": 1
+      }
+     },
+     "espn-atletico-mg_juventude": {
+      "first": {
+       "goalsAway": 0,
+       "goalsHome": 2
+      },
+      "second": {
+       "goalsAway": 0,
+       "goalsHome": 0
+      }
+     },
+     "espn-corinthians_internacional": {
+      "first": {
+       "goalsAway": 1,
+       "goalsHome": 1
+      },
+      "second": {
+       "goalsAway": 1,
+       "goalsHome": 2
+      }
+     }
+    },
+    "qualified": {
+     "sf-1": "B",
+     "sf-2": "B",
+     "final-1": "B",
+     "espn-remo_santos": "A",
+     "espn-vasco_vitoria": "A",
+     "espn-gremio_mirassol": "B",
+     "espn-fluminense_vasco": "B",
+     "espn-palmeiras_santos": "A",
+     "espn-fortaleza_palmeiras": "A",
+     "espn-athletico-pr_vitoria": "A",
+     "espn-atletico-mg_cruzeiro": "A",
+     "espn-chapecoense_cruzeiro": "B",
+     "espn-gremio_internacional": "B",
+     "espn-atletico-mg_juventude": "A",
+     "espn-corinthians_internacional": "B"
+    }
+   }
+  },
+  {
+   "id": "e04",
+   "entryName": "Entrada 04",
+   "picks": {
+    "matches": {
+     "sf-1": {
+      "first": {
+       "goalsAway": 0,
+       "goalsHome": 0
+      },
+      "second": {
+       "goalsAway": 0,
+       "goalsHome": 1
+      }
+     },
+     "sf-2": {
+      "first": {
+       "goalsAway": 0,
+       "goalsHome": 0
+      },
+      "second": {
+       "goalsAway": 0,
+       "goalsHome": 2
+      }
+     },
+     "final-1": {
+      "single": {
+       "goalsAway": 2,
+       "goalsHome": 1
+      }
+     },
+     "espn-remo_santos": {
+      "first": {
+       "goalsAway": 0,
+       "goalsHome": 2
+      },
+      "second": {
+       "goalsAway": 1,
+       "goalsHome": 1
+      }
+     },
+     "espn-vasco_vitoria": {
+      "first": {
+       "goalsAway": 0,
+       "goalsHome": 1
+      },
+      "second": {
+       "goalsAway": 0,
+       "goalsHome": 0
+      }
+     },
+     "espn-gremio_mirassol": {
+      "first": {
+       "goalsAway": 0,
+       "goalsHome": 2
+      },
+      "second": {
+       "goalsAway": 1,
+       "goalsHome": 1
+      }
+     },
+     "espn-fluminense_vasco": {
+      "first": {
+       "goalsAway": 1,
+       "goalsHome": 1
+      },
+      "second": {
+       "goalsAway": 0,
+       "goalsHome": 2
+      }
+     },
+     "espn-palmeiras_santos": {
+      "first": {
+       "goalsAway": 0,
+       "goalsHome": 1
+      },
+      "second": {
+       "goalsAway": 0,
+       "goalsHome": 0
+      }
+     },
+     "espn-fortaleza_palmeiras": {
+      "first": {
+       "goalsAway": 1,
+       "goalsHome": 3
+      },
+      "second": {
+       "goalsAway": 1,
+       "goalsHome": 1
+      }
+     },
+     "espn-athletico-pr_vitoria": {
+      "first": {
+       "goalsAway": 0,
+       "goalsHome": 1
+      },
+      "second": {
+       "goalsAway": 0,
+       "goalsHome": 2
+      }
+     },
+     "espn-atletico-mg_cruzeiro": {
+      "first": {
+       "goalsAway": 1,
+       "goalsHome": 1
+      },
+      "second": {
+       "goalsAway": 1,
+       "goalsHome": 0
+      }
+     },
+     "espn-chapecoense_cruzeiro": {
+      "first": {
+       "goalsAway": 1,
+       "goalsHome": 1
+      },
+      "second": {
+       "goalsAway": 0,
+       "goalsHome": 1
+      }
+     },
+     "espn-gremio_internacional": {
+      "first": {
+       "goalsAway": 0,
+       "goalsHome": 0
+      },
+      "second": {
+       "goalsAway": 0,
+       "goalsHome": 1
+      }
+     },
+     "espn-atletico-mg_juventude": {
+      "first": {
+       "goalsAway": 1,
+       "goalsHome": 2
+      },
+      "second": {
+       "goalsAway": 0,
+       "goalsHome": 1
+      }
+     },
+     "espn-corinthians_internacional": {
+      "first": {
+       "goalsAway": 1,
+       "goalsHome": 0
+      },
+      "second": {
+       "goalsAway": 1,
+       "goalsHome": 2
+      }
+     }
+    },
+    "qualified": {
+     "sf-1": "B",
+     "sf-2": "B",
+     "final-1": "B",
+     "espn-remo_santos": "A",
+     "espn-vasco_vitoria": "A",
+     "espn-gremio_mirassol": "A",
+     "espn-fluminense_vasco": "B",
+     "espn-palmeiras_santos": "A",
+     "espn-fortaleza_palmeiras": "A",
+     "espn-athletico-pr_vitoria": "B",
+     "espn-atletico-mg_cruzeiro": "A",
+     "espn-chapecoense_cruzeiro": "B",
+     "espn-gremio_internacional": "B",
+     "espn-atletico-mg_juventude": "B",
+     "espn-corinthians_internacional": "B"
+    }
+   }
+  },
+  {
+   "id": "e05",
+   "entryName": "Entrada 05",
+   "picks": {
+    "matches": {
+     "sf-1": {
+      "first": {
+       "goalsAway": 1,
+       "goalsHome": 1
+      },
+      "second": {
+       "goalsAway": 0,
+       "goalsHome": 2
+      }
+     },
+     "sf-2": {
+      "first": {
+       "goalsAway": 0,
+       "goalsHome": 1
+      },
+      "second": {
+       "goalsAway": 0,
+       "goalsHome": 2
+      }
+     },
+     "final-1": {
+      "single": {
+       "goalsAway": 2,
+       "goalsHome": 1
+      }
+     },
+     "espn-remo_santos": {
+      "first": {
+       "goalsAway": 2,
+       "goalsHome": 2
+      },
+      "second": {
+       "goalsAway": 1,
+       "goalsHome": 1
+      }
+     },
+     "espn-vasco_vitoria": {
+      "first": {
+       "goalsAway": 0,
+       "goalsHome": 2
+      },
+      "second": {
+       "goalsAway": 1,
+       "goalsHome": 3
+      }
+     },
+     "espn-gremio_mirassol": {
+      "first": {
+       "goalsAway": 0,
+       "goalsHome": 2
+      },
+      "second": {
+       "goalsAway": 2,
+       "goalsHome": 2
+      }
+     },
+     "espn-fluminense_vasco": {
+      "first": {
+       "goalsAway": 1,
+       "goalsHome": 1
+      },
+      "second": {
+       "goalsAway": 1,
+       "goalsHome": 2
+      }
+     },
+     "espn-palmeiras_santos": {
+      "first": {
+       "goalsAway": 0,
+       "goalsHome": 2
+      },
+      "second": {
+       "goalsAway": 2,
+       "goalsHome": 1
+      }
+     },
+     "espn-fortaleza_palmeiras": {
+      "first": {
+       "goalsAway": 0,
+       "goalsHome": 2
+      },
+      "second": {
+       "goalsAway": 1,
+       "goalsHome": 1
+      }
+     },
+     "espn-athletico-pr_vitoria": {
+      "first": {
+       "goalsAway": 0,
+       "goalsHome": 1
+      },
+      "second": {
+       "goalsAway": 0,
+       "goalsHome": 2
+      }
+     },
+     "espn-atletico-mg_cruzeiro": {
+      "first": {
+       "goalsAway": 1,
+       "goalsHome": 2
+      },
+      "second": {
+       "goalsAway": 1,
+       "goalsHome": 1
+      }
+     },
+     "espn-chapecoense_cruzeiro": {
+      "first": {
+       "goalsAway": 2,
+       "goalsHome": 0
+      },
+      "second": {
+       "goalsAway": 0,
+       "goalsHome": 3
+      }
+     },
+     "espn-gremio_internacional": {
+      "first": {
+       "goalsAway": 1,
+       "goalsHome": 1
+      },
+      "second": {
+       "goalsAway": 0,
+       "goalsHome": 1
+      }
+     },
+     "espn-atletico-mg_juventude": {
+      "first": {
+       "goalsAway": 0,
+       "goalsHome": 1
+      },
+      "second": {
+       "goalsAway": 2,
+       "goalsHome": 1
+      }
+     },
+     "espn-corinthians_internacional": {
+      "first": {
+       "goalsAway": 1,
+       "goalsHome": 1
+      },
+      "second": {
+       "goalsAway": 0,
+       "goalsHome": 3
+      }
+     }
+    },
+    "qualified": {
+     "sf-1": "B",
+     "sf-2": "B",
+     "final-1": "B",
+     "espn-remo_santos": "B",
+     "espn-vasco_vitoria": "B",
+     "espn-gremio_mirassol": "A",
+     "espn-fluminense_vasco": "B",
+     "espn-palmeiras_santos": "A",
+     "espn-fortaleza_palmeiras": "A",
+     "espn-athletico-pr_vitoria": "B",
+     "espn-atletico-mg_cruzeiro": "A",
+     "espn-chapecoense_cruzeiro": "B",
+     "espn-gremio_internacional": "B",
+     "espn-atletico-mg_juventude": "A",
+     "espn-corinthians_internacional": "B"
+    }
+   }
+  },
+  {
+   "id": "e06",
+   "entryName": "Entrada 06",
+   "picks": {
+    "matches": {
+     "sf-1": {
+      "first": {
+       "goalsAway": 1,
+       "goalsHome": 1
+      },
+      "second": {
+       "goalsAway": 0,
+       "goalsHome": 2
+      }
+     },
+     "sf-2": {
+      "first": {
+       "goalsAway": 1,
+       "goalsHome": 1
+      },
+      "second": {
+       "goalsAway": 0,
+       "goalsHome": 2
+      }
+     },
+     "final-1": {
+      "single": {
+       "goalsAway": 2,
+       "goalsHome": 1
+      }
+     },
+     "espn-remo_santos": {
+      "first": {
+       "goalsAway": 0,
+       "goalsHome": 1
+      },
+      "second": {
+       "goalsAway": 1,
+       "goalsHome": 2
+      }
+     },
+     "espn-vasco_vitoria": {
+      "first": {
+       "goalsAway": 0,
+       "goalsHome": 1
+      },
+      "second": {
+       "goalsAway": 1,
+       "goalsHome": 2
+      }
+     },
+     "espn-gremio_mirassol": {
+      "first": {
+       "goalsAway": 0,
+       "goalsHome": 2
+      },
+      "second": {
+       "goalsAway": 1,
+       "goalsHome": 1
+      }
+     },
+     "espn-fluminense_vasco": {
+      "first": {
+       "goalsAway": 1,
+       "goalsHome": 0
+      },
+      "second": {
+       "goalsAway": 1,
+       "goalsHome": 3
+      }
+     },
+     "espn-palmeiras_santos": {
+      "first": {
+       "goalsAway": 1,
+       "goalsHome": 2
+      },
+      "second": {
+       "goalsAway": 2,
+       "goalsHome": 1
+      }
+     },
+     "espn-fortaleza_palmeiras": {
+      "first": {
+       "goalsAway": 0,
+       "goalsHome": 3
+      },
+      "second": {
+       "goalsAway": 2,
+       "goalsHome": 1
+      }
+     },
+     "espn-athletico-pr_vitoria": {
+      "first": {
+       "goalsAway": 0,
+       "goalsHome": 2
+      },
+      "second": {
+       "goalsAway": 1,
+       "goalsHome": 1
+      }
+     },
+     "espn-atletico-mg_cruzeiro": {
+      "first": {
+       "goalsAway": 1,
+       "goalsHome": 2
+      },
+      "second": {
+       "goalsAway": 1,
+       "goalsHome": 1
+      }
+     },
+     "espn-chapecoense_cruzeiro": {
+      "first": {
+       "goalsAway": 2,
+       "goalsHome": 0
+      },
+      "second": {
+       "goalsAway": 0,
+       "goalsHome": 2
+      }
+     },
+     "espn-gremio_internacional": {
+      "first": {
+       "goalsAway": 0,
+       "goalsHome": 1
+      },
+      "second": {
+       "goalsAway": 1,
+       "goalsHome": 1
+      }
+     },
+     "espn-atletico-mg_juventude": {
+      "first": {
+       "goalsAway": 1,
+       "goalsHome": 2
+      },
+      "second": {
+       "goalsAway": 0,
+       "goalsHome": 1
+      }
+     },
+     "espn-corinthians_internacional": {
+      "first": {
+       "goalsAway": 1,
+       "goalsHome": 1
+      },
+      "second": {
+       "goalsAway": 0,
+       "goalsHome": 2
+      }
+     }
+    },
+    "qualified": {
+     "sf-1": "B",
+     "sf-2": "B",
+     "final-1": "B",
+     "espn-remo_santos": "A",
+     "espn-vasco_vitoria": "B",
+     "espn-gremio_mirassol": "A",
+     "espn-fluminense_vasco": "B",
+     "espn-palmeiras_santos": "A",
+     "espn-fortaleza_palmeiras": "A",
+     "espn-athletico-pr_vitoria": "A",
+     "espn-atletico-mg_cruzeiro": "A",
+     "espn-chapecoense_cruzeiro": "B",
+     "espn-gremio_internacional": "A",
+     "espn-atletico-mg_juventude": "A",
+     "espn-corinthians_internacional": "B"
+    }
+   }
+  },
+  {
+   "id": "e07",
+   "entryName": "Entrada 07",
+   "picks": {
+    "matches": {
+     "sf-1": {
+      "first": {
+       "goalsAway": 2,
+       "goalsHome": 1
+      },
+      "second": {
+       "goalsAway": 0,
+       "goalsHome": 2
+      }
+     },
+     "sf-2": {
+      "first": {
+       "goalsAway": 1,
+       "goalsHome": 0
+      },
+      "second": {
+       "goalsAway": 0,
+       "goalsHome": 2
+      }
+     },
+     "final-1": {
+      "single": {
+       "goalsAway": 1,
+       "goalsHome": 1
+      }
+     },
+     "espn-remo_santos": {
+      "first": {
+       "goalsAway": 1,
+       "goalsHome": 2
+      },
+      "second": {
+       "goalsAway": 1,
+       "goalsHome": 1
+      }
+     },
+     "espn-vasco_vitoria": {
+      "first": {
+       "goalsAway": 1,
+       "goalsHome": 1
+      },
+      "second": {
+       "goalsAway": 1,
+       "goalsHome": 1
+      }
+     },
+     "espn-gremio_mirassol": {
+      "first": {
+       "goalsAway": 1,
+       "goalsHome": 1
+      },
+      "second": {
+       "goalsAway": 0,
+       "goalsHome": 2
+      }
+     },
+     "espn-fluminense_vasco": {
+      "first": {
+       "goalsAway": 2,
+       "goalsHome": 2
+      },
+      "second": {
+       "goalsAway": 1,
+       "goalsHome": 2
+      }
+     },
+     "espn-palmeiras_santos": {
+      "first": {
+       "goalsAway": 0,
+       "goalsHome": 2
+      },
+      "second": {
+       "goalsAway": 1,
+       "goalsHome": 0
+      }
+     },
+     "espn-fortaleza_palmeiras": {
+      "first": {
+       "goalsAway": 0,
+       "goalsHome": 3
+      },
+      "second": {
+       "goalsAway": 2,
+       "goalsHome": 0
+      }
+     },
+     "espn-athletico-pr_vitoria": {
+      "first": {
+       "goalsAway": 0,
+       "goalsHome": 2
+      },
+      "second": {
+       "goalsAway": 0,
+       "goalsHome": 1
+      }
+     },
+     "espn-atletico-mg_cruzeiro": {
+      "first": {
+       "goalsAway": 0,
+       "goalsHome": 2
+      },
+      "second": {
+       "goalsAway": 1,
+       "goalsHome": 1
+      }
+     },
+     "espn-chapecoense_cruzeiro": {
+      "first": {
+       "goalsAway": 2,
+       "goalsHome": 0
+      },
+      "second": {
+       "goalsAway": 1,
+       "goalsHome": 3
+      }
+     },
+     "espn-gremio_internacional": {
+      "first": {
+       "goalsAway": 0,
+       "goalsHome": 2
+      },
+      "second": {
+       "goalsAway": 1,
+       "goalsHome": 2
+      }
+     },
+     "espn-atletico-mg_juventude": {
+      "first": {
+       "goalsAway": 0,
+       "goalsHome": 2
+      },
+      "second": {
+       "goalsAway": 1,
+       "goalsHome": 1
+      }
+     },
+     "espn-corinthians_internacional": {
+      "first": {
+       "goalsAway": 0,
+       "goalsHome": 1
+      },
+      "second": {
+       "goalsAway": 1,
+       "goalsHome": 1
+      }
+     }
+    },
+    "qualified": {
+     "sf-1": "B",
+     "sf-2": "B",
+     "final-1": "B",
+     "espn-remo_santos": "A",
+     "espn-vasco_vitoria": "B",
+     "espn-gremio_mirassol": "B",
+     "espn-fluminense_vasco": "B",
+     "espn-palmeiras_santos": "A",
+     "espn-fortaleza_palmeiras": "A",
+     "espn-athletico-pr_vitoria": "A",
+     "espn-atletico-mg_cruzeiro": "A",
+     "espn-chapecoense_cruzeiro": "B",
+     "espn-gremio_internacional": "A",
+     "espn-atletico-mg_juventude": "A",
+     "espn-corinthians_internacional": "A"
+    }
+   }
+  },
+  {
+   "id": "e08",
+   "entryName": "Entrada 08",
+   "picks": {
+    "matches": {
+     "sf-1": {
+      "first": {
+       "goalsAway": 2,
+       "goalsHome": 1
+      },
+      "second": {
+       "goalsAway": 0,
+       "goalsHome": 2
+      }
+     },
+     "sf-2": {
+      "first": {
+       "goalsAway": 1,
+       "goalsHome": 1
+      },
+      "second": {
+       "goalsAway": 0,
+       "goalsHome": 2
+      }
+     },
+     "final-1": {
+      "single": {
+       "goalsAway": 2,
+       "goalsHome": 1
+      }
+     },
+     "espn-remo_santos": {
+      "first": {
+       "goalsAway": 1,
+       "goalsHome": 1
+      },
+      "second": {
+       "goalsAway": 0,
+       "goalsHome": 1
+      }
+     },
+     "espn-vasco_vitoria": {
+      "first": {
+       "goalsAway": 1,
+       "goalsHome": 2
+      },
+      "second": {
+       "goalsAway": 1,
+       "goalsHome": 2
+      }
+     },
+     "espn-gremio_mirassol": {
+      "first": {
+       "goalsAway": 1,
+       "goalsHome": 1
+      },
+      "second": {
+       "goalsAway": 0,
+       "goalsHome": 1
+      }
+     },
+     "espn-fluminense_vasco": {
+      "first": {
+       "goalsAway": 1,
+       "goalsHome": 1
+      },
+      "second": {
+       "goalsAway": 0,
+       "goalsHome": 2
+      }
+     },
+     "espn-palmeiras_santos": {
+      "first": {
+       "goalsAway": 0,
+       "goalsHome": 3
+      },
+      "second": {
+       "goalsAway": 2,
+       "goalsHome": 0
+      }
+     },
+     "espn-fortaleza_palmeiras": {
+      "first": {
+       "goalsAway": 1,
+       "goalsHome": 3
+      },
+      "second": {
+       "goalsAway": 2,
+       "goalsHome": 1
+      }
+     },
+     "espn-athletico-pr_vitoria": {
+      "first": {
+       "goalsAway": 0,
+       "goalsHome": 2
+      },
+      "second": {
+       "goalsAway": 1,
+       "goalsHome": 1
+      }
+     },
+     "espn-atletico-mg_cruzeiro": {
+      "first": {
+       "goalsAway": 0,
+       "goalsHome": 2
+      },
+      "second": {
+       "goalsAway": 1,
+       "goalsHome": 1
+      }
+     },
+     "espn-chapecoense_cruzeiro": {
+      "first": {
+       "goalsAway": 1,
+       "goalsHome": 0
+      },
+      "second": {
+       "goalsAway": 0,
+       "goalsHome": 1
+      }
+     },
+     "espn-gremio_internacional": {
+      "first": {
+       "goalsAway": 1,
+       "goalsHome": 0
+      },
+      "second": {
+       "goalsAway": 0,
+       "goalsHome": 0
+      }
+     },
+     "espn-atletico-mg_juventude": {
+      "first": {
+       "goalsAway": 1,
+       "goalsHome": 2
+      },
+      "second": {
+       "goalsAway": 0,
+       "goalsHome": 1
+      }
+     },
+     "espn-corinthians_internacional": {
+      "first": {
+       "goalsAway": 1,
+       "goalsHome": 0
+      },
+      "second": {
+       "goalsAway": 0,
+       "goalsHome": 1
+      }
+     }
+    },
+    "qualified": {
+     "sf-1": "B",
+     "sf-2": "B",
+     "final-1": "B",
+     "espn-remo_santos": "B",
+     "espn-vasco_vitoria": "A",
+     "espn-gremio_mirassol": "B",
+     "espn-fluminense_vasco": "B",
+     "espn-palmeiras_santos": "A",
+     "espn-fortaleza_palmeiras": "A",
+     "espn-athletico-pr_vitoria": "A",
+     "espn-atletico-mg_cruzeiro": "A",
+     "espn-chapecoense_cruzeiro": "B",
+     "espn-gremio_internacional": "B",
+     "espn-atletico-mg_juventude": "A",
+     "espn-corinthians_internacional": "B"
+    }
+   }
+  },
+  {
+   "id": "e09",
+   "entryName": "Entrada 09",
+   "picks": {
+    "matches": {
+     "sf-1": {
+      "first": {
+       "goalsAway": 0,
+       "goalsHome": 1
+      },
+      "second": {
+       "goalsAway": 0,
+       "goalsHome": 0
+      }
+     },
+     "sf-2": {
+      "first": {
+       "goalsAway": 2,
+       "goalsHome": 0
+      },
+      "second": {
+       "goalsAway": 0,
+       "goalsHome": 1
+      }
+     },
+     "final-1": {
+      "single": {
+       "goalsAway": 2,
+       "goalsHome": 2
+      }
+     },
+     "espn-remo_santos": {
+      "first": {
+       "goalsAway": 0,
+       "goalsHome": 2
+      },
+      "second": {
+       "goalsAway": 2,
+       "goalsHome": 1
+      }
+     },
+     "espn-vasco_vitoria": {
+      "first": {
+       "goalsAway": 2,
+       "goalsHome": 1
+      },
+      "second": {
+       "goalsAway": 0,
+       "goalsHome": 1
+      }
+     },
+     "espn-gremio_mirassol": {
+      "first": {
+       "goalsAway": 1,
+       "goalsHome": 0
+      },
+      "second": {
+       "goalsAway": 1,
+       "goalsHome": 1
+      }
+     },
+     "espn-fluminense_vasco": {
+      "first": {
+       "goalsAway": 1,
+       "goalsHome": 0
+      },
+      "second": {
+       "goalsAway": 0,
+       "goalsHome": 1
+      }
+     },
+     "espn-palmeiras_santos": {
+      "first": {
+       "goalsAway": 1,
+       "goalsHome": 2
+      },
+      "second": {
+       "goalsAway": 1,
+       "goalsHome": 1
+      }
+     },
+     "espn-fortaleza_palmeiras": {
+      "first": {
+       "goalsAway": 1,
+       "goalsHome": 3
+      },
+      "second": {
+       "goalsAway": 1,
+       "goalsHome": 0
+      }
+     },
+     "espn-athletico-pr_vitoria": {
+      "first": {
+       "goalsAway": 0,
+       "goalsHome": 1
+      },
+      "second": {
+       "goalsAway": 0,
+       "goalsHome": 1
+      }
+     },
+     "espn-atletico-mg_cruzeiro": {
+      "first": {
+       "goalsAway": 1,
+       "goalsHome": 1
+      },
+      "second": {
+       "goalsAway": 1,
+       "goalsHome": 0
+      }
+     },
+     "espn-chapecoense_cruzeiro": {
+      "first": {
+       "goalsAway": 2,
+       "goalsHome": 0
+      },
+      "second": {
+       "goalsAway": 0,
+       "goalsHome": 1
+      }
+     },
+     "espn-gremio_internacional": {
+      "first": {
+       "goalsAway": 1,
+       "goalsHome": 2
+      },
+      "second": {
+       "goalsAway": 1,
+       "goalsHome": 0
+      }
+     },
+     "espn-atletico-mg_juventude": {
+      "first": {
+       "goalsAway": 1,
+       "goalsHome": 2
+      },
+      "second": {
+       "goalsAway": 0,
+       "goalsHome": 0
+      }
+     },
+     "espn-corinthians_internacional": {
+      "first": {
+       "goalsAway": 1,
+       "goalsHome": 2
+      },
+      "second": {
+       "goalsAway": 0,
+       "goalsHome": 0
+      }
+     }
+    },
+    "qualified": {
+     "sf-1": "A",
+     "sf-2": "B",
+     "final-1": "B",
+     "espn-remo_santos": "A",
+     "espn-vasco_vitoria": "B",
+     "espn-gremio_mirassol": "B",
+     "espn-fluminense_vasco": "B",
+     "espn-palmeiras_santos": "A",
+     "espn-fortaleza_palmeiras": "A",
+     "espn-athletico-pr_vitoria": "A",
+     "espn-atletico-mg_cruzeiro": "A",
+     "espn-chapecoense_cruzeiro": "B",
+     "espn-gremio_internacional": "A",
+     "espn-atletico-mg_juventude": "A",
+     "espn-corinthians_internacional": "A"
+    }
+   }
+  },
+  {
+   "id": "e10",
+   "entryName": "Entrada 10",
+   "picks": {
+    "matches": {
+     "sf-1": {
+      "first": {
+       "goalsAway": 0,
+       "goalsHome": 1
+      },
+      "second": {
+       "goalsAway": 1,
+       "goalsHome": 1
+      }
+     },
+     "sf-2": {
+      "first": {
+       "goalsAway": 0,
+       "goalsHome": 1
+      },
+      "second": {
+       "goalsAway": 1,
+       "goalsHome": 1
+      }
+     },
+     "final-1": {
+      "single": {
+       "goalsAway": 0,
+       "goalsHome": 2
+      }
+     },
+     "espn-remo_santos": {
+      "first": {
+       "goalsAway": 2,
+       "goalsHome": 1
+      },
+      "second": {
+       "goalsAway": 0,
+       "goalsHome": 1
+      }
+     },
+     "espn-vasco_vitoria": {
+      "first": {
+       "goalsAway": 0,
+       "goalsHome": 2
+      },
+      "second": {
+       "goalsAway": 3,
+       "goalsHome": 1
+      }
+     },
+     "espn-gremio_mirassol": {
+      "first": {
+       "goalsAway": 2,
+       "goalsHome": 1
+      },
+      "second": {
+       "goalsAway": 0,
+       "goalsHome": 1
+      }
+     },
+     "espn-fluminense_vasco": {
+      "first": {
+       "goalsAway": 0,
+       "goalsHome": 1
+      },
+      "second": {
+       "goalsAway": 2,
+       "goalsHome": 0
+      }
+     },
+     "espn-palmeiras_santos": {
+      "first": {
+       "goalsAway": 0,
+       "goalsHome": 2
+      },
+      "second": {
+       "goalsAway": 1,
+       "goalsHome": 1
+      }
+     },
+     "espn-fortaleza_palmeiras": {
+      "first": {
+       "goalsAway": 1,
+       "goalsHome": 3
+      },
+      "second": {
+       "goalsAway": 2,
+       "goalsHome": 0
+      }
+     },
+     "espn-athletico-pr_vitoria": {
+      "first": {
+       "goalsAway": 0,
+       "goalsHome": 1
+      },
+      "second": {
+       "goalsAway": 2,
+       "goalsHome": 0
+      }
+     },
+     "espn-atletico-mg_cruzeiro": {
+      "first": {
+       "goalsAway": 0,
+       "goalsHome": 1
+      },
+      "second": {
+       "goalsAway": 2,
+       "goalsHome": 1
+      }
+     },
+     "espn-chapecoense_cruzeiro": {
+      "first": {
+       "goalsAway": 2,
+       "goalsHome": 1
+      },
+      "second": {
+       "goalsAway": 1,
+       "goalsHome": 2
+      }
+     },
+     "espn-gremio_internacional": {
+      "first": {
+       "goalsAway": 1,
+       "goalsHome": 1
+      },
+      "second": {
+       "goalsAway": 2,
+       "goalsHome": 0
+      }
+     },
+     "espn-atletico-mg_juventude": {
+      "first": {
+       "goalsAway": 0,
+       "goalsHome": 2
+      },
+      "second": {
+       "goalsAway": 2,
+       "goalsHome": 1
+      }
+     },
+     "espn-corinthians_internacional": {
+      "first": {
+       "goalsAway": 2,
+       "goalsHome": 1
+      },
+      "second": {
+       "goalsAway": 2,
+       "goalsHome": 2
+      }
+     }
+    },
+    "qualified": {
+     "sf-1": "A",
+     "sf-2": "A",
+     "final-1": "A",
+     "espn-remo_santos": "B",
+     "espn-vasco_vitoria": "A",
+     "espn-gremio_mirassol": "B",
+     "espn-fluminense_vasco": "A",
+     "espn-palmeiras_santos": "A",
+     "espn-fortaleza_palmeiras": "A",
+     "espn-athletico-pr_vitoria": "A",
+     "espn-atletico-mg_cruzeiro": "A",
+     "espn-chapecoense_cruzeiro": "B",
+     "espn-gremio_internacional": "A",
+     "espn-atletico-mg_juventude": "A",
+     "espn-corinthians_internacional": "B"
+    }
+   }
+  },
+  {
+   "id": "e11",
+   "entryName": "Entrada 11",
+   "picks": {
+    "matches": {
+     "sf-1": {
+      "first": {
+       "goalsAway": 1,
+       "goalsHome": 2
+      },
+      "second": {
+       "goalsAway": 0,
+       "goalsHome": 1
+      }
+     },
+     "sf-2": {
+      "first": {
+       "goalsAway": 2,
+       "goalsHome": 0
+      },
+      "second": {
+       "goalsAway": 1,
+       "goalsHome": 2
+      }
+     },
+     "final-1": {
+      "single": {
+       "goalsAway": 1,
+       "goalsHome": 2
+      }
+     },
+     "espn-remo_santos": {
+      "first": {
+       "goalsAway": 0,
+       "goalsHome": 4
+      },
+      "second": {
+       "goalsAway": 2,
+       "goalsHome": 0
+      }
+     },
+     "espn-vasco_vitoria": {
+      "first": {
+       "goalsAway": 0,
+       "goalsHome": 2
+      },
+      "second": {
+       "goalsAway": 0,
+       "goalsHome": 1
+      }
+     },
+     "espn-gremio_mirassol": {
+      "first": {
+       "goalsAway": 1,
+       "goalsHome": 1
+      },
+      "second": {
+       "goalsAway": 0,
+       "goalsHome": 1
+      }
+     },
+     "espn-fluminense_vasco": {
+      "first": {
+       "goalsAway": 2,
+       "goalsHome": 2
+      },
+      "second": {
+       "goalsAway": 0,
+       "goalsHome": 1
+      }
+     },
+     "espn-palmeiras_santos": {
+      "first": {
+       "goalsAway": 0,
+       "goalsHome": 3
+      },
+      "second": {
+       "goalsAway": 1,
+       "goalsHome": 1
+      }
+     },
+     "espn-fortaleza_palmeiras": {
+      "first": {
+       "goalsAway": 1,
+       "goalsHome": 2
+      },
+      "second": {
+       "goalsAway": 1,
+       "goalsHome": 0
+      }
+     },
+     "espn-athletico-pr_vitoria": {
+      "first": {
+       "goalsAway": 1,
+       "goalsHome": 2
+      },
+      "second": {
+       "goalsAway": 1,
+       "goalsHome": 0
+      }
+     },
+     "espn-atletico-mg_cruzeiro": {
+      "first": {
+       "goalsAway": 1,
+       "goalsHome": 2
+      },
+      "second": {
+       "goalsAway": 1,
+       "goalsHome": 1
+      }
+     },
+     "espn-chapecoense_cruzeiro": {
+      "first": {
+       "goalsAway": 1,
+       "goalsHome": 0
+      },
+      "second": {
+       "goalsAway": 0,
+       "goalsHome": 2
+      }
+     },
+     "espn-gremio_internacional": {
+      "first": {
+       "goalsAway": 0,
+       "goalsHome": 0
+      },
+      "second": {
+       "goalsAway": 0,
+       "goalsHome": 2
+      }
+     },
+     "espn-atletico-mg_juventude": {
+      "first": {
+       "goalsAway": 0,
+       "goalsHome": 2
+      },
+      "second": {
+       "goalsAway": 1,
+       "goalsHome": 1
+      }
+     },
+     "espn-corinthians_internacional": {
+      "first": {
+       "goalsAway": 0,
+       "goalsHome": 0
+      },
+      "second": {
+       "goalsAway": 0,
+       "goalsHome": 1
+      }
+     }
+    },
+    "qualified": {
+     "sf-1": "A",
+     "sf-2": "B",
+     "final-1": "A",
+     "espn-remo_santos": "A",
+     "espn-vasco_vitoria": "A",
+     "espn-gremio_mirassol": "B",
+     "espn-fluminense_vasco": "B",
+     "espn-palmeiras_santos": "A",
+     "espn-fortaleza_palmeiras": "A",
+     "espn-athletico-pr_vitoria": "A",
+     "espn-atletico-mg_cruzeiro": "A",
+     "espn-chapecoense_cruzeiro": "B",
+     "espn-gremio_internacional": "B",
+     "espn-atletico-mg_juventude": "A",
+     "espn-corinthians_internacional": "B"
+    }
+   }
+  },
+  {
+   "id": "e12",
+   "entryName": "Entrada 12",
+   "picks": {
+    "matches": {
+     "sf-1": {
+      "first": {
+       "goalsAway": 0,
+       "goalsHome": 0
+      },
+      "second": {
+       "goalsAway": 1,
+       "goalsHome": 0
+      }
+     },
+     "sf-2": {
+      "first": {
+       "goalsAway": 2,
+       "goalsHome": 0
+      },
+      "second": {
+       "goalsAway": 0,
+       "goalsHome": 1
+      }
+     },
+     "final-1": {
+      "single": {
+       "goalsAway": 0,
+       "goalsHome": 1
+      }
+     },
+     "espn-remo_santos": {
+      "first": {
+       "goalsAway": 0,
+       "goalsHome": 1
+      },
+      "second": {
+       "goalsAway": 0,
+       "goalsHome": 0
+      }
+     },
+     "espn-vasco_vitoria": {
+      "first": {
+       "goalsAway": 0,
+       "goalsHome": 0
+      },
+      "second": {
+       "goalsAway": 0,
+       "goalsHome": 1
+      }
+     },
+     "espn-gremio_mirassol": {
+      "first": {
+       "goalsAway": 1,
+       "goalsHome": 0
+      },
+      "second": {
+       "goalsAway": 0,
+       "goalsHome": 1
+      }
+     },
+     "espn-fluminense_vasco": {
+      "first": {
+       "goalsAway": 1,
+       "goalsHome": 0
+      },
+      "second": {
+       "goalsAway": 1,
+       "goalsHome": 2
+      }
+     },
+     "espn-palmeiras_santos": {
+      "first": {
+       "goalsAway": 0,
+       "goalsHome": 3
+      },
+      "second": {
+       "goalsAway": 2,
+       "goalsHome": 1
+      }
+     },
+     "espn-fortaleza_palmeiras": {
+      "first": {
+       "goalsAway": 0,
+       "goalsHome": 3
+      },
+      "second": {
+       "goalsAway": 1,
+       "goalsHome": 0
+      }
+     },
+     "espn-athletico-pr_vitoria": {
+      "first": {
+       "goalsAway": 0,
+       "goalsHome": 2
+      },
+      "second": {
+       "goalsAway": 1,
+       "goalsHome": 0
+      }
+     },
+     "espn-atletico-mg_cruzeiro": {
+      "first": {
+       "goalsAway": 0,
+       "goalsHome": 2
+      },
+      "second": {
+       "goalsAway": 0,
+       "goalsHome": 1
+      }
+     },
+     "espn-chapecoense_cruzeiro": {
+      "first": {
+       "goalsAway": 1,
+       "goalsHome": 0
+      },
+      "second": {
+       "goalsAway": 1,
+       "goalsHome": 2
+      }
+     },
+     "espn-gremio_internacional": {
+      "first": {
+       "goalsAway": 0,
+       "goalsHome": 1
+      },
+      "second": {
+       "goalsAway": 2,
+       "goalsHome": 1
+      }
+     },
+     "espn-atletico-mg_juventude": {
+      "first": {
+       "goalsAway": 0,
+       "goalsHome": 2
+      },
+      "second": {
+       "goalsAway": 1,
+       "goalsHome": 0
+      }
+     },
+     "espn-corinthians_internacional": {
+      "first": {
+       "goalsAway": 0,
+       "goalsHome": 0
+      },
+      "second": {
+       "goalsAway": 1,
+       "goalsHome": 0
+      }
+     }
+    },
+    "qualified": {
+     "sf-1": "A",
+     "sf-2": "B",
+     "final-1": "A",
+     "espn-remo_santos": "A",
+     "espn-vasco_vitoria": "B",
+     "espn-gremio_mirassol": "B",
+     "espn-fluminense_vasco": "B",
+     "espn-palmeiras_santos": "A",
+     "espn-fortaleza_palmeiras": "A",
+     "espn-athletico-pr_vitoria": "A",
+     "espn-atletico-mg_cruzeiro": "A",
+     "espn-chapecoense_cruzeiro": "B",
+     "espn-gremio_internacional": "A",
+     "espn-atletico-mg_juventude": "A",
+     "espn-corinthians_internacional": "A"
+    }
+   }
+  }
+ ],
+ "deletedIds": [],
+ "phases": {
+  "fase-1": {
+   "ties": {}
+  },
+  "fase-2": {
+   "ties": {}
+  },
+  "fase-3": {
+   "ties": {}
+  },
+  "fase-4": {
+   "ties": {}
+  },
+  "fase-5": {
+   "ties": {
+    "espn-bahia_remo": {
+     "teamA": "Bahia",
+     "teamB": "Remo",
+     "qualifiedTeamId": "B",
+     "matches": {
+      "first": {
+       "homeTeam": "Bahia",
+       "awayTeam": "Remo",
+       "kickoff": null,
+       "status": "FINAL",
+       "goalsHome": 1,
+       "goalsAway": 3
+      },
+      "second": {
+       "homeTeam": "Remo",
+       "awayTeam": "Bahia",
+       "kickoff": null,
+       "status": "FINAL",
+       "goalsHome": 2,
+       "goalsAway": 1
+      }
+     }
+    },
+    "espn-cruzeiro_goias": {
+     "teamA": "Goiás",
+     "teamB": "Cruzeiro",
+     "qualifiedTeamId": "B",
+     "matches": {
+      "first": {
+       "homeTeam": "Goiás",
+       "awayTeam": "Cruzeiro",
+       "kickoff": null,
+       "status": "FINAL",
+       "goalsHome": 2,
+       "goalsAway": 2
+      },
+      "second": {
+       "homeTeam": "Cruzeiro",
+       "awayTeam": "Goiás",
+       "kickoff": null,
+       "status": "FINAL",
+       "goalsHome": 1,
+       "goalsAway": 0
+      }
+     }
+    },
+    "espn-paysandu_vasco": {
+     "teamA": "Paysandu",
+     "teamB": "Vasco",
+     "qualifiedTeamId": "B",
+     "matches": {
+      "first": {
+       "homeTeam": "Paysandu",
+       "awayTeam": "Vasco",
+       "kickoff": null,
+       "status": "FINAL",
+       "goalsHome": 0,
+       "goalsAway": 2
+      },
+      "second": {
+       "homeTeam": "Vasco",
+       "awayTeam": "Paysandu",
+       "kickoff": null,
+       "status": "FINAL",
+       "goalsHome": 2,
+       "goalsAway": 2
+      }
+     }
+    },
+    "espn-coritiba_santos": {
+     "teamA": "Santos",
+     "teamB": "Coritiba",
+     "qualifiedTeamId": "A",
+     "matches": {
+      "first": {
+       "homeTeam": "Santos",
+       "awayTeam": "Coritiba",
+       "kickoff": null,
+       "status": "FINAL",
+       "goalsHome": 0,
+       "goalsAway": 0
+      },
+      "second": {
+       "homeTeam": "Coritiba",
+       "awayTeam": "Santos",
+       "kickoff": null,
+       "status": "FINAL",
+       "goalsHome": 0,
+       "goalsAway": 2
+      }
+     }
+    },
+    "espn-crb-al_fortaleza": {
+     "teamA": "Fortaleza",
+     "teamB": "CRB-AL",
+     "qualifiedTeamId": "A",
+     "matches": {
+      "first": {
+       "homeTeam": "Fortaleza",
+       "awayTeam": "CRB-AL",
+       "kickoff": null,
+       "status": "FINAL",
+       "goalsHome": 2,
+       "goalsAway": 1
+      },
+      "second": {
+       "homeTeam": "CRB-AL",
+       "awayTeam": "Fortaleza",
+       "kickoff": null,
+       "status": "FINAL",
+       "goalsHome": 0,
+       "goalsAway": 0
+      }
+     }
+    },
+    "espn-flamengo_vitoria": {
+     "teamA": "Flamengo",
+     "teamB": "Vitória",
+     "qualifiedTeamId": "B",
+     "matches": {
+      "first": {
+       "homeTeam": "Flamengo",
+       "awayTeam": "Vitória",
+       "kickoff": null,
+       "status": "FINAL",
+       "goalsHome": 2,
+       "goalsAway": 1
+      },
+      "second": {
+       "homeTeam": "Vitória",
+       "awayTeam": "Flamengo",
+       "kickoff": null,
+       "status": "FINAL",
+       "goalsHome": 2,
+       "goalsAway": 0
+      }
+     }
+    },
+    "espn-atletico-mg_ceara": {
+     "teamA": "Atlético-MG",
+     "teamB": "Ceará",
+     "qualifiedTeamId": "A",
+     "matches": {
+      "first": {
+       "homeTeam": "Atlético-MG",
+       "awayTeam": "Ceará",
+       "kickoff": null,
+       "status": "FINAL",
+       "goalsHome": 2,
+       "goalsAway": 1
+      },
+      "second": {
+       "homeTeam": "Ceará",
+       "awayTeam": "Atlético-MG",
+       "kickoff": null,
+       "status": "FINAL",
+       "goalsHome": 2,
+       "goalsAway": 1
+      }
+     }
+    },
+    "espn-bragantino_mirassol": {
+     "teamA": "Bragantino",
+     "teamB": "Mirassol",
+     "qualifiedTeamId": "B",
+     "matches": {
+      "first": {
+       "homeTeam": "Bragantino",
+       "awayTeam": "Mirassol",
+       "kickoff": null,
+       "status": "FINAL",
+       "goalsHome": 1,
+       "goalsAway": 1
+      },
+      "second": {
+       "homeTeam": "Mirassol",
+       "awayTeam": "Bragantino",
+       "kickoff": null,
+       "status": "FINAL",
+       "goalsHome": 2,
+       "goalsAway": 1
+      }
+     }
+    },
+    "espn-confianca-se_gremio": {
+     "teamA": "Grêmio",
+     "teamB": "Confiança-SE",
+     "qualifiedTeamId": "A",
+     "matches": {
+      "first": {
+       "homeTeam": "Grêmio",
+       "awayTeam": "Confiança-SE",
+       "kickoff": null,
+       "status": "FINAL",
+       "goalsHome": 2,
+       "goalsAway": 0
+      },
+      "second": {
+       "homeTeam": "Confiança-SE",
+       "awayTeam": "Grêmio",
+       "kickoff": null,
+       "status": "FINAL",
+       "goalsHome": 0,
+       "goalsAway": 3
+      }
+     }
+    },
+    "espn-juventude_sao-paulo": {
+     "teamA": "São Paulo",
+     "teamB": "Juventude",
+     "qualifiedTeamId": "B",
+     "matches": {
+      "first": {
+       "homeTeam": "São Paulo",
+       "awayTeam": "Juventude",
+       "kickoff": null,
+       "status": "FINAL",
+       "goalsHome": 1,
+       "goalsAway": 0
+      },
+      "second": {
+       "homeTeam": "Juventude",
+       "awayTeam": "São Paulo",
+       "kickoff": null,
+       "status": "FINAL",
+       "goalsHome": 3,
+       "goalsAway": 1
+      }
+     }
+    },
+    "espn-barra-sc_corinthians": {
+     "teamA": "Barra-SC",
+     "teamB": "Corinthians",
+     "qualifiedTeamId": "B",
+     "matches": {
+      "first": {
+       "homeTeam": "Barra-SC",
+       "awayTeam": "Corinthians",
+       "kickoff": null,
+       "status": "FINAL",
+       "goalsHome": 0,
+       "goalsAway": 1
+      },
+      "second": {
+       "homeTeam": "Corinthians",
+       "awayTeam": "Barra-SC",
+       "kickoff": null,
+       "status": "FINAL",
+       "goalsHome": 1,
+       "goalsAway": 0
+      }
+     }
+    },
+    "espn-botafogo_chapecoense": {
+     "teamA": "Botafogo",
+     "teamB": "Chapecoense",
+     "qualifiedTeamId": "B",
+     "matches": {
+      "first": {
+       "homeTeam": "Botafogo",
+       "awayTeam": "Chapecoense",
+       "kickoff": null,
+       "status": "FINAL",
+       "goalsHome": 1,
+       "goalsAway": 0
+      },
+      "second": {
+       "homeTeam": "Chapecoense",
+       "awayTeam": "Botafogo",
+       "kickoff": null,
+       "status": "FINAL",
+       "goalsHome": 2,
+       "goalsAway": 0
+      }
+     }
+    },
+    "espn-fluminense_operario-pr": {
+     "teamA": "Operário-PR",
+     "teamB": "Fluminense",
+     "qualifiedTeamId": "B",
+     "matches": {
+      "first": {
+       "homeTeam": "Operário-PR",
+       "awayTeam": "Fluminense",
+       "kickoff": null,
+       "status": "FINAL",
+       "goalsHome": 0,
+       "goalsAway": 0
+      },
+      "second": {
+       "homeTeam": "Fluminense",
+       "awayTeam": "Operário-PR",
+       "kickoff": null,
+       "status": "FINAL",
+       "goalsHome": 2,
+       "goalsAway": 1
+      }
+     }
+    },
+    "espn-jacuipense-ba_palmeiras": {
+     "teamA": "Palmeiras",
+     "teamB": "Jacuipense-BA",
+     "qualifiedTeamId": "A",
+     "matches": {
+      "first": {
+       "homeTeam": "Palmeiras",
+       "awayTeam": "Jacuipense-BA",
+       "kickoff": null,
+       "status": "FINAL",
+       "goalsHome": 3,
+       "goalsAway": 0
+      },
+      "second": {
+       "homeTeam": "Jacuipense-BA",
+       "awayTeam": "Palmeiras",
+       "kickoff": null,
+       "status": "FINAL",
+       "goalsHome": 1,
+       "goalsAway": 4
+      }
+     }
+    },
+    "espn-athletico-pr_atletico-go": {
+     "teamA": "Athletico-PR",
+     "teamB": "Atlético-GO",
+     "qualifiedTeamId": "A",
+     "matches": {
+      "first": {
+       "homeTeam": "Athletico-PR",
+       "awayTeam": "Atlético-GO",
+       "kickoff": null,
+       "status": "FINAL",
+       "goalsHome": 0,
+       "goalsAway": 0
+      },
+      "second": {
+       "homeTeam": "Atlético-GO",
+       "awayTeam": "Athletico-PR",
+       "kickoff": null,
+       "status": "FINAL",
+       "goalsHome": 0,
+       "goalsAway": 0
+      }
+     }
+    },
+    "espn-athletic-mg_internacional": {
+     "teamA": "Athletic-MG",
+     "teamB": "Internacional",
+     "qualifiedTeamId": "B",
+     "matches": {
+      "first": {
+       "homeTeam": "Athletic-MG",
+       "awayTeam": "Internacional",
+       "kickoff": null,
+       "status": "FINAL",
+       "goalsHome": 1,
+       "goalsAway": 2
+      },
+      "second": {
+       "homeTeam": "Internacional",
+       "awayTeam": "Athletic-MG",
+       "kickoff": null,
+       "status": "FINAL",
+       "goalsHome": 3,
+       "goalsAway": 2
+      }
+     }
+    }
+   }
+  },
+  "oitavas": {
+   "ties": {
+    "espn-remo_santos": {
+     "teamA": "Santos",
+     "teamB": "Remo",
+     "qualifiedTeamId": "A",
+     "matches": {
+      "first": {
+       "homeTeam": "Santos",
+       "awayTeam": "Remo",
+       "kickoff": "2026-08-02T00:00:00+00:00",
+       "status": "FINAL",
+       "goalsHome": 0,
+       "goalsAway": 0
+      },
+      "second": {
+       "homeTeam": "Remo",
+       "awayTeam": "Santos",
+       "kickoff": "2026-08-05T00:30:00+00:00",
+       "status": "FINAL",
+       "goalsHome": 0,
+       "goalsAway": 1
+      }
+     }
+    },
+    "espn-gremio_mirassol": {
+     "teamA": "Mirassol",
+     "teamB": "Grêmio",
+     "qualifiedTeamId": "B",
+     "matches": {
+      "first": {
+       "homeTeam": "Mirassol",
+       "awayTeam": "Grêmio",
+       "kickoff": "2026-08-02T21:00:00+00:00",
+       "status": "FINAL",
+       "goalsHome": 1,
+       "goalsAway": 1
+      },
+      "second": {
+       "homeTeam": "Grêmio",
+       "awayTeam": "Mirassol",
+       "kickoff": "2026-08-05T22:30:00+00:00",
+       "status": "FINAL",
+       "goalsHome": 1,
+       "goalsAway": 0
+      }
+     }
+    },
+    "espn-fluminense_vasco": {
+     "teamA": "Vasco",
+     "teamB": "Fluminense",
+     "qualifiedTeamId": "A",
+     "matches": {
+      "first": {
+       "homeTeam": "Vasco",
+       "awayTeam": "Fluminense",
+       "kickoff": "2026-08-01T20:30:00+00:00",
+       "status": "FINAL",
+       "goalsHome": 0,
+       "goalsAway": 0
+      },
+      "second": {
+       "homeTeam": "Fluminense",
+       "awayTeam": "Vasco",
+       "kickoff": "2026-08-06T00:30:00+00:00",
+       "status": "FINAL",
+       "goalsHome": 1,
+       "goalsAway": 3
+      }
+     }
+    },
+    "espn-fortaleza_palmeiras": {
+     "teamA": "Palmeiras",
+     "teamB": "Fortaleza",
+     "qualifiedTeamId": "A",
+     "matches": {
+      "first": {
+       "homeTeam": "Palmeiras",
+       "awayTeam": "Fortaleza",
+       "kickoff": "2026-08-02T19:00:00+00:00",
+       "status": "FINAL",
+       "goalsHome": 3,
+       "goalsAway": 0
+      },
+      "second": {
+       "homeTeam": "Fortaleza",
+       "awayTeam": "Palmeiras",
+       "kickoff": "2026-08-06T00:30:00+00:00",
+       "status": "FINAL",
+       "goalsHome": 3,
+       "goalsAway": 2
+      }
+     }
+    },
+    "espn-athletico-pr_vitoria": {
+     "teamA": "Athletico-PR",
+     "teamB": "Vitória",
+     "qualifiedTeamId": "B",
+     "matches": {
+      "first": {
+       "homeTeam": "Athletico-PR",
+       "awayTeam": "Vitória",
+       "kickoff": "2026-08-04T00:00:00+00:00",
+       "status": "FINAL",
+       "goalsHome": 2,
+       "goalsAway": 0
+      },
+      "second": {
+       "homeTeam": "Vitória",
+       "awayTeam": "Athletico-PR",
+       "kickoff": "2026-08-06T23:00:00+00:00",
+       "status": "FINAL",
+       "goalsHome": 4,
+       "goalsAway": 0
+      }
+     }
+    },
+    "espn-chapecoense_cruzeiro": {
+     "teamA": "Chapecoense",
+     "teamB": "Cruzeiro",
+     "qualifiedTeamId": "B",
+     "matches": {
+      "first": {
+       "homeTeam": "Chapecoense",
+       "awayTeam": "Cruzeiro",
+       "kickoff": "2026-08-02T21:30:00+00:00",
+       "status": "FINAL",
+       "goalsHome": 0,
+       "goalsAway": 0
+      },
+      "second": {
+       "homeTeam": "Cruzeiro",
+       "awayTeam": "Chapecoense",
+       "kickoff": "2026-08-05T22:00:00+00:00",
+       "status": "FINAL",
+       "goalsHome": 2,
+       "goalsAway": 0
+      }
+     }
+    },
+    "espn-atletico-mg_juventude": {
+     "teamA": "Atlético-MG",
+     "teamB": "Juventude",
+     "qualifiedTeamId": "A",
+     "matches": {
+      "first": {
+       "homeTeam": "Atlético-MG",
+       "awayTeam": "Juventude",
+       "kickoff": "2026-08-01T22:30:00+00:00",
+       "status": "FINAL",
+       "goalsHome": 0,
+       "goalsAway": 0
+      },
+      "second": {
+       "homeTeam": "Juventude",
+       "awayTeam": "Atlético-MG",
+       "kickoff": "2026-08-04T22:30:00+00:00",
+       "status": "FINAL",
+       "goalsHome": 0,
+       "goalsAway": 1
+      }
+     }
+    },
+    "espn-corinthians_internacional": {
+     "teamA": "Internacional",
+     "teamB": "Corinthians",
+     "qualifiedTeamId": "A",
+     "matches": {
+      "first": {
+       "homeTeam": "Internacional",
+       "awayTeam": "Corinthians",
+       "kickoff": "2026-08-02T22:30:00+00:00",
+       "status": "FINAL",
+       "goalsHome": 2,
+       "goalsAway": 0
+      },
+      "second": {
+       "homeTeam": "Corinthians",
+       "awayTeam": "Internacional",
+       "kickoff": "2026-08-06T23:00:00+00:00",
+       "status": "FINAL",
+       "goalsHome": 2,
+       "goalsAway": 1
+      }
+     }
+    }
+   }
+  },
+  "quartas": {
+   "ties": {
+    "espn-vasco_vitoria": {
+     "teamA": "Vasco",
+     "teamB": "Vitória",
+     "qualifiedTeamId": "A",
+     "matches": {
+      "first": {
+       "homeTeam": "Vasco",
+       "awayTeam": "Vitória",
+       "kickoff": "2026-08-27T00:30:00+00:00",
+       "status": "FINAL",
+       "goalsHome": 1,
+       "goalsAway": 0
+      },
+      "second": {
+       "homeTeam": "Vitória",
+       "awayTeam": "Vasco",
+       "kickoff": "2026-09-03T00:30:00+00:00",
+       "status": "FINAL",
+       "goalsHome": 0,
+       "goalsAway": 2
+      }
+     }
+    },
+    "espn-palmeiras_santos": {
+     "teamA": "Palmeiras",
+     "teamB": "Santos",
+     "qualifiedTeamId": "A",
+     "matches": {
+      "first": {
+       "homeTeam": "Palmeiras",
+       "awayTeam": "Santos",
+       "kickoff": "2026-08-27T00:30:00+00:00",
+       "status": "FINAL",
+       "goalsHome": 3,
+       "goalsAway": 0
+      },
+      "second": {
+       "homeTeam": "Santos",
+       "awayTeam": "Palmeiras",
+       "kickoff": "2026-09-03T00:30:00+00:00",
+       "status": "FINAL",
+       "goalsHome": 0,
+       "goalsAway": 0
+      }
+     }
+    },
+    "espn-atletico-mg_cruzeiro": {
+     "teamA": "Cruzeiro",
+     "teamB": "Atlético-MG",
+     "qualifiedTeamId": "B",
+     "matches": {
+      "first": {
+       "homeTeam": "Cruzeiro",
+       "awayTeam": "Atlético-MG",
+       "kickoff": "2026-08-26T00:00:00+00:00",
+       "status": "FINAL",
+       "goalsHome": 1,
+       "goalsAway": 1
+      },
+      "second": {
+       "homeTeam": "Atlético-MG",
+       "awayTeam": "Cruzeiro",
+       "kickoff": "2026-09-02T00:00:00+00:00",
+       "status": "FINAL",
+       "goalsHome": 2,
+       "goalsAway": 1
+      }
+     }
+    },
+    "espn-gremio_internacional": {
+     "teamA": "Internacional",
+     "teamB": "Grêmio",
+     "qualifiedTeamId": "B",
+     "matches": {
+      "first": {
+       "homeTeam": "Internacional",
+       "awayTeam": "Grêmio",
+       "kickoff": "2026-08-27T23:00:00+00:00",
+       "status": "FINAL",
+       "goalsHome": 0,
+       "goalsAway": 0
+      },
+      "second": {
+       "homeTeam": "Grêmio",
+       "awayTeam": "Internacional",
+       "kickoff": "2026-09-03T23:00:00+00:00",
+       "status": "FINAL",
+       "goalsHome": 3,
+       "goalsAway": 1
+      }
+     }
+    }
+   }
+  },
+  "semifinal": {
+   "ties": {
+    "espn-palmeiras_vasco": {
+     "teamA": "Vasco",
+     "teamB": "Palmeiras",
+     "qualifiedTeamId": null,
+     "matches": {
+      "first": {
+       "homeTeam": "Vasco",
+       "awayTeam": "Palmeiras",
+       "kickoff": "2026-11-01T20:00:00+00:00",
+       "status": "SCHEDULED",
+       "goalsHome": null,
+       "goalsAway": null
+      },
+      "second": {
+       "homeTeam": "Palmeiras",
+       "awayTeam": "Vasco",
+       "kickoff": "2026-11-08T20:00:00+00:00",
+       "status": "FINAL",
+       "goalsHome": 1,
+       "goalsAway": 0
+      }
+     }
+    },
+    "espn-atletico-mg_gremio": {
+     "teamA": "Grêmio",
+     "teamB": "Atlético-MG",
+     "qualifiedTeamId": null,
+     "matches": {
+      "first": {
+       "homeTeam": "Grêmio",
+       "awayTeam": "Atlético-MG",
+       "kickoff": "2026-11-01T20:00:00+00:00",
+       "status": "SCHEDULED",
+       "goalsHome": null,
+       "goalsAway": null
+      },
+      "second": {
+       "homeTeam": "Atlético-MG",
+       "awayTeam": "Grêmio",
+       "kickoff": "2026-11-08T20:00:00+00:00",
+       "status": "SCHEDULED",
+       "goalsHome": null,
+       "goalsAway": null
+      }
+     }
+    }
+   },
+   "topology": {
+    "slots": {
+     "sf-1": {
+      "sideA": {
+       "winnerOf": "espn-gremio_internacional"
+      },
+      "sideB": {
+       "winnerOf": "espn-atletico-mg_cruzeiro"
+      }
+     },
+     "sf-2": {
+      "sideA": {
+       "winnerOf": "espn-vasco_vitoria"
+      },
+      "sideB": {
+       "winnerOf": "espn-palmeiras_santos"
+      }
+     }
+    },
+    "provenance": {
+     "authority": "CBF",
+     "source": "CBF (sorteio oficial de 2026-08-11, que definiu o caminho ate a final), lido por cobertura jornalistica de DUAS fontes independentes",
+     "ingestedAt": "2026-08-12T19:00:00Z",
+     "validatedAt": "2026-08-12T19:00:00Z"
+    }
+   }
+  },
+  "final": {
+   "ties": {},
+   "topology": {
+    "slots": {
+     "final-1": {
+      "sideA": {
+       "winnerOf": "espn-atletico-mg_gremio"
+      },
+      "sideB": {
+       "winnerOf": "espn-palmeiras_vasco"
+      }
+     }
+    },
+    "provenance": {
+     "authority": "CBF",
+     "source": "Estrutural: formato eliminatorio da Copa do Brasil garante que, com exatamente duas semifinais, a final é definicionalmente entre as duas vencedoras — não depende de sorteio nem de fonte jornalística externa.",
+     "ingestedAt": "2026-09-10T00:00:00Z",
+     "validatedAt": "2026-09-10T00:00:00Z"
+    }
+   }
+  }
+ }
+}
