@@ -163,13 +163,16 @@ def _score_br(mods, state):
 def _score_cdb(mods, state):
     eng = mods["engine"]
     all_ties = eng._all_ties(state)
-    podium = eng.official_podium(state.get("phases") or {})
+    phases = state.get("phases") or {}
+    podium = eng.official_podium(phases)
     per_entry = []
     for e in state.get("entries") or []:
+        # `phases=` e o que faz o e-mail pontuar como o site (palpite de vaga, classificado por
+        # time, podio previsto) -- sem ele o engine cai no transcritor legado.
         per_entry.append({
             "entry_id": e.get("id"),
-            "total": eng.score_entry_total(e, all_ties, podium),
-            "detail": eng.entry_detail(e, all_ties, podium),
+            "total": eng.score_entry_total(e, all_ties, podium, phases=phases),
+            "detail": eng.entry_detail(e, all_ties, podium, phases=phases),
         })
     payouts = eng.compute_final_payouts(state)
     return {"per_entry": per_entry, "ranking": _ranking_from_payouts(payouts),

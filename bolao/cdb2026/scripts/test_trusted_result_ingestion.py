@@ -102,20 +102,63 @@ test("jogo CERTO, times certos, data certa -> ingerido", lambda: _assert(
     "o caminho válido parou de funcionar — um gate que só sabe recusar não prova nada"))
 
 # ── §18 identidade do confronto ─────────────────────────────────────────────────────────────
-# MANDO INVERTIDO — o que se pode afirmar aqui, e o que não.
+# MANDO INVERTIDO — a perna é decidida pela DATA, os gols pelo NOME do time.
 #
-# Escrevi este caso primeiro como "mando invertido -> recusado" e ele reprovou. Investigando: num
-# confronto de ida e volta, Atlético-MG × Cruzeiro NÃO é o jogo errado — é a VOLTA, cujo mando é
-# exatamente o inverso da ida. O casamento encontrou a perna certa, não uma perna errada.
+# Até 2026-11-01 este caso afirmava "mando invertido nunca é gravado como a IDA", porque o
+# casamento era por mandante: Atlético-MG × Cruzeiro só podia ser a volta. A semifinal real
+# desmentiu a premissa: a CBF marcou a ida de Palmeiras × Vasco no Allianz, com o bolão tendo Vasco
+# em casa na ida. Casado por mandante, o 1-0 da ida foi gravado na VOLTA e a ida ficou vazia.
+# Decisão do Eduardo (2026-11-01): o palpite da ida vale para o jogo da data da ida.
 #
-# A afirmação correta é mais estreita: o placar com mando invertido não pode ser gravado como a
-# IDA. Se fosse, os gols entrariam trocados de lado e o agregado sairia invertido — placar certo,
-# confronto certo, resultado errado.
-test("mando invertido NÃO é gravado como a IDA", lambda: _assert(
-    all(leg != "first" for (_, _, leg, *_) in
-        S._find_new_legs(estado(), [candidato(home="Atlético-MG", away="Cruzeiro")])),
-    "gravou o jogo da volta como se fosse a ida — os gols entram trocados de lado e o agregado "
-    "aponta o classificado errado"))
+# A invariante que continua valendo é a de dinheiro: os gols nunca entram trocados de lado. Cada
+# número vai para o TIME que o fez, na orientação do bolão.
+def _mando_invertido_na_data_da_ida():
+    achados = S._find_new_legs(estado(), [candidato(home="Atlético-MG", away="Cruzeiro", hs=2, aws=1)])
+    _assert(len(achados) == 1, f"esperava 1 perna, veio {achados}")
+    _, _, leg, gh, ga, _ = achados[0]
+    _assert(leg == "first", f"jogo na data da ida gravado como {leg}")
+    # Ida nominal: Cruzeiro (teamA) em casa. A ESPN diz Atlético-MG 2 x 1 Cruzeiro.
+    _assert((gh, ga) == (1, 2), f"gols trocados de lado: Cruzeiro {gh} x {ga} Atlético-MG")
+
+test("mando invertido na data da IDA -> ida, gols pelo nome do time", _mando_invertido_na_data_da_ida)
+
+def _mando_invertido_na_data_da_volta():
+    achados = S._find_new_legs(estado(), [candidato(home="Cruzeiro", away="Atlético-MG", hs=0, aws=3,
+                                                     data="2026-09-01T21:00:00-03:00")])
+    _assert([a[2] for a in achados] == ["second"], f"jogo na data da volta virou {achados}")
+    _, _, _, gh, ga, _ = achados[0]
+    # Volta nominal: Atlético-MG (teamB) em casa. A ESPN diz Cruzeiro 0 x 3 Atlético-MG.
+    _assert((gh, ga) == (3, 0), f"gols trocados de lado: Atlético-MG {gh} x {ga} Cruzeiro")
+
+test("mando invertido na data da VOLTA -> volta, gols pelo nome do time", _mando_invertido_na_data_da_volta)
+
+def _semifinal_2026_11_01():
+    """O caso real: banco com Vasco em casa na ida (1/11) e Palmeiras na volta (8/11); ESPN com
+    Palmeiras 1 x 0 Vasco em 1/11, no Allianz."""
+    st = {"espnSync": {"activePhaseId": "semifinal"},
+          "phases": {"semifinal": {"ties": {"espn-palmeiras_vasco": {
+              "teamA": "Vasco", "teamB": "Palmeiras", "qualifiedTeamId": None,
+              "matches": {"first": {"kickoff": "2026-11-01T20:00:00+00:00"},
+                          "second": {"kickoff": "2026-11-08T20:00:00+00:00"}}}}}}}
+    ev = candidato(home="Palmeiras", away="Vasco", hs=1, aws=0, data="2026-11-01T19:00Z")
+    achados = S._find_new_legs(st, [ev])
+    _assert([(a[2], a[3], a[4]) for a in achados] == [("first", 0, 1)],
+            f"esperava a IDA com Vasco 0 x 1 Palmeiras, veio {[(a[2], a[3], a[4]) for a in achados]}")
+    # E com a ida já gravada, o mesmo jogo NÃO pode cair na volta (foi o que aconteceu).
+    st["phases"]["semifinal"]["ties"]["espn-palmeiras_vasco"]["matches"]["first"].update(
+        {"goalsHome": 0, "goalsAway": 1, "status": "FINAL"})
+    _assert(S._find_new_legs(st, [ev]) == [], "o jogo da ida foi gravado de novo, agora na volta")
+
+test("semifinal 2026-11-01: Palmeiras 1x0 Vasco vai para a IDA, nunca para a volta", _semifinal_2026_11_01)
+
+def _sem_data_da_volta_vale_a_regra_antiga():
+    st = estado()
+    st["phases"]["quartas"]["ties"]["t1"]["matches"]["second"] = {}
+    # Sem as duas datas não dá para decidir a perna mais próxima: mando invertido não é gravado.
+    _assert(S._find_new_legs(st, [candidato(home="Atlético-MG", away="Cruzeiro")]) == [],
+            "sem data da volta, um jogo com mando invertido foi gravado em alguma perna")
+
+test("sem a data das duas pernas, mando invertido NÃO é ingerido", _sem_data_da_volta_vale_a_regra_antiga)
 
 test("time ERRADO no confronto -> NÃO ingerido", lambda: _assert(
     S._find_new_legs(estado(), [candidato(away="Flamengo")]) == [],
