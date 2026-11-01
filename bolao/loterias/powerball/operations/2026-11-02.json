@@ -1,0 +1,14 @@
+{
+  "_o_que_e": "Manifesto de abertura do sorteio Powerball de 2026-11-02, aplicado por operator_open_draw.py. Abre com a cota do organizador, aprovada pelo Eduardo; os pagamentos entram depois. Sem referencia de pagamento: o repositorio e publico.",
+  "draw_date": "2026-11-02",
+  "jackpot": 793000000,
+  "cash_value": 339900000,
+  "contributions": [
+    {
+      "name": "Eduardo Ferrari",
+      "amount": 10,
+      "method": "Fundo próprio (organizador)",
+      "paid_at": "2026-11-01T07:19:40-05:00"
+    }
+  ]
+}
