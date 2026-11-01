@@ -893,7 +893,17 @@ window.POWERBALL_DRAWS = [
     // BOLAO ABERTO. Cota do organizador; os pagamentos entram conforme chegam (Zelle/Venmo/
     // Cash App), referencias de transacao apenas no registro privado, nunca aqui.
     participants: [
-      { name: "Eduardo Ferrari", cotas: 1, valor: 10, metodo: "Fundo próprio (organizador)", data: "01/11/2026", hora: "7:19:40 AM", status: "organizador", state: "NC" }
+      { name: "Eduardo Ferrari", cotas: 1, valor: 10, metodo: "Fundo próprio (organizador)", data: "01/11/2026", hora: "7:19:40 AM", status: "organizador", state: "NC" },
+      { name: "Alan Rech", cotas: 1, valor: 10, metodo: "Cash App", data: "01/11/2026", hora: "8:54:35 AM", status: "verificado", state: "FL" },
+      { name: "Marcelo Moreira", cotas: 1, valor: 10, metodo: "Zelle", data: "01/11/2026", hora: "11:31:39 AM", status: "verificado", state: "NC" },
+      { name: "Leandro Augustineli", cotas: 1, valor: 10, metodo: "Zelle", data: "01/11/2026", hora: "11:33:17 AM", status: "verificado", state: "NC" },
+      { name: "Gustavo Bossle", cotas: 1, valor: 10, metodo: "Zelle", data: "01/11/2026", hora: "12:34:06 PM", status: "verificado", state: "NC" },
+      { name: "Camila Ribeiro", cotas: 1, valor: 10, metodo: "Zelle", data: "01/11/2026", hora: "12:38:35 PM", status: "verificado", state: "NC" },
+      { name: "Marcus Steffenon", cotas: 1, valor: 10, metodo: "Zelle", data: "01/11/2026", hora: "1:21:51 PM", status: "verificado", state: "NC" },
+      { name: "Marcelo Minghetti Pereira", cotas: 1, valor: 10, metodo: "Zelle", data: "01/11/2026", hora: "2:05:08 PM", status: "verificado", state: "NC" },
+      { name: "Ewerton Gruba Silva", cotas: 1, valor: 10, metodo: "Zelle", data: "01/11/2026", hora: "2:39:17 PM", status: "verificado", state: "NC" },
+      { name: "Thiago Locatelli", cotas: 1, valor: 10, metodo: "Zelle", data: "01/11/2026", hora: "3:04:09 PM", status: "verificado", state: "TX" },
+      { name: "Simone Hirle da Costa", cotas: 1, valor: 10, metodo: "Venmo", data: "01/11/2026", hora: "3:07:26 PM", status: "verificado", state: "NC" }
     ],
 
     // Sem bilhetes ainda. Os numeros entram depois da compra -- abrir o bolao nunca dependeu
@@ -906,7 +916,7 @@ window.POWERBALL_DRAWS = [
     },
 
     finance: {
-      totalArrecadado: 10, // 1 participante(s), soma das contribuicoes no banco
+      totalArrecadado: 110, // 11 participante(s), soma das contribuicoes no banco
       // Premio do sorteio anterior (US$36) + o que ficou guardado (US$2). Derivado do que esta
       // gravado, nao arbitrado aqui.
       creditoSorteioAnterior: 38,
