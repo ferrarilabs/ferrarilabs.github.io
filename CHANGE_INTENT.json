@@ -1,0 +1,13 @@
+{
+  "declarations": [
+    {
+      "surface_id": "NOTIFICATION_WORKFLOWS",
+      "reason": "O powerball-results-email.yml gravava o resultado no data.js com push direto em main, recusado pelo ruleset (GH013): os e-mails saiam, mas o site ficava sem resultado (2026-10-28 e 2026-10-31). E todo PR aberto pelo bot ficava BLOCKED: a politica de aprovacao de 'first-time contributors' deixa o run de pull_request do safety_check.yml em action_required (#496, #498 e #501 so entraram com intervencao manual).",
+      "expected_behavior_change": "fetch_and_send_results.py passa a fazer so commit local. No powerball-results-email.yml o job de e-mail (timeout 10 min, inalterado) guarda esse commit como patch em artifact, e um job novo `site` (45 min, contents/pull-requests/actions de escrita) aplica o patch e o publica por PR rolante (publish_data_via_pr.sh, branch auto/data/powerball-resultado-<sorteio>) com merge automatico. Novo scripts/ci/merge_data_pr.sh, usado tambem pelo powerball_open_draw.yml: espera o check do workflow_dispatch, aprova o run de pull_request do mesmo commit parado em action_required, espera os dois verdes, faz o merge e dispara o deploy. Cron, destinatarios e envio de e-mail nao mudam.",
+      "tests_required": [
+        "email-send-safety",
+        "cron-coverage"
+      ]
+    }
+  ]
+}
