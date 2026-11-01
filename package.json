@@ -58,6 +58,8 @@
     "test:cdb-trusted-ingestion": "python3 bolao/cdb2026/scripts/test_trusted_result_ingestion.py",
     "test:cdb-espn-leg-matching": "node bolao/cdb2026/scripts/test_espn_leg_matching.mjs",
     "test:cdb-apply-correction": "python3 bolao/cdb2026/scripts/test_apply_correction.py",
+    "test:cdb-email-scoring-parity": "node bolao/cdb2026/scripts/test_email_scoring_parity.mjs",
+    "test:cdb-result-email-render": "python3 bolao/cdb2026/scripts/test_result_email_render.py",
     "test:cdb-schedule-reconciler": "python3 bolao/cdb2026/scripts/test_schedule_reconciler.py",
     "test:cdb-bracket-propagation": "node bolao/cdb2026/scripts/test_bracket_propagation.mjs",
     "test:cdb-bracket-browser": "node bolao/cdb2026/scripts/test_bracket_browser.mjs",

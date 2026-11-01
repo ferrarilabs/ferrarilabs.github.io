@@ -1250,10 +1250,10 @@ def render_from_file(phase_id, tie_id, leg, state_file, out_path, tie_decided=No
     if tie_decided and not tie.get("qualifiedTeamId"):
         raise SystemExit("--tie-decided pedido, mas o confronto nao tem qualifiedTeamId")
     html = build_html(state, phase_id, tie_id, leg, tie_just_decided=tie_decided)
-    subject = subject_for(phase_id, tie)
     if out_path:
         Path(out_path).write_text(html, encoding="utf-8")
-    return subject, html
+    # O assunto vem de subject_for() -> _subject_policy.assunto(), o mesmo do envio real.
+    return subject_for(phase_id, tie), html
 
 
 def _main_render(args):

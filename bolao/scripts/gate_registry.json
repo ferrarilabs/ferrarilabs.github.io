@@ -609,6 +609,12 @@
     "bolao/cdb2026/scripts/test_apply_correction.py": {
       "classification": "REGISTERED_AND_EXECUTED"
     },
+    "bolao/cdb2026/scripts/test_email_scoring_parity.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/cdb2026/scripts/test_result_email_render.py": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
     "bolao/shared/scripts/test_live_evidence_expiry.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
     },
