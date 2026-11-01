@@ -138,25 +138,6 @@ jobs:
             "Powerball: participantes do sorteio de $DRAW (automatico)" \
             "Participantes, projecao e pin do sorteio de $DRAW derivados do banco por powerball_open_draw.yml depois do apply. Merge automatico com \`npm run check\` verde." \
             "${FILES[@]}"
-          PR="$(gh pr list --head "$BRANCH" --base main --state open --json number --jq '.[0].number')"
-          SHA="$(git rev-parse HEAD)"
-          # O check foi disparado por workflow_dispatch no topo do branch; espera o run DESTE commit.
-          # So o de workflow_dispatch: o PR aberto pelo bot tambem gera um run de pull_request, mais
-          # novo, que fica em `action_required` sem rodar (em 29/10 o job observou esse e falhou).
-          RUN=""
-          for _ in $(seq 1 30); do
-            RUN="$(gh run list --workflow safety_check.yml --branch "$BRANCH" --event workflow_dispatch \
-                   --json databaseId,headSha \
-                   --jq "map(select(.headSha == \"$SHA\"))[0].databaseId // empty")"
-            [ -n "$RUN" ] && break
-            sleep 10
-          done
-          [ -n "$RUN" ] || { echo "::error::npm run check nao apareceu para $SHA"; exit 1; }
-          gh run watch "$RUN" --exit-status --interval 30 >/dev/null
-          # Mensagem explicita: o squash padrao acrescentaria Co-authored-by com e-mail real,
-          # que o commit-message-pii-gate reprova no main.
-          gh pr merge "$PR" --squash --delete-branch \
-            --subject "Powerball: participantes do sorteio de $DRAW (automatico) (#$PR)" \
-            --body "Participantes, projecao e pin derivados do banco por powerball_open_draw.yml."
-          gh workflow run deploy-pages.yml --ref main
-          echo "PR #$PR mergeado e deploy disparado."
+          scripts/ci/merge_data_pr.sh "$BRANCH" \
+            "Powerball: participantes do sorteio de $DRAW (automatico)" \
+            "Participantes, projecao e pin derivados do banco por powerball_open_draw.yml."

@@ -438,15 +438,17 @@ def check_and_update_results(game_type, dry_run=False, force_resend=False):
 
     print(f"✓ Updated data.js with new result")
 
-    # Commit the change
+    # Commit LOCAL, sem push. O ruleset do main exige PR e `npm run check`, entao o push direto era
+    # recusado (GH013) e o resultado nunca chegava ao site (2026-10-28 e 2026-10-31). O workflow
+    # publica este commit por PR (scripts/ci/publish_data_via_pr.sh) num passo proprio, depois do
+    # e-mail -- o e-mail continua nao dependendo do site.
     try:
         subprocess.run(["git", "-C", REPO_ROOT, "add", DATA_JS_REL], check=True)
         subprocess.run([
             "git", "-C", REPO_ROOT, "commit", "-m",
-            f"Auto: Add Powerball result {target_draw['id']} ({official['numbers']} | PB{official['special']})"
+            f"Powerball: resultado do sorteio de {target_draw['id']} ({official['numbers']} | PB{official['special']}) (automatico)"
         ], check=True)
-        subprocess.run(["git", "-C", REPO_ROOT, "push"], check=True)
-        print(f"✓ Committed and pushed data.js")
+        print(f"✓ Commit local do data.js (publicado por PR pelo workflow)")
     except subprocess.CalledProcessError as e:
         print(f"⚠️  Git operation failed: {e}")
         # Continue anyway — send email even if commit failed
