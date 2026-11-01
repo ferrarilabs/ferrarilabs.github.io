@@ -21,6 +21,8 @@ Usage:
   python3 send_result_email.py --update <tieId> <leg> <gH> <gA>  # save leg only, no email
   python3 send_result_email.py --auto                            # check ESPN, save+email new legs
   python3 send_result_email.py --clear-leg <tieId> <leg>         # remove a leg result
+  python3 send_result_email.py --render <phaseId> <tieId> <leg> --state-file s.json --out e.html
+                                                                 # DRY-RUN: render only, never sends
 
 --update <tieId> <leg> <goalsHome> <goalsAway>
   Writes the leg result to Supabase and exits. leg: "first"|"second"|"single".
@@ -39,6 +41,7 @@ import sys
 import urllib.error
 import json
 import hashlib
+import html as _html
 import os, re, sys, time, urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
@@ -342,44 +345,45 @@ def _parse(v):
 
 
 # ── Scoring — reuses audit_scoring.py directly, see module docstring ─────────
-def score_entry_total(entry, all_ties, podium):
+#
+# 2026-11-01: a pontuacao do e-mail passou a ser a do SITE (audit_scoring.score_entry_site(),
+# transcricao de scoreEntry() de app.js com paridade testada em test_email_scoring_parity.mjs).
+# Antes, `audit_scoring.score_entry()` recebia os confrontos achatados e: (1) procurava o palpite
+# so pelo id REAL do confronto -- a semifinal inteira saiu "sem palpite", porque os palpites foram
+# salvos sob o id de VAGA (sf-1/sf-2/final-1) antes de o confronto real existir; (2) comparava o
+# classificado pela LETRA do lado, nao pelo TIME previsto; (3) lia campeao/vice de um campo que
+# nenhuma entrada tem, entao 30/20 nunca entravam e o rateio da final divergiria do site.
+#
+# `phases` (state["phases"]) e o que o site usa. Sem ele (chamada antiga, so com os confrontos
+# achatados) nao ha como achar o palpite de vaga nem a final prevista: cai no transcritor legado,
+# que so e correto para fases nao derivadas. Todo chamador deste arquivo passa `phases`.
+def score_entry_total(entry, all_ties, podium, phases=None):
+    if phases is not None:
+        return audit_scoring.score_entry_site(entry, phases)[0]
     total, _ = audit_scoring.score_entry(entry, all_ties, podium)
     return total
 
 
-def entry_detail(entry, all_ties, podium):
+def entry_detail(entry, all_ties, podium, phases=None):
+    if phases is not None:
+        return audit_scoring.score_entry_site(entry, phases)[1]
     _, detail = audit_scoring.score_entry(entry, all_ties, podium)
     return detail
 
 
 def official_podium(all_phases_ties):
-    """Champion/runnerUp from the Final phase's single tie — mirrors officialPodium() in app.js."""
-    final_ties = all_phases_ties.get("final", {})
-    if not final_ties:
-        return {"champion": None, "runnerUp": None}
-    tie_id = next(iter(final_ties))
-    tie = final_ties[tie_id]
-    if not tie.get("qualifiedTeamId"):
-        return {"champion": None, "runnerUp": None}
-    if tie["qualifiedTeamId"] == "A":
-        return {"champion": tie["teamA"], "runnerUp": tie["teamB"]}
-    return {"champion": tie["teamB"], "runnerUp": tie["teamA"]}
+    """Champion/runnerUp from the Final phase's single tie — officialPodium() in app.js.
+
+    Recebe `state["phases"]`. Ate 2026-11-01 isto iterava `phases["final"]` (o objeto da FASE:
+    cutoffAt/ties/topology) como se fossem os confrontos -- pegava a chave "ties" ou "cutoffAt"
+    como id de confronto e nunca achava campeao (ou quebrava com AttributeError)."""
+    return audit_scoring.official_podium_site(all_phases_ties)
 
 
 def predicted_podium(entry, all_phases_ties):
-    """Mirrors predictedPodium() in app.js — derived from the entry's own qualified-pick on the
-    Final phase's tie, never a separate stored field."""
-    final_ties = all_phases_ties.get("final", {})
-    if not final_ties:
-        return {"champion": None, "runnerUp": None}
-    tie_id = next(iter(final_ties))
-    tie = final_ties[tie_id]
-    pick = (entry.get("picks") or {}).get("qualified", {}).get(tie_id)
-    if not pick:
-        return {"champion": None, "runnerUp": None}
-    if pick == "A":
-        return {"champion": tie["teamA"], "runnerUp": tie["teamB"]}
-    return {"champion": tie["teamB"], "runnerUp": tie["teamA"]}
+    """predictedPodium() in app.js — campeao/vice da final PREVISTA pela entrada (os vencedores
+    que ELA escolheu nas semifinais), nunca o lado A/B aplicado aos times reais."""
+    return audit_scoring.predicted_podium_site(entry, all_phases_ties)
 
 
 def exact_match_count(detail):
@@ -431,9 +435,10 @@ def compute_final_payouts(state):
     if not pot:
         return None
 
+    phases = state.get("phases", {}) or {}
     scored = sorted(
-        [{"e": e, "total": score_entry_total(e, all_ties, podium),
-          "detail": entry_detail(e, all_ties, podium)} for e in entries],
+        [{"e": e, "total": score_entry_total(e, all_ties, podium, phases=phases),
+          "detail": entry_detail(e, all_ties, podium, phases=phases)} for e in entries],
         key=lambda x: (-x["total"], -hit_champion(x["detail"]), -hit_runner_up(x["detail"]), -exact_match_count(x["detail"])),
     )
 
@@ -513,6 +518,58 @@ def pts_color(pts):
     return "#9ca3af"
 
 
+def leg_breakdown_items(state, phase_id, tie_id, leg, tie_just_decided, entries=None):
+    """As linhas da tabela "Pontuação — <perna>" do e-mail, uma por entrada.
+
+    Pontos e palpite saem EXATAMENTE de onde o site tira (audit_scoring.score_entry_site() e
+    leg_pick_view(), que espelham scoreEntry() e renderPickDisplay() de app.js): numa fase
+    derivada o palpite salvo sob o id de VAGA (sf-1/sf-2/final-1) aparece e pontua, o bonus de
+    "quem avança" e por TIME previsto, e os nomes vem como "Real (Previsto)" quando a entrada
+    previu outro clube para aquele lado. Nunca "sem palpite" quando o site acha um palpite.
+
+    Devolve [{name, pts, pick_str, pick_teams, det_pt}] ordenado por pts desc, nome A→Z."""
+    phases = state.get("phases", {}) or {}
+    if entries is None:
+        deleted = set(state.get("deletedIds", []))
+        entries = [e for e in state.get("entries", []) if e.get("id") not in deleted]
+    tie = (phases.get(phase_id, {}).get("ties", {}) or {})[tie_id]
+    items = []
+    for entry in entries:
+        _, detail = audit_scoring.score_entry_site(entry, phases)
+        r = detail["matches"].get(f"{tie_id}:{leg}")
+        view = audit_scoring.leg_pick_view(entry, phases, phase_id, tie_id, leg)
+        pts = r["pts"] if r else 0
+        pick_teams = ""
+        if r and view:
+            # Texto explícito o bastante pra nunca parecer um erro à primeira vista — achado real
+            # (Eduardo, 2026-08-01, sobre "+5 resultado certo" sozinho): "Talvez precise ficar
+            # mais claro no email qual foi a pontuação e por que pontuou."
+            det_pt = {
+                "exact":  f"+{audit_scoring.MATCH_SCORING['exact']} placar exato",
+                "result": f"+{audit_scoring.MATCH_SCORING['result']} resultado certo (vitória/empate/derrota) — placar não exato",
+                "side":   f"+{pts} gols de 1 time certos — placar e resultado diferentes",
+                "miss":   "—",
+            }[r["type"]]
+            pick_str = f'{view["goalsHome"]}–{view["goalsAway"]}'
+            lt = audit_scoring.leg_teams(tie, leg, (tie.get("matches") or {}).get(leg))
+            if (view["home"], view["away"]) != (lt["home"], lt["away"]):
+                pick_teams = f'{view["home"]} × {view["away"]}'
+        else:
+            det_pt, pick_str = "sem palpite", "—"
+
+        if tie_just_decided:
+            dt = detail["ties"].get(tie_id)
+            if dt:
+                pts += dt["pts"]
+                bonus_pt = f"+{audit_scoring.TIE_BONUS} acertou quem avança" if dt["type"] == "hit" else "errou quem avança"
+                det_pt = f"{det_pt}, {bonus_pt}" if det_pt != "—" else bonus_pt
+
+        items.append({"name": entry.get("entryName", "?"), "pts": pts, "pick_str": pick_str,
+                      "pick_teams": pick_teams, "det_pt": det_pt})
+    items.sort(key=lambda x: (-x["pts"], x["name"].upper()))
+    return items
+
+
 def build_html(state, phase_id, tie_id, leg, tie_just_decided):
     """Builds the result email HTML for one leg's completion. tie_just_decided: True when this
     same leg's completion also resolved the tie's qualifiedTeamId THIS run -- folds the tie
@@ -527,13 +584,15 @@ def build_html(state, phase_id, tie_id, leg, tie_just_decided):
     real_entries = [e for e in entries if e.get("id") not in deleted_ids]
 
     all_ties = _all_ties(state)
-    podium = official_podium(state.get("phases", {}))
+    phases = state.get("phases", {}) or {}
+    podium = official_podium(phases)
 
     def _name_key(item):
         return (item["e"].get("entryName") or "").upper()
 
     scored = sorted(
-        [{"e": e, "total": score_entry_total(e, all_ties, podium), "detail": entry_detail(e, all_ties, podium)} for e in real_entries],
+        [{"e": e, "total": score_entry_total(e, all_ties, podium, phases=phases),
+          "detail": entry_detail(e, all_ties, podium, phases=phases)} for e in real_entries],
         key=lambda x: (-x["total"], -hit_champion(x["detail"]), -hit_runner_up(x["detail"]), -exact_match_count(x["detail"])),
     )
     i = 0
@@ -547,8 +606,8 @@ def build_html(state, phase_id, tie_id, leg, tie_just_decided):
 
     tie = all_ties[tie_id]
     match = tie["matches"][leg]
-    home = tie["teamB"] if leg == "second" else tie["teamA"]
-    away = tie["teamA"] if leg == "second" else tie["teamB"]
+    lt = audit_scoring.leg_teams(tie, leg, match)
+    home, away = lt["home"], lt["away"]
     result_str = f'{home} {match["goalsHome"]}–{match["goalsAway"]} {away}'
     leg_label_pt = "" if leg == "single" else " (ida)" if leg == "first" else " (volta)"
 
@@ -557,57 +616,22 @@ def build_html(state, phase_id, tie_id, leg, tie_just_decided):
         winner_name = tie["teamA"] if tie["qualifiedTeamId"] == "A" else tie["teamB"]
 
     # ── Per-entry breakdown for this leg ──────────────────────────────────────
-    # No "result" (correct W/D/L sign, wrong score) tier — matches audit_scoring.match_points()
-    # exactly, which only ever returns "exact"/"side"/"miss" (see that module's 2026-08-01 fix).
-    #
     # Eduardo, 2026-08-02, pasting a sent email as evidence: this table wasn't sorted by its own
-    # "Pts" column at all — it inherited `scored`'s order, which is the SEASON-TOTAL ranking
-    # (score_entry_total across every match so far), a different key entirely from the points a
-    # given entry earned on THIS leg. Fixed by building a fresh list keyed on this leg's own
-    # points (descending) with entry name (A→Z) as the tiebreak, computed as its own pass instead
-    # of reusing `scored`'s order. Matches the pattern Copa's build_html() already uses
-    # (`breakdown_scored`, a separate sort from its own season-ranking `scored`) — CDB2026 was the
-    # one that had skipped that separation, not a platform-wide bug.
+    # "Pts" column at all — it inherited `scored`'s order (season total). Sorted by this leg's own
+    # points (descending), entry name (A→Z) as the tiebreak — see leg_breakdown_items().
     breakdown_rows_pt = ""
-    breakdown_items = []
-    for item in scored:
-        entry = item["e"]
-        pick = (entry.get("picks") or {}).get("matches", {}).get(tie_id, {}).get(leg)
-        result = {"goalsHome": match["goalsHome"], "goalsAway": match["goalsAway"]}
-        r = audit_scoring.match_points(pick, result) if pick else None
-        pts = r["pts"] if r else 0
-        if r:
-            # Texto explícito o bastante pra nunca parecer um erro à primeira vista — achado real
-            # (Eduardo, 2026-08-01, sobre "+5 resultado certo" sozinho): "Talvez precise ficar
-            # mais claro no email qual foi a pontuação e por que pontuou."
-            det_pt = {
-                "exact":  f"+{audit_scoring.MATCH_SCORING['exact']} placar exato",
-                "result": f"+{audit_scoring.MATCH_SCORING['result']} resultado certo (vitória/empate/derrota) — placar não exato",
-                "side":   f"+{pts} gols de 1 time certos — placar e resultado diferentes",
-                "miss":   "—",
-            }[r["type"]]
-            pick_str = f'{pick["goalsHome"]}–{pick["goalsAway"]}'
-        else:
-            det_pt, pick_str = "sem palpite", "—"
-
-        if tie_just_decided:
-            qual_pick = (entry.get("picks") or {}).get("qualified", {}).get(tie_id)
-            if qual_pick:
-                hit = qual_pick == tie["qualifiedTeamId"]
-                bonus_pts = audit_scoring.TIE_BONUS if hit else 0
-                pts += bonus_pts
-                bonus_pt = f"+{audit_scoring.TIE_BONUS} acertou quem avança" if hit else "errou quem avança"
-                det_pt = f"{det_pt}, {bonus_pt}" if det_pt != "—" else bonus_pt
-
-        name = entry.get("entryName", "?")
-        breakdown_items.append({"name": name, "pts": pts, "pick_str": pick_str, "det_pt": det_pt})
-
-    breakdown_items.sort(key=lambda x: (-x["pts"], x["name"].upper()))
+    breakdown_items = leg_breakdown_items(state, phase_id, tie_id, leg, tie_just_decided,
+                                          entries=[item["e"] for item in scored])
     for b in breakdown_items:
         color = pts_color(b["pts"])
+        pick_cell = b["pick_str"]
+        if b.get("pick_teams"):
+            # Os times DO PALPITE, como "Ver palpites" mostra: "Real (Previsto)" quando a entrada
+            # previu outro clube naquele lado da vaga.
+            pick_cell += f'<div style="font-size:10px;color:#6b7280;margin-top:2px">{_html.escape(b["pick_teams"])}</div>'
         breakdown_rows_pt += (
             f'<tr><td style="padding:6px 10px">{b["name"]}</td>'
-            f'<td style="padding:6px 10px;text-align:center">{b["pick_str"]}</td>'
+            f'<td style="padding:6px 10px;text-align:center">{pick_cell}</td>'
             f'<td style="padding:6px 10px;text-align:center;font-weight:700;color:{color}">{b["pts"]}</td>'
             f'<td style="padding:6px 10px;font-size:11px;color:#6b7280">{b["det_pt"]}</td></tr>'
         )
@@ -1182,9 +1206,164 @@ def run_auto():
     print(f"\n✓ AUTO done: {len(confirmed)} new leg(s) processed.")
 
 
+# ── Dry-run: renderizar o e-mail a partir de um arquivo, SEM enviar ─────────────────────────
+#
+# `--render <phaseId> <tieId> <leg> --state-file <estado.json> --out <arquivo.html>`
+#
+# Para o operador conferir o e-mail EXATO (ex.: o da correcao de uma perna) antes de qualquer
+# envio. Le o estado de um arquivo (o documento de bolao_state, ou {"state": ...}), monta o mesmo
+# HTML de build_html() e grava em --out. NAO fala com Supabase, NAO toca no ledger, e NAO chama
+# send_email() nem _send_to_all() -- nem com BOLAO_ALLOW_REAL_SEND. `--tie-decided` /
+# `--no-tie-decided` forcam a linha de "quem avança"; sem eles vale: confronto ja travado E esta e
+# a ultima perna do formato.
+# ── Correção de uma perna já gravada (2026-11-01) ─────────────────────────────────────────────
+#
+# `--send-leg <phaseId> <tieId> <leg> --note-file <aviso.html> [--only-entry <nome> | --all]`
+#
+# Reenvia o e-mail de UMA perna já gravada no servidor, com um aviso de correção no topo. Nasceu da
+# semifinal de 2026-11-01: o 1-0 da ida foi gravado na volta e saiu e-mail errado; depois de corrigir
+# o dado (apply_correction.py), a ida já está salva, então o --auto nunca a redescobre e nenhum
+# e-mail certo sairia sozinho.
+#
+#   --only-entry <nome>  TESTE: só para o e-mail daquela entrada, assunto com [TESTE], sem ledger.
+#   --all                todos, registrando no ledger na identidade (fase, confronto, perna).
+#                        RECUSA se o ledger já tiver entrega dessa perna -- duas correções iguais na
+#                        caixa de 12 pessoas é o incidente #221 de novo.
+# Um dos dois é obrigatório: não existe padrão que mande para todos.
+def _send_leg(args):
+    idx = args.index("--send-leg")
+    try:
+        phase_id, tie_id, leg = args[idx + 1], args[idx + 2], args[idx + 3]
+    except IndexError:
+        raise SystemExit("Usage: --send-leg <phaseId> <tieId> <leg> --note-file <html> (--only-entry <nome> | --all)")
+
+    def _opt(name):
+        if name not in args:
+            return None
+        j = args.index(name)
+        if j + 1 >= len(args):
+            raise SystemExit(f"{name} precisa de um valor")
+        return args[j + 1]
+    note_file, only = _opt("--note-file"), _opt("--only-entry")
+    todos = "--all" in args
+    if not note_file or (bool(only) == todos):
+        raise SystemExit("--send-leg exige --note-file e exatamente um entre --only-entry <nome> e --all")
+    nota = Path(note_file).read_text(encoding="utf-8")
+
+    state = sb_fetch()
+    tie = (state.get("phases", {}).get(phase_id, {}).get("ties", {}) or {}).get(tie_id)
+    if not tie:
+        raise SystemExit(f"confronto {phase_id}/{tie_id} inexistente")
+    m = (tie.get("matches", {}) or {}).get(leg) or {}
+    if m.get("goalsHome") is None or m.get("goalsAway") is None:
+        raise SystemExit(f"{phase_id}/{tie_id}/{leg} sem placar gravado -- nada a corrigir")
+    home = tie["teamB"] if leg == "second" else tie["teamA"]
+    away = tie["teamA"] if leg == "second" else tie["teamB"]
+    html = nota + build_html(state, phase_id, tie_id, leg, tie_just_decided=bool(tie.get("qualifiedTeamId")))
+    texto = f"CORREÇÃO — Resultado Parcial — {tie['teamA']} × {tie['teamB']}: {home} {m['goalsHome']}–{m['goalsAway']} {away}"
+
+    if only:
+        alvo = [e for e in state.get("entries", []) if (e.get("entryName") or "").strip() == only.strip()
+                and e.get("id") not in set(state.get("deletedIds", []))]
+        if len(alvo) != 1:
+            raise SystemExit(f"--only-entry {only!r}: esperava 1 entrada, achei {len(alvo)}")
+        teste = dict(state)
+        teste["entries"] = alvo
+        subject = _subject_policy.assunto("FUTEBOL_RESULTADO_PARCIAL", "[TESTE] " + texto)
+        sent, errors = _send_to_all(teste, html, subject, ledger_ref=None)
+    else:
+        reg = _default_ledger()
+        if reg is None:
+            raise SystemExit("ledger indisponivel: sem ele nao da para provar que esta correcao ainda nao saiu")
+        from result_email_ledger import entity_id
+        if entity_id(phase_id, tie_id, leg) in reg.delivered_entity_ids("2026-01-01T00:00:00Z"):
+            raise SystemExit(f"o ledger ja tem entrega de {phase_id}/{tie_id}/{leg}: correcao NAO reenviada")
+        subject = _subject_policy.assunto("FUTEBOL_RESULTADO_PARCIAL", texto)
+        sent, errors = _send_to_all(state, html, subject, ledger_ref=(phase_id, tie_id, leg), ledger=reg)
+    print(f"\n{'✓' if not errors else '⚠'} {sent} sent, {len(errors)} errors  [{subject}]")
+    for err in errors:
+        print(f"  ERROR: {err}")
+    if errors:
+        sys.exit(1)
+
+
+def subject_for(phase_id, tie):
+    e_o_campeao = phase_id == "final" and bool(tie.get("qualifiedTeamId"))
+    if e_o_campeao:
+        campeao = tie["teamA"] if tie["qualifiedTeamId"] == "A" else tie["teamB"]
+        return _subject_policy.assunto(
+            "FUTEBOL_RESULTADO_FINAL_CAMPEAO",
+            f"Resultado final — Copa do Brasil 2026: {campeao} campeão")
+    return _subject_policy.assunto(
+        "FUTEBOL_RESULTADO_PARCIAL",
+        f"Resultado Parcial — {tie['teamA']} × {tie['teamB']}")
+
+
+def render_from_file(phase_id, tie_id, leg, state_file, out_path, tie_decided=None):
+    """Dry-run puro: (assunto, html). Nunca envia, nunca grava fora de `out_path`."""
+    with open(state_file, encoding="utf-8") as f:
+        doc = json.load(f)
+    state = doc["state"] if isinstance(doc, dict) and isinstance(doc.get("state"), dict) else doc
+    if phase_id not in PHASE_BY_ID:
+        raise SystemExit(f"fase desconhecida: {phase_id!r}")
+    ties = (state.get("phases", {}).get(phase_id, {}) or {}).get("ties", {}) or {}
+    if tie_id not in ties:
+        raise SystemExit(f"confronto {tie_id!r} nao existe em phases.{phase_id}.ties")
+    legs = legs_for_format(PHASE_BY_ID[phase_id]["format"])
+    if leg not in legs:
+        raise SystemExit(f"perna {leg!r} invalida para {phase_id} (validas: {legs})")
+    tie = ties[tie_id]
+    m = (tie.get("matches") or {}).get(leg) or {}
+    if m.get("goalsHome") is None or m.get("goalsAway") is None:
+        raise SystemExit(f"{tie_id}:{leg} nao tem placar no estado -- nao ha e-mail de resultado a renderizar")
+    if tie_decided is None:
+        tie_decided = bool(tie.get("qualifiedTeamId")) and leg == legs[-1]
+    if tie_decided and not tie.get("qualifiedTeamId"):
+        raise SystemExit("--tie-decided pedido, mas o confronto nao tem qualifiedTeamId")
+    html = build_html(state, phase_id, tie_id, leg, tie_just_decided=tie_decided)
+    if out_path:
+        Path(out_path).write_text(html, encoding="utf-8")
+    # O assunto vem de subject_for() -> _subject_policy.assunto(), o mesmo do envio real.
+    return subject_for(phase_id, tie), html
+
+
+def _main_render(args):
+    idx = args.index("--render")
+    try:
+        phase_id, tie_id, leg = args[idx + 1], args[idx + 2], args[idx + 3]
+    except IndexError:
+        print("Usage: --render <phaseId> <tieId> <leg> --state-file <estado.json> --out <arquivo.html>")
+        sys.exit(1)
+
+    def _opt(name):
+        if name not in args:
+            return None
+        j = args.index(name)
+        if j + 1 >= len(args):
+            print(f"{name} precisa de um valor")
+            sys.exit(1)
+        return args[j + 1]
+    state_file, out = _opt("--state-file"), _opt("--out")
+    if not state_file or not out:
+        print("--render exige --state-file e --out (o dry-run nunca le o Supabase).")
+        sys.exit(1)
+    decided = True if "--tie-decided" in args else False if "--no-tie-decided" in args else None
+    subject, html = render_from_file(phase_id, tie_id, leg, state_file, out, tie_decided=decided)
+    print(f"DRY-RUN (nada enviado): assunto: {subject}")
+    print(f"  html: {out} ({len(html)} bytes)")
+
+
 # ── Main ──────────────────────────────────────────────────────────────────────
 def main():
     args = sys.argv[1:]
+
+    if "--render" in args:
+        _main_render(args)
+        return
+
+    if "--send-leg" in args:
+        _send_leg(args)
+        return
 
     if "--auto" in args:
         run_auto()

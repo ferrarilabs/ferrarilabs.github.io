@@ -61,6 +61,7 @@ const NODE_SENDERS = ["bolao/loterias/powerball/scripts/email/send.mjs"];
 const PRODUCTION_WORKFLOWS = [
   ".github/workflows/br2026_round_emails.yml",
   ".github/workflows/cdb2026_result_emails.yml",
+  ".github/workflows/cdb2026_result_correction.yml",
   ".github/workflows/auto_results.yml",
 ];
 
