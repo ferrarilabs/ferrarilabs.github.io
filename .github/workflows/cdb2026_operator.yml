@@ -26,6 +26,7 @@ on:
           - register-final-topology
           - backfill-venue
           - secure-access-canary
+          - apply-correction
       derived_phase:
         # CHOICE, nao string livre, e por dois motivos independentes.
         #
@@ -56,6 +57,11 @@ on:
         description: "Arquivo do sorteio (para apply-draw)"
         required: false
         default: "bolao/cdb2026/data/quartas-draw-2026.json"
+        type: string
+      correction_file:
+        description: "Plano de correcao (para apply-correction), em bolao/cdb2026/data/corrections/"
+        required: false
+        default: "bolao/cdb2026/data/corrections/2026-11-01-semifinal.json"
         type: string
       apply:
         description: "APLICAR de verdade (sem isto, dry-run)"
@@ -92,10 +98,14 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           FASE: ${{ inputs.derived_phase }}
           ATOR: ${{ inputs.actor }}
+          PLANO: ${{ inputs.correction_file }}
         run: |
           set -euo pipefail
           MODO="--dry-run"
           [ "${{ inputs.apply }}" = "true" ] && MODO="--apply"
+          # apply_correction.py so conhece --apply; a ausencia dele ja e dry-run.
+          MODO_CORR=""
+          [ "${{ inputs.apply }}" = "true" ] && MODO_CORR="--apply"
           case "${{ inputs.command }}" in
             snapshot)
               # Sem --out: a baseline bruta tem PII (e-mail, pagamento) e NAO pode virar artefato
@@ -144,6 +154,18 @@ jobs:
               # sobrescreve local ja gravado, nao toca kickoff, placar, status nem classificacao.
               # Sem input proprio: o alvo e derivado do estado + snapshot, nao digitado.
               python3 operator_cli.py backfill-venue --actor "$ATOR" $MODO
+              ;;
+            apply-correction)
+              # Corrige placar/horario por um plano JSON versionado e revisado em PR (2026-11-01:
+              # ida da semifinal gravada na volta). Cada operacao exige o banco EXATAMENTE no
+              # estado `expectBefore` e e conferida relendo o servidor. NUNCA envia e-mail: o
+              # caminho `--update` do cdb2026_result_emails.yml grava E envia, por isso nao serve.
+              case "$PLANO" in
+                bolao/cdb2026/data/corrections/*.json) ;;
+                *) echo "::error::plano fora de bolao/cdb2026/data/corrections/"; exit 1 ;;
+              esac
+              case "$PLANO" in *..*) echo "::error::caminho com '..'"; exit 1 ;; esac
+              CDB_ACTOR="operator:$ATOR" python3 apply_correction.py "../../../$PLANO" $MODO_CORR
               ;;
             secure-access-canary)
               # Emite um token, usa, verifica e REVOGA na mesma execucao. O valor bruto nunca sai
