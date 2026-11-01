@@ -1216,72 +1216,6 @@ def run_auto():
 # send_email() nem _send_to_all() -- nem com BOLAO_ALLOW_REAL_SEND. `--tie-decided` /
 # `--no-tie-decided` forcam a linha de "quem avança"; sem eles vale: confronto ja travado E esta e
 # a ultima perna do formato.
-def subject_for(phase_id, tie):
-    e_o_campeao = phase_id == "final" and bool(tie.get("qualifiedTeamId"))
-    if e_o_campeao:
-        campeao = tie["teamA"] if tie["qualifiedTeamId"] == "A" else tie["teamB"]
-        return _subject_policy.assunto(
-            "FUTEBOL_RESULTADO_FINAL_CAMPEAO",
-            f"Resultado final — Copa do Brasil 2026: {campeao} campeão")
-    return _subject_policy.assunto(
-        "FUTEBOL_RESULTADO_PARCIAL",
-        f"Resultado Parcial — {tie['teamA']} × {tie['teamB']}")
-
-
-def render_from_file(phase_id, tie_id, leg, state_file, out_path, tie_decided=None):
-    """Dry-run puro: (assunto, html). Nunca envia, nunca grava fora de `out_path`."""
-    with open(state_file, encoding="utf-8") as f:
-        doc = json.load(f)
-    state = doc["state"] if isinstance(doc, dict) and isinstance(doc.get("state"), dict) else doc
-    if phase_id not in PHASE_BY_ID:
-        raise SystemExit(f"fase desconhecida: {phase_id!r}")
-    ties = (state.get("phases", {}).get(phase_id, {}) or {}).get("ties", {}) or {}
-    if tie_id not in ties:
-        raise SystemExit(f"confronto {tie_id!r} nao existe em phases.{phase_id}.ties")
-    legs = legs_for_format(PHASE_BY_ID[phase_id]["format"])
-    if leg not in legs:
-        raise SystemExit(f"perna {leg!r} invalida para {phase_id} (validas: {legs})")
-    tie = ties[tie_id]
-    m = (tie.get("matches") or {}).get(leg) or {}
-    if m.get("goalsHome") is None or m.get("goalsAway") is None:
-        raise SystemExit(f"{tie_id}:{leg} nao tem placar no estado -- nao ha e-mail de resultado a renderizar")
-    if tie_decided is None:
-        tie_decided = bool(tie.get("qualifiedTeamId")) and leg == legs[-1]
-    if tie_decided and not tie.get("qualifiedTeamId"):
-        raise SystemExit("--tie-decided pedido, mas o confronto nao tem qualifiedTeamId")
-    html = build_html(state, phase_id, tie_id, leg, tie_just_decided=tie_decided)
-    if out_path:
-        Path(out_path).write_text(html, encoding="utf-8")
-    # O assunto vem de subject_for() -> _subject_policy.assunto(), o mesmo do envio real.
-    return subject_for(phase_id, tie), html
-
-
-def _main_render(args):
-    idx = args.index("--render")
-    try:
-        phase_id, tie_id, leg = args[idx + 1], args[idx + 2], args[idx + 3]
-    except IndexError:
-        print("Usage: --render <phaseId> <tieId> <leg> --state-file <estado.json> --out <arquivo.html>")
-        sys.exit(1)
-
-    def _opt(name):
-        if name not in args:
-            return None
-        j = args.index(name)
-        if j + 1 >= len(args):
-            print(f"{name} precisa de um valor")
-            sys.exit(1)
-        return args[j + 1]
-    state_file, out = _opt("--state-file"), _opt("--out")
-    if not state_file or not out:
-        print("--render exige --state-file e --out (o dry-run nunca le o Supabase).")
-        sys.exit(1)
-    decided = True if "--tie-decided" in args else False if "--no-tie-decided" in args else None
-    subject, html = render_from_file(phase_id, tie_id, leg, state_file, out, tie_decided=decided)
-    print(f"DRY-RUN (nada enviado): assunto: {subject}")
-    print(f"  html: {out} ({len(html)} bytes)")
-
-
 # ── Correção de uma perna já gravada (2026-11-01) ─────────────────────────────────────────────
 #
 # `--send-leg <phaseId> <tieId> <leg> --note-file <aviso.html> [--only-entry <nome> | --all]`
@@ -1351,6 +1285,72 @@ def _send_leg(args):
         print(f"  ERROR: {err}")
     if errors:
         sys.exit(1)
+
+
+def subject_for(phase_id, tie):
+    e_o_campeao = phase_id == "final" and bool(tie.get("qualifiedTeamId"))
+    if e_o_campeao:
+        campeao = tie["teamA"] if tie["qualifiedTeamId"] == "A" else tie["teamB"]
+        return _subject_policy.assunto(
+            "FUTEBOL_RESULTADO_FINAL_CAMPEAO",
+            f"Resultado final — Copa do Brasil 2026: {campeao} campeão")
+    return _subject_policy.assunto(
+        "FUTEBOL_RESULTADO_PARCIAL",
+        f"Resultado Parcial — {tie['teamA']} × {tie['teamB']}")
+
+
+def render_from_file(phase_id, tie_id, leg, state_file, out_path, tie_decided=None):
+    """Dry-run puro: (assunto, html). Nunca envia, nunca grava fora de `out_path`."""
+    with open(state_file, encoding="utf-8") as f:
+        doc = json.load(f)
+    state = doc["state"] if isinstance(doc, dict) and isinstance(doc.get("state"), dict) else doc
+    if phase_id not in PHASE_BY_ID:
+        raise SystemExit(f"fase desconhecida: {phase_id!r}")
+    ties = (state.get("phases", {}).get(phase_id, {}) or {}).get("ties", {}) or {}
+    if tie_id not in ties:
+        raise SystemExit(f"confronto {tie_id!r} nao existe em phases.{phase_id}.ties")
+    legs = legs_for_format(PHASE_BY_ID[phase_id]["format"])
+    if leg not in legs:
+        raise SystemExit(f"perna {leg!r} invalida para {phase_id} (validas: {legs})")
+    tie = ties[tie_id]
+    m = (tie.get("matches") or {}).get(leg) or {}
+    if m.get("goalsHome") is None or m.get("goalsAway") is None:
+        raise SystemExit(f"{tie_id}:{leg} nao tem placar no estado -- nao ha e-mail de resultado a renderizar")
+    if tie_decided is None:
+        tie_decided = bool(tie.get("qualifiedTeamId")) and leg == legs[-1]
+    if tie_decided and not tie.get("qualifiedTeamId"):
+        raise SystemExit("--tie-decided pedido, mas o confronto nao tem qualifiedTeamId")
+    html = build_html(state, phase_id, tie_id, leg, tie_just_decided=tie_decided)
+    if out_path:
+        Path(out_path).write_text(html, encoding="utf-8")
+    # O assunto vem de subject_for() -> _subject_policy.assunto(), o mesmo do envio real.
+    return subject_for(phase_id, tie), html
+
+
+def _main_render(args):
+    idx = args.index("--render")
+    try:
+        phase_id, tie_id, leg = args[idx + 1], args[idx + 2], args[idx + 3]
+    except IndexError:
+        print("Usage: --render <phaseId> <tieId> <leg> --state-file <estado.json> --out <arquivo.html>")
+        sys.exit(1)
+
+    def _opt(name):
+        if name not in args:
+            return None
+        j = args.index(name)
+        if j + 1 >= len(args):
+            print(f"{name} precisa de um valor")
+            sys.exit(1)
+        return args[j + 1]
+    state_file, out = _opt("--state-file"), _opt("--out")
+    if not state_file or not out:
+        print("--render exige --state-file e --out (o dry-run nunca le o Supabase).")
+        sys.exit(1)
+    decided = True if "--tie-decided" in args else False if "--no-tie-decided" in args else None
+    subject, html = render_from_file(phase_id, tie_id, leg, state_file, out, tie_decided=decided)
+    print(f"DRY-RUN (nada enviado): assunto: {subject}")
+    print(f"  html: {out} ({len(html)} bytes)")
 
 
 # ── Main ──────────────────────────────────────────────────────────────────────
