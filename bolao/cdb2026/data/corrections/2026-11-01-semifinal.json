@@ -1,0 +1,39 @@
+{
+  "_o_que_e": "Correcao da semifinal aplicada por apply_correction.py (cdb2026_operator.yml, comando apply-correction). Cada operacao so roda se o banco estiver EXATAMENTE em expectBefore; depois de gravar, o estado e relido e comparado com expectAfter. Nunca envia e-mail.",
+  "id": "2026-11-01-semifinal",
+  "approvedBy": "Eduardo, 2026-11-01: o palpite da ida (Vasco x Palmeiras em 1/11) vale para o jogo de 1/11; corrigir a orientacao da semifinal",
+  "reason": "A CBF marcou a ida de Palmeiras x Vasco no Allianz (ESPN 401913105, 2026-11-01T19:00Z, Palmeiras 1 x 0 Vasco). O banco tinha Vasco em casa na ida e o sync por mandante gravou o 1-0 na VOLTA. Os horarios das quatro pernas eram provisorios (20:00Z).",
+  "operations": [
+    {
+      "op": "clear-leg", "phaseId": "semifinal", "tieId": "espn-palmeiras_vasco", "leg": "second",
+      "expectBefore": { "homeTeam": "Palmeiras", "awayTeam": "Vasco", "goalsHome": 1, "goalsAway": 0, "status": "FINAL", "resultSource": "espn-auto" },
+      "expectAfter": { "goalsHome": null, "goalsAway": null, "status": "SCHEDULED" }
+    },
+    {
+      "op": "save-leg", "phaseId": "semifinal", "tieId": "espn-palmeiras_vasco", "leg": "first",
+      "goalsHome": 0, "goalsAway": 1,
+      "_placar": "Vasco 0 x 1 Palmeiras na orientacao do bolao (ida: Vasco/teamA em casa) = Palmeiras 1 x 0 Vasco da ESPN",
+      "expectBefore": { "homeTeam": "Vasco", "awayTeam": "Palmeiras", "goalsHome": null, "goalsAway": null },
+      "expectAfter": { "homeTeam": "Vasco", "awayTeam": "Palmeiras", "goalsHome": 0, "goalsAway": 1, "status": "FINAL", "resultSource": "admin" }
+    },
+    {
+      "op": "kickoff", "phaseId": "semifinal", "tieId": "espn-palmeiras_vasco", "leg": "first",
+      "kickoff": "2026-11-01T19:00:00Z", "_espn": "401913105",
+      "expectBefore": { "kickoff": "2026-11-01T20:00:00+00:00" },
+      "expectAfter": { "kickoff": "2026-11-01T19:00:00Z" }
+    },
+    {
+      "op": "kickoff", "phaseId": "semifinal", "tieId": "espn-atletico-mg_gremio", "leg": "first",
+      "kickoff": "2026-11-01T21:30:00Z", "_espn": "401913109",
+      "expectBefore": { "kickoff": "2026-11-01T20:00:00+00:00" },
+      "expectAfter": { "kickoff": "2026-11-01T21:30:00Z" }
+    },
+    {
+      "op": "kickoff", "phaseId": "semifinal", "tieId": "espn-atletico-mg_gremio", "leg": "second",
+      "kickoff": "2026-11-07T21:00:00Z", "_espn": "401913108",
+      "expectBefore": { "kickoff": "2026-11-08T20:00:00+00:00" },
+      "expectAfter": { "kickoff": "2026-11-07T21:00:00Z" }
+    }
+  ],
+  "_nao_muda": "espn-palmeiras_vasco second continua 2026-11-08T20:00 (ESPN 401913107 confirma). teamA/teamB e palpites NAO mudam: a orientacao nominal do bolao e preservada e os gols sao gravados por time."
+}

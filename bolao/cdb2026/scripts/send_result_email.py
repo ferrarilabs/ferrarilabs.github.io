@@ -285,13 +285,18 @@ def _ref(op, *partes):
     return "cdb-results:" + op + ":" + ":".join(str(x) for x in partes)
 
 
-def sb_save_leg(phase_id, tie_id, leg, goals_home, goals_away, source="espn-auto"):
+def sb_save_leg(phase_id, tie_id, leg, goals_home, goals_away, source="espn-auto", event_key=None):
     """Grava UMA mao. O mando da volta (home=teamB) e calculado NO SERVIDOR a partir do confronto
-    gravado -- nao e enviado daqui, senao um cliente poderia declara-lo ao contrario."""
+    gravado -- nao e enviado daqui, senao um cliente poderia declara-lo ao contrario.
+
+    `event_key` (data do evento da ESPN) entra no client_ref: sem ele, a perna limpa depois de uma
+    gravacao errada nunca mais aceitaria o MESMO placar vindo do jogo certo (o servidor responde
+    {"applied": false} a um ref repetido)."""
+    partes = [phase_id, tie_id, leg, int(goals_home), int(goals_away)] + ([event_key] if event_key else [])
     status, _ = _sb_rpc("save-leg", {
         "phaseId": phase_id, "tieId": tie_id, "leg": leg,
         "goalsHome": int(goals_home), "goalsAway": int(goals_away), "resultSource": source,
-    }, _ref("save-leg", phase_id, tie_id, leg, int(goals_home), int(goals_away)))
+    }, _ref("save-leg", *partes))
     return status, None
 
 
@@ -859,6 +864,68 @@ def _default_ledger():
 
 
 # ── Auto mode ─────────────────────────────────────────────────────────────────
+def _kickoff_dt(iso):
+    try:
+        return datetime.fromisoformat(str(iso).replace("Z", "+00:00"))
+    except (ValueError, AttributeError, TypeError):
+        return None
+
+
+def espn_event_for_leg(candidates, tie, leg, legs, accept=lambda c: True):
+    """Evento da ESPN que corresponde a uma perna, e o placar na ORIENTACAO DO BOLAO.
+
+    Devolve (evento, gols_do_mandante_nominal, gols_do_visitante_nominal) ou (None, None, None).
+
+    O mando nominal do bolao (ida: teamA em casa; volta: teamB) e estrutura de palpite, nao o
+    mando real. Na semifinal de 2026 a CBF inverteu: Palmeiras x Vasco teve a ida no Allianz,
+    enquanto o bolao tinha Vasco em casa na ida. Casar por mandante gravou o placar da ida na volta
+    (2026-11-01) e deixou a ida vazia.
+
+    Com TODAS as pernas datadas (inclusive o jogo unico da final), casa pelo PAR de times e escolhe
+    a perna cuja data e a mais proxima do evento; o placar e traduzido pelo NOME do time, nunca pela posicao. Sem todas as
+    datas, a perna mais proxima nao e decidivel e vale a regra antiga (mandante igual, janela).
+    """
+    home = tie["teamB"] if leg == "second" else tie["teamA"]
+    away = tie["teamA"] if leg == "second" else tie["teamB"]
+    kicks = {l: _kickoff_dt((tie.get("matches", {}).get(l) or {}).get("kickoff")) for l in legs}
+    # Jogo unico (final): uma perna so, entao "a mais proxima" e ela mesma -- mas o mando real
+    # (definido pela CBF) pode ser o inverso do nominal do bolao, e o casamento tem de ser por par.
+    if all(kicks.values()):
+        par = {tie["teamA"], tie["teamB"]}
+        for c in candidates:
+            if {c["homeTeam"], c["awayTeam"]} != par or not accept(c):
+                continue
+            quando = _kickoff_dt(c.get("dateISO"))
+            if not quando:
+                continue
+            mais_perto = min(legs, key=lambda l: abs((quando - kicks[l]).total_seconds()))
+            if mais_perto != leg or not within_result_match_window(c["dateISO"], (tie["matches"][leg] or {}).get("kickoff")):
+                continue
+            if c["homeTeam"] == home:
+                return c, c.get("homeScore"), c.get("awayScore")
+            return c, c.get("awayScore"), c.get("homeScore")
+        return None, None, None
+    anchor = (tie.get("matches", {}).get(leg) or {}).get("kickoff") or next(
+        ((tie.get("matches", {}).get(l) or {}).get("kickoff") for l in legs
+         if (tie.get("matches", {}).get(l) or {}).get("kickoff")), None)
+
+    def _e_de_outra_perna(c):
+        # Sem data nesta perna, um jogo a menos de 48h do horario CONHECIDO de outra perna e o jogo
+        # daquela perna (mando invertido), nunca deste -- foi assim que a ida virou volta.
+        quando = _kickoff_dt(c.get("dateISO"))
+        return bool(quando) and any(
+            kicks[l] and abs((quando - kicks[l]).total_seconds()) < 48 * 3600
+            for l in legs if l != leg)
+
+    ev = next((c for c in candidates
+               if c["homeTeam"] == home and c["awayTeam"] == away and accept(c)
+               and within_result_match_window(c["dateISO"], anchor)
+               and (kicks[leg] or not _e_de_outra_perna(c))), None)
+    if not ev:
+        return None, None, None
+    return ev, ev.get("homeScore"), ev.get("awayScore")
+
+
 def _find_new_legs(state, espn_candidates):
     """Scans ONLY the active phase's ties (mirrors autoSyncEspnResults()' own scope in app.js —
     the phase the admin/ESPN sync currently considers 'live'), returns a list of
@@ -873,19 +940,15 @@ def _find_new_legs(state, espn_candidates):
     for tie_id, tie in ties.items():
         if not tie.get("teamA") or not tie.get("teamB"):
             continue
-        tie_kickoff_anchor = next((tie["matches"].get(l, {}).get("kickoff") for l in legs if tie["matches"].get(l, {}).get("kickoff")), None)
         for leg in legs:
             m = tie.get("matches", {}).get(leg) or {}
             if m.get("goalsHome") is not None:
                 continue  # already saved
-            home = tie["teamB"] if leg == "second" else tie["teamA"]
-            away = tie["teamA"] if leg == "second" else tie["teamB"]
-            ev = next((c for c in espn_candidates
-                       if c["homeTeam"] == home and c["awayTeam"] == away and c["homeScore"] is not None
-                       and within_result_match_window(c["dateISO"], m.get("kickoff") or tie_kickoff_anchor)), None)
+            ev, gh, ga = espn_event_for_leg(espn_candidates, tie, leg, legs,
+                                            accept=lambda c: c["homeScore"] is not None)
             if not ev:
                 continue
-            found.append((phase_id, tie_id, leg, ev["homeScore"], ev["awayScore"], ev))
+            found.append((phase_id, tie_id, leg, gh, ga, ev))
     return found
 
 
@@ -916,15 +979,12 @@ def _maybe_decide_tie(state, phase_id, tie_id, espn_candidates):
     # Aggregate tied — only decides via penalties if ESPN reports an explicit winner on the
     # decisive leg, never guessed (same as autoSyncEspnResults()).
     decisive_leg = "second" if fmt == "TWO_LEG" else "single"
-    decisive_home = tie["teamB"] if decisive_leg == "second" else tie["teamA"]
-    decisive_away = tie["teamA"] if decisive_leg == "second" else tie["teamB"]
-    anchor = tie["matches"].get(decisive_leg, {}).get("kickoff") or next((tie["matches"].get(l, {}).get("kickoff") for l in legs if tie["matches"].get(l, {}).get("kickoff")), None)
-    ev = next((c for c in espn_candidates if c["homeTeam"] == decisive_home and c["awayTeam"] == decisive_away
-               and within_result_match_window(c["dateISO"], anchor)), None)
+    ev, _, _ = espn_event_for_leg(espn_candidates, tie, decisive_leg, legs)
+    # O vencedor e o TIME que a ESPN marcou; o lado sai do nome, nao do mando nominal da perna.
     if ev and ev.get("homeWinner"):
-        return "A" if decisive_home == tie["teamA"] else "B"
+        return "A" if ev["homeTeam"] == tie["teamA"] else "B"
     if ev and ev.get("awayWinner"):
-        return "A" if decisive_away == tie["teamA"] else "B"
+        return "A" if ev["awayTeam"] == tie["teamA"] else "B"
     return None  # no explicit penalty-winner signal yet — stays for the admin's manual flow
 
 
@@ -1041,8 +1101,11 @@ def run_auto():
     confirmed = []
     for phase_id, tie_id, leg, gh, ga, ev in new_legs:
         home, away = ev["homeTeam"], ev["awayTeam"]
-        ev2 = next((c for c in espn_confirm if c["homeTeam"] == home and c["awayTeam"] == away and c["homeScore"] is not None), None)
-        if not ev2 or ev2["homeScore"] != gh or ev2["awayScore"] != ga:
+        # Mesmo evento (mesmos times, mesma data) na segunda leitura; compara o placar CRU da ESPN,
+        # nao o ja traduzido para a orientacao do bolao.
+        ev2 = next((c for c in espn_confirm if c["homeTeam"] == home and c["awayTeam"] == away
+                    and c["dateISO"] == ev["dateISO"] and c["homeScore"] is not None), None)
+        if not ev2 or ev2["homeScore"] != ev["homeScore"] or ev2["awayScore"] != ev["awayScore"]:
             print(f"  WARN {tie_id}:{leg}: result not stable across two checks — skipping for now, will retry next run.")
             continue
         real_ok, real_detail = audit_scoring.check_match_is_real(ev2["dateISO"], home, away)
@@ -1050,7 +1113,7 @@ def run_auto():
         if not (real_ok and shape_ok):
             print(f"  🛑 WARN {tie_id}:{leg}: failed runtime sanity check — {real_detail} {shape_detail} — skipping, will NOT save or email.")
             continue
-        confirmed.append((phase_id, tie_id, leg, gh, ga))
+        confirmed.append((phase_id, tie_id, leg, gh, ga, ev["dateISO"]))
 
     if not confirmed:
         print("No legs confirmed stable. Nothing to do this cycle.")
@@ -1058,13 +1121,13 @@ def run_auto():
 
     print(f"Confirmed stable: {[(t, l) for _, t, l, *_ in confirmed]}")
 
-    for i, (phase_id, tie_id, leg, gh, ga) in enumerate(confirmed):
+    for i, (phase_id, tie_id, leg, gh, ga, event_key) in enumerate(confirmed):
         tie_before = state["phases"][phase_id]["ties"][tie_id]
         home = tie_before["teamB"] if leg == "second" else tie_before["teamA"]
         away = tie_before["teamA"] if leg == "second" else tie_before["teamB"]
         print(f"\n[{tie_id}:{leg}] {home} {gh}–{ga} {away}")
 
-        sb_status, _ = sb_save_leg(phase_id, tie_id, leg, gh, ga, source="espn-auto")
+        sb_status, _ = sb_save_leg(phase_id, tie_id, leg, gh, ga, source="espn-auto", event_key=event_key)
         print(f"  Supabase (leg save): {sb_status}")
 
         # O estado vem do SERVIDOR depois de cada mutacao -- nunca do retorno do gravador.
