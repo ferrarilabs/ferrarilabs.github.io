@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.copa_do_brazil",
   "provider": "espn",
-  "generatedAt": "2026-10-28T08:43:29Z",
-  "sourceUpdatedAt": "2026-10-28T08:43:29Z",
+  "generatedAt": "2026-11-01T20:39:38Z",
+  "sourceUpdatedAt": "2026-11-01T20:39:38Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "3f744ef92e7e9ca95dabac894230bcc5ba311f1a1fb2d5c57113661426d22b44",
+  "payloadHash": "66c76192bfa71e0c4ace455a441d730629b38cf456b32d1c78074d27a0ac3f22",
   "matches": [
     {
       "id": "401858546",
@@ -13753,26 +13753,160 @@
     {
       "id": "401913105",
       "date": "2026-11-01T19:00Z",
-      "state": "pre",
-      "statusName": "STATUS_SCHEDULED",
-      "statusDescription": "Scheduled",
-      "statusShortDetail": "Scheduled",
-      "statusDetail": "Sun, November 1st at 2:00 PM EST",
+      "state": "in",
+      "statusName": "STATUS_SECOND_HALF",
+      "statusDescription": "Second Half",
+      "statusShortDetail": "79'",
+      "statusDetail": "79'",
       "completed": false,
       "homeTeam": "Palmeiras",
       "awayTeam": "Vasco",
       "homeTeamId": "2029",
       "awayTeamId": "3454",
-      "homeScore": 0,
+      "homeScore": 1,
       "awayScore": 0,
       "homeWinner": false,
       "awayWinner": false,
       "venue": "Allianz Parque",
       "city": "Sao Paulo",
-      "clockSec": 0.0,
-      "clockStr": "0'",
-      "period": null,
-      "details": []
+      "clockSec": 4740.0,
+      "clockStr": "79'",
+      "period": 2,
+      "details": [
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "3454"
+          },
+          "clock": {
+            "value": 1286.0,
+            "displayValue": "22'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Alan Lescano",
+              "shortName": "A. Lescano"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Goal"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "2029"
+          },
+          "clock": {
+            "value": 1426.0,
+            "displayValue": "24'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Maurício",
+              "shortName": "Maurício"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "3454"
+          },
+          "clock": {
+            "value": 1771.0,
+            "displayValue": "30'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Alan Saldivia",
+              "shortName": "A. Saldivia"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "3454"
+          },
+          "clock": {
+            "value": 2167.0,
+            "displayValue": "37'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Lucas Piton",
+              "shortName": "L. Piton"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "2029"
+          },
+          "clock": {
+            "value": 2700.0,
+            "displayValue": "45'+1'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Lucas Evangelista",
+              "shortName": "L. Evangelista"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "2029"
+          },
+          "clock": {
+            "value": 3976.0,
+            "displayValue": "67'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Alexander Barboza",
+              "shortName": "A. Barboza"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Red Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "3454"
+          },
+          "clock": {
+            "value": 4612.0,
+            "displayValue": "77'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Alan Saldivia",
+              "shortName": "A. Saldivia"
+            }
+          ]
+        }
+      ]
     },
     {
       "id": "401913109",
@@ -13828,8 +13962,8 @@
       "state": "pre",
       "statusName": "STATUS_SCHEDULED",
       "statusDescription": "Scheduled",
-      "statusShortDetail": "TBD",
-      "statusDetail": "TBD",
+      "statusShortDetail": "Scheduled",
+      "statusDetail": "Sun, November 8th at 3:00 PM EST",
       "completed": false,
       "homeTeam": "Vasco",
       "awayTeam": "Palmeiras",
@@ -13839,8 +13973,8 @@
       "awayScore": 0,
       "homeWinner": false,
       "awayWinner": false,
-      "venue": null,
-      "city": "",
+      "venue": "Estádio São Januário",
+      "city": "Rio de Janeiro",
       "clockSec": 0.0,
       "clockStr": "0'",
       "period": null,
