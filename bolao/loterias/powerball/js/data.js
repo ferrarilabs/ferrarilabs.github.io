@@ -860,6 +860,61 @@ window.POWERBALL_DRAWS = [
       ajustesPendentes: 0
     },
 
+    result: {
+      numbers: [2, 4, 18, 50, 56],
+      special: 20,
+      multiplier: 3,
+      checkedAt: "01/11/2026 07:05 ET",
+      premiosGanhos: 36,
+      jackpotHit: false,
+      breakdown: ["2x Powerball", "1x 1 + Powerball"]
+    },
+    profit: null
+  },
+  {
+    id: "2026-11-02",
+    gameType: "powerball",
+    status: "planejamento",
+    createdAt: "2026-11-01T07:19:40-05:00",
+    previousDrawId: "2026-10-31",
+
+    drawing: {
+      name: "Powerball Jackpot",
+      // jackpot/cashValue sao publicados pela loteria; ficam null ate serem informados.
+      jackpot: 793000000,
+      cashValue: 339900000,
+      jackpotSource: "powerball_official",
+      jackpotFetchedAt: "2026-11-01T12:19:00Z",
+      jackpotDrawId: "2026-11-02",
+      drawDateIso: "2026-11-02T22:59:00-05:00",
+      drawDateLabel: "02/11/2026 22:59 ET"
+    },
+
+    // BOLAO ABERTO. Cota do organizador; os pagamentos entram conforme chegam (Zelle/Venmo/
+    // Cash App), referencias de transacao apenas no registro privado, nunca aqui.
+    participants: [
+      { name: "Eduardo Ferrari", cotas: 1, valor: 10, metodo: "Fundo próprio (organizador)", data: "01/11/2026", hora: "7:19:40 AM", status: "organizador", state: "NC" }
+    ],
+
+    // Sem bilhetes ainda. Os numeros entram depois da compra -- abrir o bolao nunca dependeu
+    // de ja existirem jogos.
+    sharedTickets: {
+      compradoPor: null,
+      dataComprovante: null,
+      valorPorTicket: 3,
+      series: []
+    },
+
+    finance: {
+      totalArrecadado: 10, // 1 participante(s), soma das contribuicoes no banco
+      // Premio do sorteio anterior (US$36) + o que ficou guardado (US$2). Derivado do que esta
+      // gravado, nao arbitrado aqui.
+      creditoSorteioAnterior: 38,
+      valorUtilizado: 0,
+      valorGuardadoProximoSorteio: 0,
+      ajustesPendentes: 0
+    },
+
     result: null,
     profit: null
   }
