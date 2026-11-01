@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-01T10:22:48Z",
+  "generatedAt": "2026-11-01T12:19:59Z",
   "threshold": {
     "minJackpotCents": 50000000000,
     "comparison": "strictly_greater",
@@ -16,7 +16,7 @@
       "nextDrawAt": "2026-11-03T03:59:00Z",
       "source": "https://www.powerball.com/",
       "verificationState": "PRIMARY_CONFIRMED",
-      "fetchedAt": "2026-11-01T10:22:48Z",
+      "fetchedAt": "2026-11-01T12:19:59Z",
       "sourceHash": "7b033fb19b8aaf3e",
       "eligible": true,
       "state": "ELIGIBLE",
@@ -31,7 +31,7 @@
       "nextDrawAt": "2026-11-04T04:00:00Z",
       "source": "https://www.megamillions.com/cmspages/utilservice.asmx/GetLatestDrawData",
       "verificationState": "PRIMARY_CONFIRMED",
-      "fetchedAt": "2026-11-01T10:22:48Z",
+      "fetchedAt": "2026-11-01T12:19:59Z",
       "sourceHash": "0bac7601b53a7946",
       "eligible": false,
       "state": "BELOW_THRESHOLD",
@@ -45,15 +45,15 @@
     "drawDate": "2026-11-02"
   },
   "funds": {
-    "lastDrawWinningsCents": 3000,
-    "lastDrawId": "2026-10-28",
-    "carryoverAvailableCents": 3200,
-    "ledgerEntries": 9
+    "lastDrawWinningsCents": 3600,
+    "lastDrawId": "2026-10-31",
+    "carryoverAvailableCents": 3800,
+    "ledgerEntries": 14
   },
   "currentDraw": {
-    "id": "2026-10-31",
-    "lifecycleState": "AWAITING_RESULT",
-    "reason": "o sorteio já ocorreu; aguardando publicação oficial",
+    "id": "2026-11-02",
+    "lifecycleState": "OPEN",
+    "reason": "recolhendo contribuições",
     "result": null
   },
   "autoPurchase": false,
