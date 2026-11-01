@@ -73,11 +73,12 @@ class Banco:
             m.update({"homeTeam": tie["teamB"] if p["leg"] == "second" else tie["teamA"],
                       "awayTeam": tie["teamA"] if p["leg"] == "second" else tie["teamB"],
                       "goalsHome": p["goalsHome"], "goalsAway": p["goalsAway"], "status": "FINAL",
-                      "resultSource": p.get("resultSource", "espn-auto")})
+                      })  # a releitura do servidor nao devolve resultSource (visto em 2026-11-01)
         elif tipo == "clear-leg":
             m.update({"goalsHome": None, "goalsAway": None, "status": "SCHEDULED"})
         elif tipo == "backfill-kickoff":
-            m["kickoff"] = p["kickoff"]
+            # O servidor guarda timestamptz: devolve "+00:00", nao "Z" (visto em 2026-11-01).
+            m["kickoff"] = p["kickoff"].replace("Z", "+00:00")
         else:
             raise AssertionError(f"mutacao inesperada {tipo}")
         return 200, {"applied": True}
@@ -105,9 +106,9 @@ def _plano_leva_ao_estado_certo():
     _assert((pv["first"]["goalsHome"], pv["first"]["goalsAway"]) == (0, 1), f"ida: {pv['first']}")
     _assert(pv["first"]["homeTeam"] == "Vasco" and pv["first"]["awayTeam"] == "Palmeiras", pv["first"])
     _assert(pv["second"]["goalsHome"] is None and pv["second"]["status"] == "SCHEDULED", f"volta: {pv['second']}")
-    _assert(pv["first"]["kickoff"] == "2026-11-01T19:00:00Z", pv["first"]["kickoff"])
+    _assert(pv["first"]["kickoff"] == "2026-11-01T19:00:00+00:00", pv["first"]["kickoff"])
     _assert(pv["second"]["kickoff"] == "2026-11-08T20:00:00+00:00", "a volta de Vasco x Palmeiras nao devia mudar")
-    _assert(gr["first"]["kickoff"] == "2026-11-01T21:30:00Z" and gr["second"]["kickoff"] == "2026-11-07T21:00:00Z", gr)
+    _assert(gr["first"]["kickoff"] == "2026-11-01T21:30:00+00:00" and gr["second"]["kickoff"] == "2026-11-07T21:00:00+00:00", gr)
     _assert(gr["first"]["goalsHome"] is None and gr["second"]["goalsHome"] is None, "tocou placar do Gremio")
     _assert(len(b.rpc) == 5, f"esperava 5 mutacoes, houve {len(b.rpc)}")
 
