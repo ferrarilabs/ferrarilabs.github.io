@@ -904,7 +904,8 @@ window.POWERBALL_DRAWS = [
       { name: "Ewerton Gruba Silva", cotas: 1, valor: 10, metodo: "Zelle", data: "01/11/2026", hora: "2:39:17 PM", status: "verificado", state: "NC" },
       { name: "Thiago Locatelli", cotas: 1, valor: 10, metodo: "Zelle", data: "01/11/2026", hora: "3:04:09 PM", status: "verificado", state: "TX" },
       { name: "Simone Hirle da Costa", cotas: 1, valor: 10, metodo: "Venmo", data: "01/11/2026", hora: "3:07:26 PM", status: "verificado", state: "NC" },
-      { name: "Marcelo G de Jesus", cotas: 1, valor: 10, metodo: "Zelle", data: "01/11/2026", hora: "3:37:53 PM", status: "verificado", state: "FL" }
+      { name: "Marcelo G de Jesus", cotas: 1, valor: 10, metodo: "Zelle", data: "01/11/2026", hora: "3:37:53 PM", status: "verificado", state: "FL" },
+      { name: "Samuel Huller", cotas: 1, valor: 10, metodo: "Zelle", data: "02/11/2026", hora: "1:18:08 PM", status: "verificado", state: "NC" }
     ],
 
     sharedTickets: {
@@ -947,7 +948,7 @@ window.POWERBALL_DRAWS = [
     // do sorteio anterior (2026-10-31) = US$158 disponivel — sobra US$2. Referencia de
     // transacao fica so no comprovante privado, nunca aqui.
     finance: {
-      totalArrecadado: 120, // 12 participante(s), soma das contribuicoes no banco
+      totalArrecadado: 130, // 13 participante(s), soma das contribuicoes no banco
       // Premio do sorteio anterior (US$36) + o que ficou guardado (US$2). Derivado do que esta
       // gravado, nao arbitrado aqui.
       creditoSorteioAnterior: 38,
