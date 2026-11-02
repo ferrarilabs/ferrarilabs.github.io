@@ -948,20 +948,26 @@ window.POWERBALL_DRAWS = [
             "02-10-27-35-40 — PB 18", "04-06-51-55-65 — PB 01", "07-29-58-64-66 — PB 10",
             "11-17-22-34-38 — PB 06"
           ]
+        },
+        {
+          serial: "2E1A0A927A7B91003", qtd: 3, jogos: "57–59",
+          numeros: [
+            "01-32-42-61-66 — PB 02", "03-30-38-59-69 — PB 24", "21-22-40-49-54 — PB 07"
+          ]
         }
       ]
     },
 
-    // 56 tickets (50 + 2 + 4) x US$3 (Power Play) = US$168. Arrecadado US$140 + credito de US$38
-    // do sorteio anterior (2026-10-31) = US$178 disponivel — US$10 ainda nao jogados. Referencia de
+    // 59 tickets (50 + 2 + 4 + 3) x US$3 (Power Play) = US$177. Arrecadado US$140 + credito de US$38
+    // do sorteio anterior (2026-10-31) = US$178 disponivel — sobra US$1. Referencia de
     // transacao fica so no comprovante privado, nunca aqui.
     finance: {
       totalArrecadado: 140, // 14 participante(s), soma das contribuicoes no banco
       // Premio do sorteio anterior (US$36) + o que ficou guardado (US$2). Derivado do que esta
       // gravado, nao arbitrado aqui.
       creditoSorteioAnterior: 38,
-      valorUtilizado: 168,
-      valorGuardadoProximoSorteio: 10,
+      valorUtilizado: 177,
+      valorGuardadoProximoSorteio: 1,
       ajustesPendentes: 0
     },
 
