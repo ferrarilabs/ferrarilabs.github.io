@@ -43,12 +43,24 @@ const PATTERNS = [
   [/rest\/v1\/\$\{table\}`[\s\S]{0,200}?resolution=merge-duplicates/, "whole-document upsert via cfg.table"],
 ];
 
+// Excecao NOMINAL e temporaria. O defeito que este gate previne e a falta de token de
+// concorrencia; toda RPC que grava bolao_state faz `updated_at = now()`, entao um PATCH filtrado
+// por `updated_at=eq.<lido>` atinge 0 linhas se qualquer outro gravador escreveu no meio. O arquivo
+// so e aceito se contiver esse filtro. Sai junto com o script quando ele for aposentado.
+const EXCEPTIONS = new Map([
+  ["cdb2026/scripts/fix_gabriel_sf_final_picks_20261102.py",
+   "2026-11-02: slots virtuais sf-1/sf-2/final-1 so existem no documento e nao ha RPC de operador " +
+   "para palpite; acao unica autorizada pelo Eduardo, condicionada a updated_at"],
+]);
+const CONDITIONAL_WRITE = /id=eq\.cdb2026&updated_at=eq\./;
 const hits = [];
 for (const f of walk(ROOT)) {
+  const rel = f.replace(ROOT + "/", "");
   const src = strip(readFileSync(f, "utf8"), f.endsWith(".py"));
+  if (EXCEPTIONS.has(rel) && CONDITIONAL_WRITE.test(src)) continue;
   for (const [re, why] of PATTERNS) {
     const m = src.match(re);
-    if (m) hits.push({ file: f.replace(ROOT + "/", ""), why });
+    if (m) hits.push({ file: rel, why });
   }
 }
 

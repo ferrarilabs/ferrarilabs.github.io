@@ -34,6 +34,7 @@ import os
 import sys
 import urllib.parse
 import urllib.request
+from datetime import datetime, timezone
 
 SUPABASE = "https://cmhqkkfczotdnssupkni.supabase.co"
 GABRIEL_ID = "2a0eb9e8-7210-4645-aa45-016f7abfa776"
@@ -149,8 +150,11 @@ def main():
         print("\n  DRY RUN — nada gravado.")
         return 0
 
+    # Token de concorrência: toda RPC que grava bolao_state faz updated_at = now(). Se alguém
+    # escreveu depois da leitura, o filtro não casa e nada é gravado.
+    agora = datetime.now(timezone.utc).isoformat()
     filtro = "id=eq.cdb2026&updated_at=eq." + urllib.parse.quote(updated_at, safe="")
-    _, linhas = _req("PATCH", f"/rest/v1/bolao_state?{filtro}", {"state": novo},
+    _, linhas = _req("PATCH", f"/rest/v1/bolao_state?{filtro}", {"state": novo, "updated_at": agora},
                      prefer="return=representation")
     if not linhas or len(linhas) != 1:
         print("🛑 documento mudou entre a leitura e a escrita (0 linhas). Nada gravado; rode de novo.")
