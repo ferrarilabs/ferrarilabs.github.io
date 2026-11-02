@@ -907,22 +907,52 @@ window.POWERBALL_DRAWS = [
       { name: "Marcelo G de Jesus", cotas: 1, valor: 10, metodo: "Zelle", data: "01/11/2026", hora: "3:37:53 PM", status: "verificado", state: "FL" }
     ],
 
-    // Sem bilhetes ainda. Os numeros entram depois da compra -- abrir o bolao nunca dependeu
-    // de ja existirem jogos.
     sharedTickets: {
-      compradoPor: null,
-      dataComprovante: null,
-      valorPorTicket: 3,
-      series: []
+      compradoPor: "Eduardo Ferrari (organizador)",
+      dataComprovante: "02/11/2026",
+      valorPorTicket: 3, // Power Play
+      series: [
+        {
+          serial: "29A4C06AFA902E02A", qtd: 50, jogos: "1–50",
+          numeros: [
+            "01-12-19-62-68 — PB 03", "01-15-44-58-69 — PB 11", "01-21-28-46-59 — PB 06",
+            "01-33-52-53-60 — PB 22", "02-09-41-44-54 — PB 12", "02-18-29-55-59 — PB 24",
+            "02-31-36-43-60 — PB 03", "03-13-20-32-63 — PB 18", "03-17-31-50-52 — PB 26",
+            "03-23-26-34-54 — PB 01", "03-29-40-56-60 — PB 12", "04-10-47-49-56 — PB 09",
+            "04-11-35-54-64 — PB 24", "04-24-31-38-63 — PB 09", "05-07-33-34-68 — PB 23",
+            "05-10-36-61-69 — PB 26", "05-25-38-53-66 — PB 08", "05-39-58-60-62 — PB 15",
+            "06-12-45-47-54 — PB 05", "06-15-25-41-46 — PB 16", "06-22-23-35-62 — PB 19",
+            "07-18-42-51-63 — PB 11", "07-20-48-59-62 — PB 25", "07-23-24-45-52 — PB 20",
+            "08-11-31-32-39 — PB 10", "08-12-44-53-67 — PB 15", "08-13-46-48-49 — PB 19",
+            "08-16-37-57-63 — PB 21", "09-14-39-40-61 — PB 13", "09-22-48-50-57 — PB 10",
+            "09-30-33-55-58 — PB 22", "10-17-55-66-67 — PB 21", "11-13-24-37-50 — PB 14",
+            "12-20-30-37-65 — PB 04", "13-16-39-52-56 — PB 08", "14-21-27-44-51 — PB 04",
+            "14-30-43-47-68 — PB 16", "14-42-45-65-67 — PB 01", "15-19-29-34-42 — PB 07",
+            "15-26-30-48-67 — PB 13", "16-21-25-36-47 — PB 14", "16-26-28-41-49 — PB 17",
+            "17-26-43-64-65 — PB 25", "18-21-45-53-56 — PB 07", "18-23-57-58-61 — PB 20",
+            "19-24-28-66-69 — PB 02", "19-27-32-46-65 — PB 06", "20-38-41-43-57 — PB 23",
+            "22-27-59-61-64 — PB 05", "25-28-33-50-51 — PB 18"
+          ]
+        },
+        {
+          serial: "266E9C1CF29A371B1", qtd: 2, jogos: "51–52",
+          numeros: [
+            "32-37-40-68-69 — PB 02", "35-36-42-49-55 — PB 17"
+          ]
+        }
+      ]
     },
 
+    // 52 tickets (50 + 2) x US$3 (Power Play) = US$156. Arrecadado US$120 + credito de US$38
+    // do sorteio anterior (2026-10-31) = US$158 disponivel — sobra US$2. Referencia de
+    // transacao fica so no comprovante privado, nunca aqui.
     finance: {
       totalArrecadado: 120, // 12 participante(s), soma das contribuicoes no banco
       // Premio do sorteio anterior (US$36) + o que ficou guardado (US$2). Derivado do que esta
       // gravado, nao arbitrado aqui.
       creditoSorteioAnterior: 38,
-      valorUtilizado: 0,
-      valorGuardadoProximoSorteio: 0,
+      valorUtilizado: 156,
+      valorGuardadoProximoSorteio: 2,
       ajustesPendentes: 0
     },
 
