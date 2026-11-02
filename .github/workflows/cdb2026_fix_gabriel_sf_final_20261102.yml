@@ -1,0 +1,39 @@
+# Ação ÚNICA de operador: grava os placares de semifinal/final do Gabriel Ferrari copiados do
+# Eduardo (autorizado em 2026-11-02; completa a entrada manual de 2026-08-26). Não envia e-mail.
+name: CDB2026 — completar palpites do Gabriel (semi/final, 2026-11-02)
+
+on:
+  workflow_dispatch:
+    inputs:
+      acao:
+        description: "dry-run (só leitura) ou apply"
+        required: true
+        default: dry-run
+        type: choice
+        options: [dry-run, apply]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cdb2026-operator
+  cancel-in-progress: false
+
+jobs:
+  rodar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+      - name: Executar
+        env:
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          ACAO: ${{ inputs.acao }}
+        run: |
+          if [ "$ACAO" = "apply" ]; then
+            python3 bolao/cdb2026/scripts/fix_gabriel_sf_final_picks_20261102.py --apply
+          else
+            python3 bolao/cdb2026/scripts/fix_gabriel_sf_final_picks_20261102.py --dry-run
+          fi
