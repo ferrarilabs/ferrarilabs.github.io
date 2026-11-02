@@ -122,3 +122,36 @@ jobs:
           esac
           echo "node bolao/shared/scripts/produce_live_cache.mjs$ARGS"
           node bolao/shared/scripts/produce_live_cache.mjs $ARGS
+
+  # 2026-11-01: o cron de 10 min do `cdb2026_result_emails.yml` foi acordado pelo GitHub ~4 vezes
+  # por dia, e Gremio 2x0 Atletico-MG terminou sem nenhuma execucao (salvo e enviado a mao 1h30
+  # depois). Este workflow e acordado de 5 em 5 minutos pela Cloudflare, entao ele vira o relogio
+  # do e-mail de resultado. Este job NAO envia e-mail: le a projecao publica e, so se houver
+  # perna SEM placar com kickoff entre 4h atras e 5 min a frente e nenhuma execucao do e-mail
+  # ativa, dispara o `--auto`, que continua decidindo sozinho o que gravar e enviar.
+  aciona-email-resultado-cdb2026:
+    name: Aciona o e-mail de resultado do CDB2026 perto de jogo
+    if: github.event_name != 'workflow_dispatch' || inputs.dry_run != true
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    permissions:
+      contents: read
+      actions: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Decide e aciona
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          DECISAO=$(python3 bolao/cdb2026/scripts/should_kick_result_emails.py)
+          echo "$DECISAO"
+          case "$DECISAO" in KICK*) ;; *) exit 0 ;; esac
+          ATIVAS=$(gh run list -R "$GITHUB_REPOSITORY" --workflow cdb2026_result_emails.yml -L 20 \
+            --json status -q '[.[] | select(.status != "completed")] | length')
+          if [ "$ATIVAS" != "0" ]; then
+            echo "Ja ha $ATIVAS execucao(oes) do e-mail de resultado ativa(s); nao aciono outra."
+            exit 0
+          fi
+          gh workflow run cdb2026_result_emails.yml -R "$GITHUB_REPOSITORY" --ref main
+          echo "cdb2026_result_emails.yml acionado."
