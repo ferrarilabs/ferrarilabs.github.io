@@ -1,0 +1,91 @@
+name: Bolão CDB2026 — E-mail de correção de uma perna (manual)
+
+# POR QUE ESTE WORKFLOW EXISTE (2026-11-01)
+# A ida da semifinal Palmeiras x Vasco foi gravada na volta e saiu e-mail errado aos participantes.
+# Corrigido o dado (cdb2026_operator.yml apply-correction), a ida ja esta salva: o --auto nunca a
+# redescobre, e o modo manual do cdb2026_result_emails.yml grava de novo E envia o "ultimo" resultado,
+# que nao e necessariamente esta perna. Este workflow so ENVIA o e-mail de UMA perna ja gravada, com
+# um aviso de correcao versionado no topo (send_result_email.py --send-leg).
+#
+# So workflow_dispatch, nunca cron. Padrao e TESTE: so para a entrada `only_entry`, assunto [TESTE],
+# sem ledger. Para todos exige `send_to_all` marcado E `confirm` = ENVIAR PARA TODOS; ai registra no
+# ledger e RECUSA se a perna ja tiver entrega registrada.
+on:
+  workflow_dispatch:
+    inputs:
+      phase_id:
+        description: "Fase (ex.: semifinal)"
+        required: true
+        type: string
+      tie_id:
+        description: "Confronto (ex.: espn-palmeiras_vasco)"
+        required: true
+        type: string
+      leg:
+        description: "Perna"
+        required: true
+        type: choice
+        options: [first, second, single]
+      note_file:
+        description: "Aviso de correcao (HTML) em bolao/cdb2026/data/corrections/"
+        required: true
+        type: string
+      only_entry:
+        description: "TESTE: nome da entrada que recebe (ignorado se send_to_all)"
+        required: false
+        default: "Eduardo Ferrari"
+        type: string
+      send_to_all:
+        description: "Enviar para TODOS os participantes"
+        required: false
+        default: false
+        type: boolean
+      confirm:
+        description: "Para todos: digite ENVIAR PARA TODOS"
+        required: false
+        default: ""
+        type: string
+
+concurrency:
+  group: cdb2026-result-emails
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Envia a correcao
+        working-directory: bolao/cdb2026/scripts
+        env:
+          BOLAO_ALLOW_REAL_SEND: "I UNDERSTAND"
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          CDB_ACTOR: "workflow:cdb2026_result_correction"
+          FASE: ${{ inputs.phase_id }}
+          TIE: ${{ inputs.tie_id }}
+          LEG: ${{ inputs.leg }}
+          NOTA: ${{ inputs.note_file }}
+          SO: ${{ inputs.only_entry }}
+          TODOS: ${{ inputs.send_to_all }}
+          CONFIRMA: ${{ inputs.confirm }}
+        run: |
+          set -euo pipefail
+          if [ -f ../EMAIL_KILL_SWITCH ]; then
+            echo "🛑 CDB_EMAIL_KILL_SWITCH ATIVO — nada enviado."; exit 1
+          fi
+          case "$NOTA" in
+            bolao/cdb2026/data/corrections/*.html) ;;
+            *) echo "::error::aviso fora de bolao/cdb2026/data/corrections/"; exit 1 ;;
+          esac
+          case "$NOTA" in *..*) echo "::error::caminho com '..'"; exit 1 ;; esac
+          if [ "$TODOS" = "true" ]; then
+            [ "$CONFIRMA" = "ENVIAR PARA TODOS" ] || { echo "::error::send_to_all exige confirm = ENVIAR PARA TODOS"; exit 1; }
+            python3 send_result_email.py --send-leg "$FASE" "$TIE" "$LEG" --note-file "../../../$NOTA" --all
+          else
+            python3 send_result_email.py --send-leg "$FASE" "$TIE" "$LEG" --note-file "../../../$NOTA" --only-entry "$SO"
+          fi

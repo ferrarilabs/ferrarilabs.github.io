@@ -227,7 +227,9 @@ def _ref_de_idempotencia():
     c = Cenario(carregar(), estado(), [candidato("Cruzeiro", "Atlético-MG", 1, 1, KICK_1)])
     c.rodar()
     ref = next(r for o, _, r in c.rpc if o == "save-leg")
-    _assert(ref == "cdb-results:save-leg:quartas:espn-atletico-mg_cruzeiro:first:1:1",
+    # Prefixo canonico de producao + a data do evento da ESPN (2026-11-01): sem ela, uma perna
+    # limpa depois de gravacao errada recusaria para sempre o mesmo placar vindo do jogo certo.
+    _assert(ref == f"cdb-results:save-leg:quartas:espn-atletico-mg_cruzeiro:first:1:1:{KICK_1}",
             f"clientRef fora do formato canonico de producao: {ref}")
 
 test("o clientRef da gravacao e o mesmo que producao registrou na auditoria", _ref_de_idempotencia)
@@ -317,8 +319,8 @@ def _controle_negativo():
     removido. A mutacao vive so nesta string; o arquivo do repositorio nunca e tocado.
     """
     mutado = _FONTE.replace(
-        'sb_status, _ = sb_save_leg(phase_id, tie_id, leg, gh, ga, source="espn-auto")',
-        'sb_status, state = sb_save_leg(phase_id, tie_id, leg, gh, ga, source="espn-auto")', 1)
+        'sb_status, _ = sb_save_leg(phase_id, tie_id, leg, gh, ga, source="espn-auto", event_key=event_key)',
+        'sb_status, state = sb_save_leg(phase_id, tie_id, leg, gh, ga, source="espn-auto", event_key=event_key)', 1)
     _assert(mutado != _FONTE, "a mutacao nao alterou a chamada — o alvo do controle negativo mudou de forma")
     # E remove a releitura que a correcao introduziu, restaurando o comportamento de producao quebrada.
     marca = "        state = sb_fetch()\n\n        qualified = _maybe_decide_tie("
