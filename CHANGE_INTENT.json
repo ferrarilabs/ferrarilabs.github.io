@@ -1,0 +1,13 @@
+{
+  "declarations": [
+    {
+      "surface_id": "NOTIFICATION_WORKFLOWS",
+      "reason": "A correcao de uso unico do Gabriel (#514) foi aplicada em 2026-11-02 e verificada (servidor e site: Gabriel 105).",
+      "expected_behavior_change": "Remove cdb2026_fix_gabriel_sf_final_20261102.yml, o script dele e a excecao nominal no gate no-whole-document-writers, que volta a ser identico ao de antes do #514. Nenhum outro workflow muda.",
+      "tests_required": [
+        "email-send-safety",
+        "no-whole-document-writers"
+      ]
+    }
+  ]
+}
