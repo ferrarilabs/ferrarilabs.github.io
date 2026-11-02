@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-02T01:00:35Z",
+  "generatedAt": "2026-11-02T18:39:08Z",
   "threshold": {
     "minJackpotCents": 50000000000,
     "comparison": "strictly_greater",
@@ -14,10 +14,10 @@
       "cashValueCents": 33990000000,
       "nextDrawDate": "2026-11-02",
       "nextDrawAt": "2026-11-03T03:59:00Z",
-      "source": "https://nclottery.com/powerball",
-      "verificationState": "SECONDARY_ONLY",
-      "fetchedAt": "2026-11-02T01:00:35Z",
-      "sourceHash": "13d3d54d4becd2d2",
+      "source": "https://www.powerball.com/",
+      "verificationState": "PRIMARY_CONFIRMED",
+      "fetchedAt": "2026-11-02T18:39:08Z",
+      "sourceHash": "3031b53239e7d55b",
       "eligible": true,
       "state": "ELIGIBLE",
       "error": null
@@ -31,7 +31,7 @@
       "nextDrawAt": "2026-11-04T04:00:00Z",
       "source": "https://www.megamillions.com/cmspages/utilservice.asmx/GetLatestDrawData",
       "verificationState": "PRIMARY_CONFIRMED",
-      "fetchedAt": "2026-11-02T01:00:35Z",
+      "fetchedAt": "2026-11-02T18:39:08Z",
       "sourceHash": "0bac7601b53a7946",
       "eligible": false,
       "state": "BELOW_THRESHOLD",
@@ -52,8 +52,8 @@
   },
   "currentDraw": {
     "id": "2026-11-02",
-    "lifecycleState": "OPEN",
-    "reason": "recolhendo contribuições",
+    "lifecycleState": "LOCKED",
+    "reason": "bilhetes comprados; entradas encerradas",
     "result": null
   },
   "autoPurchase": false,
