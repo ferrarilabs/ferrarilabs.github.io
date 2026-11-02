@@ -367,9 +367,6 @@ const UNSCHEDULED = new Map([
   ["cdb2026_result_correction.yml",
    "E-mail de CORRECAO de uma perna ja gravada (2026-11-01). So existe por decisao humana depois de " +
    "um dado corrigido; agendar isto seria reenviar e-mail a participantes por relogio."],
-  ["cdb2026_fix_gabriel_sf_final_20261102.yml",
-   "Acao UNICA de operador (2026-11-02): grava os placares de semi/final do Gabriel copiados do " +
-   "Eduardo. Uma correcao de dado autorizada nao tem cadencia; e aposentada depois de aplicada."],
   ["cdb2026_operator.yml",
    "Operacao de operador do CDB2026 (snapshot, sorteio oficial, abertura de palpites). E disparada " +
    "por uma DECISAO humana -- aplicar um sorteio oficial nao tem cadencia. Agendar isto seria " +
