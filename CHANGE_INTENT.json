@@ -1,0 +1,13 @@
+{
+  "declarations": [
+    {
+      "surface_id": "NOTIFICATION_WORKFLOWS",
+      "reason": "2026-11-01: o cron de 10 min do cdb2026_result_emails.yml foi acordado pelo GitHub ~4 vezes por dia e Gremio 2x0 Atletico-MG terminou sem nenhuma execucao; o resultado foi salvo e enviado a mao 1h30 depois.",
+      "expected_behavior_change": "live_cache_producer.yml (acordado de 5 em 5 min pela Cloudflare) ganha um job que le a projecao publica e, so se houver perna sem placar com kickoff entre 4h atras e 5 min a frente e nenhuma execucao ativa do e-mail, dispara cdb2026_result_emails.yml (--auto). O job nao envia e-mail nem grava dado; o conteudo, os guardas, o ledger e o kill switch do e-mail nao mudam. O job do produtor de cache nao muda.",
+      "tests_required": [
+        "email-send-safety",
+        "cdb-result-email-kicker"
+      ]
+    }
+  ]
+}
