@@ -43,20 +43,35 @@ concurrency:
   group: lottery-poll
   cancel-in-progress: false
 
+# O estado NAO e mais empurrado para main. Desde 2026-10-14 o ruleset `main-protection` recusa
+# push direto (GH013), e este workflow seguia verde com um `::warning::` enquanto o estado da
+# pagina parava em 2026-10-08 -- foi assim que a Powerball passou de US$500M sem ninguem saber.
+# Agora o dado vai por PR rolante (scripts/ci/publish_data_via_pr.sh, mesmo mecanismo do #473):
+#   contents: write       o branch auto/data/lottery-status (nunca main)
+#   pull-requests: write  abrir/atualizar o PR rolante
+#   actions: write        disparar o `npm run check` exigido no topo do branch
+# O deploy roda no push do merge, como qualquer PR.
 permissions:
   contents: write
-  # Um push feito com o GITHUB_TOKEN nao dispara nenhum outro workflow (protecao anti-loop do
-  # GitHub), entao o `push` de deploy-pages.yml nunca roda para os commits desta coleta. Sem pedir
-  # o deploy explicitamente, o estado novo chega a main mas nao ao ar. Mesmo padrao de
-  # sync_version.yml e bolao_provider_snapshot.yml; `actions: write` so serve ao `gh workflow run`.
+  pull-requests: write
   actions: write
 
 jobs:
   coleta:
     runs-on: ubuntu-latest
     timeout-minutes: 12
+    outputs:
+      known: ${{ steps.aviso.outputs.known }}
+      alert: ${{ steps.aviso.outputs.alert }}
+      key: ${{ steps.aviso.outputs.key }}
+      title: ${{ steps.aviso.outputs.title }}
+      body: ${{ steps.aviso.outputs.body }}
     steps:
       - uses: actions/checkout@v5
+        with:
+          # O branch de dado recebe origin/main por merge; com clone raso o git nao acha a base
+          # comum e recusa ("refusing to merge unrelated histories").
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
@@ -84,39 +99,94 @@ jobs:
       - name: Estado do ciclo (jackpots, elegibilidade, saldo)
         run: python3 bolao/loterias/scripts/lottery_status.py
 
-      - name: Commitar o que mudou
-        id: commit
+      # ANTES da publicacao: o aviso nao pode depender de o dado chegar a main.
+      - name: Decidir o aviso de elegibilidade
+        id: aviso
+        run: |
+          python3 bolao/loterias/scripts/eligibility_alert.py \
+            --status bolao/loterias/config/lottery_status.json \
+            --github-output "$GITHUB_OUTPUT"
+
+      - name: Publicar o estado via PR rolante
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
+          # So vale um PR (e um `npm run check` de ~15 min) quando o ESTADO mudou. `generatedAt` e
+          # `fetchedAt` mudam a cada execucao sem mudar nada que a pagina afirme.
+          if python3 - <<'PY'
+          import json, subprocess, sys
+          P = "bolao/loterias/config/lottery_status.json"
+          def sem_relogio(d):
+              d.pop("generatedAt", None)
+              for g in (d.get("games") or {}).values():
+                  g.pop("fetchedAt", None)
+              return d
+          antes = json.loads(subprocess.run(["git", "show", f"HEAD:{P}"], capture_output=True,
+                                            text=True, check=True).stdout)
+          depois = json.load(open(P, encoding="utf-8"))
+          res = subprocess.run(["git", "diff", "--quiet", "HEAD", "--",
+                                "bolao/loterias/config/lottery_results.jsonl"])
+          sys.exit(0 if sem_relogio(antes) == sem_relogio(depois) and res.returncode == 0 else 1)
+          PY
+          then
+            echo "estado igual ao de main (so relogio mudou) — nada a publicar"
+            exit 0
+          fi
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           # Caminhos EXPLICITOS. `git add -A` varreria qualquer outra coisa que o runner tenha
           # deixado na arvore para dentro de um commit automatico.
           git add bolao/loterias/config/lottery_results.jsonl \
                   bolao/loterias/config/lottery_status.json
-          if git diff --cached --quiet; then
-            echo "nada mudou — nenhum commit"
-            exit 0
-          fi
           git commit -m "Auto: coleta de loteria e estado do ciclo
 
           Gerado por lottery_poll.yml. Nenhum e-mail enviado, nenhum premio creditado,
           nenhum bilhete comprado."
-          # O push pode perder a corrida para outro commit; rebase e tentar de novo e o
-          # suficiente, e falhar aqui NAO invalida a coleta (o proximo ciclo recupera).
-          for i in 1 2 3; do
-            if git push origin HEAD:main; then
-              echo "pushed=true" >> "$GITHUB_OUTPUT"
-              exit 0
-            fi
-            git pull --rebase origin main || true
-          done
-          echo "::warning::push falhou 3x; a coleta seguinte recupera"
+          # Falha aqui e VERMELHA: o silencio de um push recusado foi o defeito que isto corrige.
+          scripts/ci/publish_data_via_pr.sh "auto/data/lottery-status" \
+            "chore(loterias): estado do ciclo e resultados (automatico)" \
+            "Estado das loterias (jackpots, elegibilidade, saldo) e resultados oficiais coletados por lottery_poll.yml. PR rolante: execucoes seguintes atualizam este mesmo PR. Merge somente com \`npm run check\` verde no topo atual (ruleset main-protection); o deploy do Pages roda no push do merge." \
+            bolao/loterias/config/lottery_results.jsonl \
+            bolao/loterias/config/lottery_status.json
 
-      # So quando um commit desta execucao chegou de fato a main: sem mudanca ou sem push, nao ha o
-      # que publicar. Reusa o deploy existente; nao e um segundo mecanismo de publicacao.
-      - name: Pedir o deploy do Pages para o estado novo
-        if: steps.commit.outputs.pushed == 'true'
+  # Job separado para que `issues: write` nao seja concedido a coleta. Roda mesmo se a publicacao
+  # falhar: o aviso e justamente o que nao pode depender dela.
+  aviso:
+    needs: coleta
+    if: ${{ always() && needs.coleta.outputs.known == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    permissions:
+      issues: write
+    steps:
+      - name: Abrir ou fechar a issue de bolao elegivel
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh workflow run "Deploy GitHub Pages" --ref main
+          GH_REPO: ${{ github.repository }}
+          ALERT: ${{ needs.coleta.outputs.alert }}
+          KEY: ${{ needs.coleta.outputs.key }}
+          TITLE: ${{ needs.coleta.outputs.title }}
+          BODY: ${{ needs.coleta.outputs.body }}
+          OPERADOR: eduardomferrari
+        run: |
+          set -euo pipefail
+          LABEL=bolao-elegivel
+          gh label create "$LABEL" --color D93F0B \
+            --description "Jackpot acima do limiar sem bolao aberto (lottery_poll.yml)" 2>/dev/null || true
+          # Uma issue por pool (jogo + data). Fecha as que nao valem mais: bolao aberto, jackpot
+          # abaixo do limiar ou sorteio que ja passou.
+          gh issue list --label "$LABEL" --state open --json number,title \
+            --jq '.[] | "\(.number)\t\(.title)"' | while IFS=$'\t' read -r N T; do
+            if [ "$ALERT" != "true" ] || [[ "$T" != "$KEY"* ]]; then
+              gh issue close "$N" --comment "Resolvido pelo lottery_poll.yml: o pool deste aviso nao esta mais pendente (bolao aberto, jackpot abaixo do limiar ou sorteio encerrado)."
+            fi
+          done
+          if [ "$ALERT" = "true" ]; then
+            if gh issue list --label "$LABEL" --state open --json title \
+                 --jq "[.[] | select(.title | startswith(\"$KEY\"))] | length" | grep -qx '[1-9][0-9]*'; then
+              echo "aviso $KEY ja aberto — nada a fazer"
+            else
+              gh issue create --title "$TITLE" --body "$BODY" --label "$LABEL" --assignee "$OPERADOR"
+            fi
+          fi

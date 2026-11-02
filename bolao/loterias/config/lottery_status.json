@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-08T16:54:03Z",
+  "generatedAt": "2026-11-01T12:19:59Z",
   "threshold": {
     "minJackpotCents": 50000000000,
     "comparison": "strictly_greater",
@@ -10,14 +10,14 @@
     "powerball": {
       "game": "powerball",
       "label": "Powerball",
-      "advertisedAnnuityCents": 51600000000,
-      "cashValueCents": 21260000000,
-      "nextDrawDate": "2026-10-10",
-      "nextDrawAt": "2026-10-11T02:59:00Z",
+      "advertisedAnnuityCents": 79300000000,
+      "cashValueCents": 33990000000,
+      "nextDrawDate": "2026-11-02",
+      "nextDrawAt": "2026-11-03T03:59:00Z",
       "source": "https://www.powerball.com/",
       "verificationState": "PRIMARY_CONFIRMED",
-      "fetchedAt": "2026-10-08T16:54:02Z",
-      "sourceHash": "d908eb9983daf889",
+      "fetchedAt": "2026-11-01T12:19:59Z",
+      "sourceHash": "7b033fb19b8aaf3e",
       "eligible": true,
       "state": "ELIGIBLE",
       "error": null
@@ -25,14 +25,14 @@
     "megamillions": {
       "game": "megamillions",
       "label": "Mega Millions",
-      "advertisedAnnuityCents": 36400000000,
-      "cashValueCents": 14730000000,
-      "nextDrawDate": "2026-10-09",
-      "nextDrawAt": "2026-10-10T03:00:00Z",
+      "advertisedAnnuityCents": 48200000000,
+      "cashValueCents": 20360000000,
+      "nextDrawDate": "2026-11-03",
+      "nextDrawAt": "2026-11-04T04:00:00Z",
       "source": "https://www.megamillions.com/cmspages/utilservice.asmx/GetLatestDrawData",
       "verificationState": "PRIMARY_CONFIRMED",
-      "fetchedAt": "2026-10-08T16:54:03Z",
-      "sourceHash": "38962cbd359180b5",
+      "fetchedAt": "2026-11-01T12:19:59Z",
+      "sourceHash": "0bac7601b53a7946",
       "eligible": false,
       "state": "BELOW_THRESHOLD",
       "error": null
@@ -41,38 +41,20 @@
   "nextPool": {
     "game": "powerball",
     "label": "Powerball",
-    "jackpotCents": 51600000000,
-    "drawDate": "2026-10-10"
+    "jackpotCents": 79300000000,
+    "drawDate": "2026-11-02"
   },
   "funds": {
-    "lastDrawWinningsCents": 3800,
-    "lastDrawId": "2026-08-12",
-    "carryoverAvailableCents": 3900,
-    "ledgerEntries": 4
+    "lastDrawWinningsCents": 3600,
+    "lastDrawId": "2026-10-31",
+    "carryoverAvailableCents": 3800,
+    "ledgerEntries": 14
   },
   "currentDraw": {
-    "id": "2026-08-12",
-    "lifecycleState": "SETTLED",
-    "reason": "resultado oficial gravado e prêmio creditado",
-    "result": {
-      "numbers": [
-        4,
-        26,
-        66,
-        67,
-        69
-      ],
-      "special": 9,
-      "multiplier": 2,
-      "checkedAt": "13/08/2026 07:46 ET",
-      "premiosGanhos": 38,
-      "jackpotHit": false,
-      "breakdown": [
-        "2x 1 + Powerball",
-        "1x 3 acertos",
-        "1x Powerball"
-      ]
-    }
+    "id": "2026-11-02",
+    "lifecycleState": "OPEN",
+    "reason": "recolhendo contribuições",
+    "result": null
   },
   "autoPurchase": false,
   "_doc": "Documento gerado; nao editar a mao. A UI e o e-mail leem daqui para que exista UMA resposta para 'ha bolao novo?'. Elegibilidade e ESTRITAMENTE > US$500M sobre a anuidade anunciada do PROXIMO sorteio."

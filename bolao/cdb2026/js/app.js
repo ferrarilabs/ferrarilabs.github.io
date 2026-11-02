@@ -4616,11 +4616,14 @@ async function fetchLiveTies(s) {
       if (!m || m.goalsHome != null) return; // já tem placar (manual ou auto) — não é "ao vivo"
       const home = leg === "second" ? tie.teamB : tie.teamA;
       const away = leg === "second" ? tie.teamA : tie.teamB;
-      const ev = candidates.find(c => c.homeTeam === home && c.awayTeam === away);
-      if (!ev) return;
+      // Mesmo casamento da gravação de resultado (espnEventForLeg): par de times + perna de data
+      // mais próxima, placar ao vivo traduzido para o mando NOMINAL desta perna.
+      const hit = espnEventForLeg(candidates, tie, leg, legs);
+      if (!hit) return;
+      const ev = hit.ev;
       if (window.BOLAO_FOOTBALL_LIVE.isPostponedMatch(ev)) { postponedKeys.add(`${tieId}:${leg}`); return; }
       if (ev.state !== "in") return;
-      found.push({ tieId, tie, phaseId, leg, homeTeam: home, awayTeam: away, ev });
+      found.push({ tieId, tie, phaseId, leg, homeTeam: home, awayTeam: away, ev, liveHome: hit.liveHome, liveAway: hit.liveAway });
     });
   });
   return { live: found, postponedKeys };
@@ -4637,7 +4640,7 @@ async function pollLiveTies() {
   const clockCache = loadLiveClockCache();
   if (!Object.keys(_cdbRawClockHistory).length) _cdbRawClockHistory = loadRawClockCache();
   const nextRawHistory = {};
-  const nextLive = found.map(({ tieId, tie, phaseId, leg, homeTeam, awayTeam, ev }) => {
+  const nextLive = found.map(({ tieId, tie, phaseId, leg, homeTeam, awayTeam, ev, liveHome, liveAway }) => {
     const key = `${tieId}:${leg}`;
     // `pollTime` é a hora da OBSERVAÇÃO, não a do fetch. Com snapshot as duas divergem, e é essa
     // divergência que quebra o relógio: buscando o mesmo snapshot duas vezes, `clockSeconds` não
@@ -4666,10 +4669,12 @@ async function pollLiveTies() {
       : merged.clockSeconds;
     return {
       tieId, tie, phaseId, leg, homeTeam, awayTeam,
-      goalsHome: ev.liveHomeScore, goalsAway: ev.liveAwayScore,
+      goalsHome: liveHome, goalsAway: liveAway,
       clockSeconds, pollTime: now, period: ev.period,
       isHalftime: ev.isHalftime, isPenalties: ev.isPenalties, clockPaused,
       clockStr: ev.clockStr || "", plays: ev.plays || [],
+      // `side` de cada lance é relativo ao mandante da ESPN, que pode não ser o nominal da perna.
+      espnHomeTeam: ev.homeTeam, espnAwayTeam: ev.awayTeam,
     };
   });
   _cdbRawClockHistory = nextRawHistory;
@@ -4975,7 +4980,7 @@ function renderLiveTieCard() {
   card.classList.remove("primary-football-card");
   const rows = _liveTies.map(l => {
     const clock = liveClockDisplay(l);
-    const playsHtml = livePlaysHtml(l.plays, l.homeTeam, l.awayTeam, `${l.tieId}:${l.leg}`);
+    const playsHtml = livePlaysHtml(l.plays, l.espnHomeTeam || l.homeTeam, l.espnAwayTeam || l.awayTeam, `${l.tieId}:${l.leg}`);
     // Local do jogo (venue) removido do modo ao vivo -- Eduardo: "Não precisa mostrar a
     // localização no live mode" (2026-07-17). Fase continua (útil pra saber "que confronto é
     // esse" durante o jogo) -- venue continua aparecendo normalmente no card pré-live.
@@ -5623,14 +5628,12 @@ async function autoSyncEspn(s) {
   // cosmeticamente errados no card, não um resultado ou pagamento.
   Object.entries(s2.phases[phaseId].ties).forEach(([tieId, tie]) => {
     if (!tie.teamA || !tie.teamB) return;
-    const tieKickoffAnchor = legs.map(l => tie.matches?.[l]?.kickoff).find(Boolean);
     legs.forEach(leg => {
       const m = tie.matches?.[leg];
       if (!m || m.kickoff || m.goalsHome != null) return; // já tem data, ou já foi jogada -- nada a preencher
-      const home = leg === "second" ? tie.teamB : tie.teamA;
-      const away = leg === "second" ? tie.teamA : tie.teamB;
-      const ev = candidates.find(c => c.homeTeam === home && c.awayTeam === away
-        && withinResultMatchWindow(c.dateISO, m.kickoff || tieKickoffAnchor));
+      // espnEventForLeg: sem data nesta perna, recusa o jogo de OUTRA perna com mando invertido
+      // (a volta sem data não pode herdar o horário da ida).
+      const ev = espnEventForLeg(candidates, tie, leg, legs)?.ev;
       if (!ev || !ev.dateISO) return;
       // NÃO se acrescenta aqui um backfill de LOCAL para perna que já tem data. O local ausente
       // (as 8 pernas de `quartas`, 2026-09-03) é resolvido na LEITURA, por
@@ -5707,6 +5710,48 @@ function withinResultMatchWindow(candidateDateISO, knownKickoffISO) {
   return Math.abs(c - k) <= RESULT_MATCH_WINDOW_DAYS * 86400000;
 }
 
+// Evento da ESPN que corresponde a uma perna, com o placar na ORIENTAÇÃO DO BOLÃO -- espelho de
+// espn_event_for_leg() em scripts/send_result_email.py (as duas têm de concordar).
+//
+// O mando nominal do bolão (ida: teamA em casa; volta: teamB) é estrutura de palpite, não o mando
+// real. Na semifinal de 2026 a CBF inverteu: Palmeiras × Vasco teve a ida no Allianz com o bolão
+// tendo Vasco em casa na ida, e casar por mandante gravou o placar da ida na VOLTA (2026-11-01).
+//
+// Com TODAS as pernas datadas (inclusive o jogo único da final), casa pelo PAR de times e fica com
+// a perna cuja data é a mais próxima do evento; os gols vão para cada TIME pelo nome. Sem todas as datas, vale a regra antiga
+// (mandante igual + janela), recusando jogo a menos de 48h do horário de OUTRA perna.
+// Devolve { ev, goalsHome, goalsAway, liveHome, liveAway } ou null.
+function espnEventForLeg(candidates, tie, leg, legs, accept = () => true) {
+  const home = leg === "second" ? tie.teamB : tie.teamA;
+  const away = leg === "second" ? tie.teamA : tie.teamB;
+  const ms = iso => { const t = iso ? new Date(iso).getTime() : NaN; return Number.isFinite(t) ? t : null; };
+  const kicks = Object.fromEntries(legs.map(l => [l, ms(tie.matches?.[l]?.kickoff)]));
+  const orient = (ev, sameSide) => sameSide
+    ? { ev, goalsHome: ev.homeScore, goalsAway: ev.awayScore, liveHome: ev.liveHomeScore, liveAway: ev.liveAwayScore }
+    : { ev, goalsHome: ev.awayScore, goalsAway: ev.homeScore, liveHome: ev.liveAwayScore, liveAway: ev.liveHomeScore };
+  // Jogo único (final) entra aqui também: o mando real pode ser o inverso do nominal.
+  if (legs.every(l => kicks[l] !== null)) {
+    const par = [tie.teamA, tie.teamB].sort().join("|");
+    for (const c of candidates) {
+      if ([c.homeTeam, c.awayTeam].sort().join("|") !== par || !accept(c)) continue;
+      const when = ms(c.dateISO);
+      if (when === null) continue;
+      const nearest = legs.reduce((a, b) => (Math.abs(when - kicks[b]) < Math.abs(when - kicks[a]) ? b : a));
+      if (nearest !== leg || !withinResultMatchWindow(c.dateISO, tie.matches[leg].kickoff)) continue;
+      return orient(c, c.homeTeam === home);
+    }
+    return null;
+  }
+  const anchor = tie.matches?.[leg]?.kickoff || legs.map(l => tie.matches?.[l]?.kickoff).find(Boolean);
+  const otherLeg = c => {
+    const when = ms(c.dateISO);
+    return when !== null && legs.some(l => l !== leg && kicks[l] !== null && Math.abs(when - kicks[l]) < 48 * 3600000);
+  };
+  const ev = candidates.find(c => c.homeTeam === home && c.awayTeam === away && accept(c)
+    && withinResultMatchWindow(c.dateISO, anchor) && (kicks[leg] !== null || !otherLeg(c)));
+  return ev ? orient(ev, true) : null;
+}
+
 async function autoSyncEspnResults(s) {
   const phaseId = s.espnSync?.activePhaseId;
   if (!phaseId) return { lockedCount: 0, locked: [], filledLegsCount: 0, error: false };
@@ -5729,17 +5774,14 @@ async function autoSyncEspnResults(s) {
     // (ex.: volta, antes da ida ser jogada) -- nesse caso usa o kickoff de QUALQUER outra perna já
     // conhecida do mesmo confronto como referência (ida e volta acontecem sempre a poucos dias uma
     // da outra), em vez de ficar sem checagem nenhuma nessa perna.
-    const tieKickoffAnchor = legs.map(l => tie.matches?.[l]?.kickoff).find(Boolean);
-
     legs.forEach(leg => {
       const m = tie.matches?.[leg];
       if (!m || m.goalsHome != null) return; // já preenchido (manual ou auto) — nunca sobrescreve
       const home = leg === "second" ? tie.teamB : tie.teamA;
       const away = leg === "second" ? tie.teamA : tie.teamB;
-      const ev = candidates.find(c => c.homeTeam === home && c.awayTeam === away && c.homeScore != null
-        && withinResultMatchWindow(c.dateISO, m.kickoff || tieKickoffAnchor));
-      if (!ev) return;
-      const match = { ...m, homeTeam: home, awayTeam: away, goalsHome: ev.homeScore, goalsAway: ev.awayScore, status: "FINAL", resultSource: "espn-auto" };
+      const hit = espnEventForLeg(candidates, tie, leg, legs, c => c.homeScore != null);
+      if (!hit) return;
+      const match = { ...m, homeTeam: home, awayTeam: away, goalsHome: hit.goalsHome, goalsAway: hit.goalsAway, status: "FINAL", resultSource: "espn-auto" };
       tie.matches[leg] = match;
       filledLegsCount++;
       mutations.push({ type: "espn-save-result", phaseId, tieId, leg, match });
@@ -5754,12 +5796,10 @@ async function autoSyncEspnResults(s) {
       qualified = totalA > totalB ? "A" : "B";
     } else {
       const decisiveLeg  = format === "TWO_LEG" ? "second" : "single";
-      const decisiveHome = decisiveLeg === "second" ? tie.teamB : tie.teamA;
-      const decisiveAway = decisiveLeg === "second" ? tie.teamA : tie.teamB;
-      const ev = candidates.find(c => c.homeTeam === decisiveHome && c.awayTeam === decisiveAway
-        && withinResultMatchWindow(c.dateISO, tie.matches?.[decisiveLeg]?.kickoff || legs.map(l => tie.matches?.[l]?.kickoff).find(Boolean)));
-      if (ev?.homeWinner === true) qualified = decisiveHome === tie.teamA ? "A" : "B";
-      else if (ev?.awayWinner === true) qualified = decisiveAway === tie.teamA ? "A" : "B";
+      const ev = espnEventForLeg(candidates, tie, decisiveLeg, legs)?.ev;
+      // O vencedor é o TIME que a ESPN marcou; o lado sai do nome, não do mando nominal da perna.
+      if (ev?.homeWinner === true) qualified = ev.homeTeam === tie.teamA ? "A" : "B";
+      else if (ev?.awayWinner === true) qualified = ev.awayTeam === tie.teamA ? "A" : "B";
       // Sem sinal de vencedor da ESPN: fica sem travar, cai pro fluxo manual existente.
     }
 

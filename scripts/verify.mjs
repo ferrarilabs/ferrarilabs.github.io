@@ -150,6 +150,8 @@ const CHECKS = [
   // e o `data.js`, que ainda carrega verdade financeira enquanto a reconciliacao nao fecha.
   { id: "powerball-operator-payments", group: "security", cmd: ["python3", "bolao/loterias/powerball/scripts/test_operator_payments.py"],
     why: "corrigir dinheiro apagando o passado, e reexecutar um dispatch cobrando duas vezes, sao os dois modos de falha (Issue #130)" },
+  { id: "powerball-operator-open-draw", group: "security", cmd: ["python3", "bolao/loterias/powerball/scripts/test_operator_open_draw.py"],
+    why: "abrir sorteio no banco: nome que nao resolve grava ZERO; reexecutar o manifesto nao cria sorteio, participacao nem cobranca em dobro; referencia de pagamento nunca entra no manifesto (repo publico)" },
   // Issue #130 — a ferramenta de reconciliacao do backfill historico. Ela nao escreve nada; o que
   // ela protege e a decisao de NAO escrever: classifica cada registro da origem e recusa importar
   // qualquer um cuja identidade dependa de adivinhacao (a unica chave entre as duas fontes e o
@@ -237,8 +239,14 @@ const CHECKS = [
     why: "todos os incidentes do pipeline ao vivo em 2026-08 foram descobertos por alguem abrir o site e ver que estava errado; a CI de browser chegou a tropecar em alguns por acidente, o que e pior que nao detectar. Este gate prova que o vigia classifica certo, NAO repete alarme enquanto o mesmo incidente persiste (uma indisponibilidade de 3h e UM incidente, nao um por ciclo), reconhece recuperacao sozinho, usa os limiares do contrato compartilhado em vez de numeros proprios, e nao le nada de participante" },
   { id: "cron-coverage", group: "scheduling", cmd: ["node", "bolao/scripts/cron_coverage.test.mjs"],
     why: "scheduled workflows cover the expected event calendar" },
-  { id: "lottery-poll-deploy-dispatch", group: "scheduling", cmd: ["node", "bolao/loterias/scripts/test_lottery_poll_deploy_dispatch.mjs"],
-    why: "lottery_poll.yml empurra com GITHUB_TOKEN, que nao dispara o push de deploy-pages.yml; sem pedir o deploy explicitamente o estado da loteria chega a main e nao ao ar" },
+  { id: "lottery-poll-publish", group: "scheduling", cmd: ["node", "bolao/loterias/scripts/test_lottery_poll_publish.mjs"],
+    why: "2026-10-08 a 2026-10-27: o push direto de lottery_poll.yml era recusado (GH013), o workflow saia verde com um warning e o estado do site parou com a Powerball ja acima de US$500M. O gate exige publicacao por PR rolante, falha vermelha e o aviso decidido antes e independente da publicacao" },
+  { id: "powerball-ticket-email-contacts", group: "security", cmd: ["python3", "bolao/loterias/powerball/scripts/test_build_ticket_email_contacts.py"],
+    why: "o e-mail de bilhetes publicados so recebe contatos se TODO participante do sorteio resolver; o lado JS pulava quem nao tinha e-mail e enviaria um conjunto parcial como se fosse completo" },
+  { id: "powerball-sync-draw-participants", group: "app", cmd: ["node", "bolao/loterias/powerball/scripts/test_sync_draw_participants.mjs"],
+    why: "o data.js derivado do banco pelo workflow de abertura precisa sair identico ao escrito a mao e mexer so no sorteio alvo; senao o PR automatico reescreve dinheiro de outro sorteio" },
+  { id: "lottery-eligibility-alert", group: "scheduling", cmd: ["python3", "bolao/loterias/scripts/test_eligibility_alert.py"],
+    why: "jackpot acima do limiar sem bolao aberto vira issue atribuida ao operador; bolao ja aberto nao avisa, e fonte fora do ar nao abre nem fecha aviso" },
   // Issue #259 — o agendamento fora da janela era inerte por aritmetica (30 min de cadencia contra
   // um teto de 10 min de ultimo-bom-conhecido) e nem exercitava o caminho, porque o produtor pula
   // antes da rede. Removido; este gate fixa a decisao e a aritmetica, para que a proxima cadencia
@@ -423,6 +431,16 @@ const CHECKS = [
   { id: "cachebust", group: "app", cmd: ["node", "bolao/scripts/cachebust.integration.test.mjs"], why: "cache-bust integration" },
   { id: "cachebust-app-shared-files", group: "app", cmd: ["node", "bolao/scripts/test_cachebust_app_shared_files.mjs"],
     why: "incidente 2026-09-03 (run 33786641021): where_to_watch.js em SHARED_FILES global exigia referencia em TODO app, inclusive copa2026 que nunca o carrega — sync_version.yml falhou (write copa2026) e o commit/deploy dos tres apps foi abortado. Prova o comando REAL do workflow (write --app=copa2026,br2026,cdb2026) com EXIT 0 contra copia do repo real, idempotencia, e que a tag de copa2026 nunca depende do conteudo de um modulo que ele nao consome" },
+  { id: "cdb-send-leg-correction", group: "notifications", cmd: ["python3", "bolao/cdb2026/scripts/test_send_leg_correction.py"],
+    why: "2026-11-01: corrigido o dado da semifinal, a ida ja estava salva e o --auto nunca mandaria o e-mail certo. --send-leg reenvia UMA perna com aviso de correcao: prova que o teste vai para uma entrada so ([TESTE], sem ledger), que --all registra no ledger e RECUSA se a perna ja tiver entrega (incidente #221), que sem modo/sem placar/sem ledger nada sai, e que o corpo traz o aviso no topo e os palpites de vaga" },
+  { id: "cdb-apply-correction", group: "security", cmd: ["python3", "bolao/cdb2026/scripts/test_apply_correction.py"],
+    why: "2026-11-01: o unico caminho manual de correcao (`--update` do cdb2026_result_emails.yml) grava E envia e-mail a todos. apply_correction.py so grava, por plano JSON versionado: prova que o plano da semifinal leva o estado real daquele dia ao corrigido, que banco fora de expectBefore aborta antes de qualquer gravacao, que repetir nao grava, que applied:false para, e que nenhum caminho de envio e referenciado" },
+  { id: "cdb-espn-leg-matching", group: "security", cmd: ["node", "bolao/cdb2026/scripts/test_espn_leg_matching.mjs"],
+    why: "producao 2026-11-01 (semifinal Palmeiras x Vasco): a CBF inverteu o mando da ida e o casamento por MANDANTE gravou o 1-0 da ida na VOLTA, com e-mail errado aos participantes. Prova que a perna e decidida pela data (par de times + perna mais proxima), que os gols vao para cada TIME pelo nome, que sem as duas datas um jogo a menos de 48h de outra perna nunca vira esta, e PARIDADE caso a caso entre app.js e send_result_email.py" },
+  { id: "cdb-email-scoring-parity", group: "scoring", cmd: ["node", "bolao/cdb2026/scripts/test_email_scoring_parity.mjs"],
+    why: "2026-11-01 (semifinal Palmeiras x Vasco): o e-mail de resultado procurava o palpite so pelo id REAL do confronto e saiu 'sem palpite' para todos, embora os palpites estivessem salvos sob o id de VAGA (sf-1/sf-2/final-1); comparava o classificado pela LETRA do lado e nunca daria campeao/vice (30/20) nem o rateio da final do site. Roda scoreEntry/explainScore/predictedPodium/rankEntriesBy/renderPickDisplay REAIS de app.js contra o Python do e-mail no snapshot publico (nomes sinteticos), no estado corrigido e em futuros sinteticos (semis e final decididas, penaltis, final invertida, outros semifinalistas previstos), e exige igualdade entrada por entrada, perna por perna" },
+  { id: "cdb-result-email-render", group: "notifications", cmd: ["python3", "bolao/cdb2026/scripts/test_result_email_render.py"],
+    why: "2026-11-01: para conferir o e-mail da correcao da semifinal antes de enviar, o unico caminho era o sender de verdade. `send_result_email.py --render <fase> <confronto> <perna> --state-file --out` monta o mesmo HTML a partir de um snapshot; prova que nunca toca envio/Supabase/ledger, que o e-mail da correcao sai com o placar certo e o palpite de cada entrada, e que recusa perna sem placar" },
   { id: "cdb-next-match-venue", group: "app", cmd: ["node", "bolao/cdb2026/scripts/test_next_match_venue.mjs"],
     why: "producao 2026-09-03 (Gremio x Internacional, volta das quartas): o card nao mostrava o local. O renderizador estava certo; o DADO nao -- as 8 pernas de `quartas` tinham venue/city null porque o backfill de agenda era guardado por `if (m.kickoff) return`, entao quem gravasse a data primeiro fixava o local para sempre. Prova as duas correcoes: o latch desfeito (sem remarcar kickoff, sem tocar placar) e o enriquecimento de apresentacao a partir da observacao ja carregada (sem rede, sem estado, local armazenado sempre vence). Prova tambem que o 📍 e UMA implementacao por app, nos dois apps, como na Copa" },
   { id: "where-to-watch", group: "app", cmd: ["node", "bolao/shared/scripts/test_where_to_watch.mjs"],

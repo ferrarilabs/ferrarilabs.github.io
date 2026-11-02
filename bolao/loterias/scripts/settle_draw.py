@@ -128,9 +128,10 @@ def liquida(draw, anterior, jogo="powerball", ledger=None, verificar_ao_vivo=Tru
     rel["resultado"] = resultado
     rel["proveniencia"] = prov
 
-    def lanca(tipo, chave, cents, motivo, origem, extra=None):
+    def lanca(tipo, chave, cents, motivo, origem, extra=None, pool_id=None):
         gravou, ev = L.append_ledger({
-            "type": tipo, "idempotencyKey": chave, "poolId": pool, "amountCents": int(cents),
+            "type": tipo, "idempotencyKey": chave, "poolId": pool_id or pool,
+            "amountCents": int(cents),
             "reason": motivo, "source": origem, **(extra or {})}, ledger)
         (rel["gravados"] if gravou else rel["ja_existiam"]).append(
             {"type": tipo, "key": chave, "amountCents": int(cents)})
@@ -157,6 +158,14 @@ def liquida(draw, anterior, jogo="powerball", ledger=None, verificar_ao_vivo=Tru
         lanca("CARRYOVER_IN", L.chave_carryover((anterior or {}).get("id", "abertura"), pool),
               credito * 100, f"crédito trazido de {(anterior or {}).get('id', 'abertura')}",
               f"data.js:{pool}.finance.creditoSorteioAnterior")
+        # O crédito SAI do pool anterior quando ele está no livro. Sem esta perna, o saldo
+        # derivado (soma de tudo) contava o mesmo dinheiro duas vezes: o que sobrou no anterior
+        # e o que entrou aqui. Em 29/10/2026 a liquidação de 28/10 daria US$71 em vez de US$32.
+        # Se o anterior nunca foi liquidado (abertura do livro), o IN é o saldo de abertura.
+        if anterior and any(e.get("poolId") == anterior["id"] for e in L.le_ledger(ledger)):
+            lanca("CARRYOVER_OUT", f"carryover-out:{anterior['id']}->{pool}", -credito * 100,
+                  f"crédito levado para {pool}",
+                  f"data.js:{pool}.finance.creditoSorteioAnterior", pool_id=anterior["id"])
 
     # ── compra de bilhetes (REGISTRO de compra já feita pelo operador) ───────────────────────
     st = draw.get("sharedTickets") or {}
@@ -204,7 +213,8 @@ def relatorio(ledger=None):
         "PRIOR_CARRYOVER": por.get("CARRYOVER_IN", 0),
         "TICKET_PURCHASES": por.get("TICKET_PURCHASE", 0),
         "CURRENT_DRAW_WINNINGS": por.get("PRIZE_CREDIT", 0),
-        "OTHER_ADJUSTMENTS": por.get("OPERATOR_ADJUSTMENT", 0) + por.get("CARRYOVER_OUT", 0),
+        "CARRYOVER_MOVED_OUT": por.get("CARRYOVER_OUT", 0),
+        "OTHER_ADJUSTMENTS": por.get("OPERATOR_ADJUSTMENT", 0),
         "CURRENT_AVAILABLE_CARRYOVER": sum(e["amountCents"] for e in ev),
         "lancamentos": len(ev),
     }
@@ -278,6 +288,7 @@ def main():
     r = relatorio(ledger)
     print("\n" + "=" * 78)
     for k in ("CONTRIBUTIONS", "PRIOR_CARRYOVER", "TICKET_PURCHASES", "CURRENT_DRAW_WINNINGS",
+              "CARRYOVER_MOVED_OUT",
               "OTHER_ADJUSTMENTS", "CURRENT_AVAILABLE_CARRYOVER"):
         print(f"  {k:<30} {L.dinheiro(r[k]):>14}")
     print(f"  {'PB_PRIZE_CREDIT_COUNT':<30} "

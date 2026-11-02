@@ -87,7 +87,7 @@ def main():
         print(f"    {L.dinheiro(c['amountCents'])}  chave={c['idempotencyKey']}")
     rel = SD.relatorio()
     for k in ("CONTRIBUTIONS", "PRIOR_CARRYOVER", "TICKET_PURCHASES", "CURRENT_DRAW_WINNINGS",
-              "OTHER_ADJUSTMENTS", "CURRENT_AVAILABLE_CARRYOVER"):
+              "CARRYOVER_MOVED_OUT", "OTHER_ADJUSTMENTS", "CURRENT_AVAILABLE_CARRYOVER"):
         print(f"  {k:<30} {L.dinheiro(rel[k]):>14}")
     chaves = [e["idempotencyKey"] for e in ev]
     print(f"  DOUBLE_PRIZE  = {len(creditos) - len({c['idempotencyKey'] for c in creditos})}")

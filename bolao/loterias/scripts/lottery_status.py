@@ -125,7 +125,9 @@ def estado_do_sorteio(draw, agora=None):
         return "SETTLED", "resultado oficial gravado e prêmio creditado"
     if sorteou:
         return "AWAITING_RESULT", "o sorteio já ocorreu; aguardando publicação oficial"
-    if draw.get("sharedTickets"):
+    # `open_next_draw.py` cria `sharedTickets` com `series: []`: o objeto existe desde a
+    # abertura. O que trava as entradas e ter serie comprada, nao a chave existir.
+    if (draw.get("sharedTickets") or {}).get("series"):
         return "LOCKED", "bilhetes comprados; entradas encerradas"
     if draw.get("participants"):
         return "OPEN", "recolhendo contribuições"

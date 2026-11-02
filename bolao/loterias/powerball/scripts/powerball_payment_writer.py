@@ -150,7 +150,10 @@ class SupabasePaymentWriter:
             "operator_client_ref": ref,
         }
         for origem, destino in (("external_reference", "external_reference"), ("method", "method"),
-                                ("reason", "reason"), ("reverses_transaction_id", "reverses_transaction_id")):
+                                ("reason", "reason"), ("reverses_transaction_id", "reverses_transaction_id"),
+                                # `paid_at` alimenta data/hora da projecao publica; sem ele a linha
+                                # aparece sem quando foi paga.
+                                ("paid_at", "paid_at")):
             if req.get(origem):
                 linha[destino] = req[origem]
 

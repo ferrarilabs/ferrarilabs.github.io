@@ -98,7 +98,9 @@ permissions:
 jobs:
   refresh-snapshot:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    # 30: alem da coleta, espera o `npm run check` do PR (~15 min) para fazer o merge. Como a matriz
+    # e serial, o segundo app so publica depois do merge do primeiro e seu PR ja nasce atualizado.
+    timeout-minutes: 30
     strategy:
       # Numa execução agendada roda os dois apps ativos; num dispatch manual roda só o escolhido.
       fail-fast: false
@@ -216,3 +218,8 @@ jobs:
             "Snapshot ESPN de ${APP} gerado por bolao_provider_snapshot.yml e validado por validate_snapshot_before_publish.mjs antes deste push. PR rolante: execucoes seguintes atualizam este mesmo PR. Merge somente com \`npm run check\` verde no topo atual (ruleset main-protection); o deploy do Pages roda no push do merge." \
             "bolao/${APP}/data/"
           echo "committed=true" >> "$GITHUB_OUTPUT"
+          # 2026-11-01: o PR do bot ficava BLOCKED para sempre (run de pull_request em
+          # action_required). merge_data_pr.sh aprova esse run, espera os checks e faz o merge.
+          scripts/ci/merge_data_pr.sh "auto/data/espn-snapshot-${APP}" \
+            "chore(espn): refresh ${APP} snapshot (automatico)" \
+            "Snapshot ESPN de ${APP} gerado por bolao_provider_snapshot.yml e validado por validate_snapshot_before_publish.mjs."

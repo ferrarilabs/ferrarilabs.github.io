@@ -36,7 +36,11 @@ concurrency:
 jobs:
   check:
     name: npm run check
-    runs-on: ubuntu-latest
+    # Fixado em 24.04: desde 2026-10-19 o `ubuntu-latest` migra para 26.04, onde o Chromium/WebKit
+    # do Playwright desta versao nao acha libicu*.so.74 nem libxml2.so.2 e a suite de browser cai
+    # antes de rodar (PR #481, 2026-10-28). Voltar para `ubuntu-latest` junto com um Playwright que
+    # suporte 26.04.
+    runs-on: ubuntu-24.04
     timeout-minutes: 45
 
     env:

@@ -308,6 +308,14 @@ const UNSCHEDULED = new Map([
    "leitura e nao declara BOLAO_ALLOW_REAL_SEND -- o caminho seguro e o que acontece quando " +
    "ninguem pensa. Envio real exige escolher `send` a mao E o alvo estar em READY_FOR_EXPLICIT_" +
    "RECOVERY, reavaliado no proprio passo de envio."],
+  ["powerball_open_draw.yml",
+   "Abertura de sorteio no banco a partir de um manifesto revisado em PR. NAO e agendada de " +
+   "proposito: abrir sorteio e decisao do operador (o ciclo so RECOMENDA via ELIGIBLE), e cada " +
+   "execucao grava fato financeiro. Um cron aqui criaria sorteio sem ninguem decidir."],
+  ["powerball_ticket_email.yml",
+   "E-mail de bilhetes publicados, disparado pelo operador depois de os bilhetes e a evidencia " +
+   "publica entrarem em PR. NAO e agendado de proposito: o controle de duplicidade do envio e local " +
+   "a execucao, entao um cron reenviaria o mesmo e-mail a cada disparo."],
   ["powerball_record_payment.yml",
    "Painel de administracao do Powerball (Issue #130, Opcao C). NAO e agendado porque nao e um " +
    "ciclo: e um operador humano registrando um pagamento que acabou de acontecer. Um cron aqui nao " +
@@ -356,6 +364,9 @@ const UNSCHEDULED = new Map([
    "nenhum evento de negocio por tras. Executado apos mudanca na ponte M8/M9."],
   ["deploy-pages.yml", "Triggered by push to main."],
   ["sync_version.yml", "Triggered by push to main, path-filtered."],
+  ["cdb2026_result_correction.yml",
+   "E-mail de CORRECAO de uma perna ja gravada (2026-11-01). So existe por decisao humana depois de " +
+   "um dado corrigido; agendar isto seria reenviar e-mail a participantes por relogio."],
   ["cdb2026_operator.yml",
    "Operacao de operador do CDB2026 (snapshot, sorteio oficial, abertura de palpites). E disparada " +
    "por uma DECISAO humana -- aplicar um sorteio oficial nao tem cadencia. Agendar isto seria " +

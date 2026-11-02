@@ -283,7 +283,11 @@ def secao_ciclo():
         ("sem nada -> ELIGIBLE", sorteio(), "ELIGIBLE"),
         ("com participantes -> OPEN", sorteio(participants=[{"name": "a"}]), "OPEN"),
         ("com bilhetes -> LOCKED",
-         sorteio(participants=[{"name": "a"}], sharedTickets={"series": []}), "LOCKED"),
+         sorteio(participants=[{"name": "a"}],
+                 sharedTickets={"series": [{"serial": "X", "qtd": 1}]}), "LOCKED"),
+        # Recem-aberto por open_next_draw.py: `sharedTickets` existe, `series` vazia.
+        ("aberto sem bilhetes -> OPEN",
+         sorteio(participants=[{"name": "a"}], sharedTickets={"series": []}), "OPEN"),
         ("passou da hora, sem resultado -> AWAITING_RESULT",
          sorteio(drawing={"drawDateIso": "2026-08-12T22:59:00-04:00"}), "AWAITING_RESULT"),
         ("com resultado -> SETTLED",
