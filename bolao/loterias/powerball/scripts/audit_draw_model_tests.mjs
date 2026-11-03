@@ -50,6 +50,11 @@ import { loadRealPrizeCalculator } from "./email/prize-calc-bridge.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const APP_JS = join(HERE, "..", "js", "app.js");
+// Pools cujo premio virou reserva de ganhadores (config/lottery_reserves.json): o dinheiro tem
+// dono e NAO passa para o proximo sorteio como credito.
+const POOLS_RESERVADOS = new Set(
+  (JSON.parse(readFileSync(join(HERE, "..", "..", "config", "lottery_reserves.json"), "utf8")).reserves || [])
+    .map((r) => r.sourcePoolId));
 const appSrc = readFileSync(APP_JS, "utf8");
 
 let pass = 0, fail = 0;
@@ -239,7 +244,9 @@ test("creditoSorteioAnterior = saldo guardado + prêmios CONFIRMADOS do sorteio 
   for (const d of chained) {
     const prev = byId.get(d.previousDrawId);
     if (!isResolved(prev)) continue; // anterior ainda sem resultado: nada a carregar
-    const esperado = prev.finance.valorGuardadoProximoSorteio + prev.result.premiosGanhos;
+    // Premio + guardado do anterior foram para a reserva dos ganhadores: nada entra como credito.
+    const esperado = POOLS_RESERVADOS.has(prev.id) ? 0
+      : prev.finance.valorGuardadoProximoSorteio + prev.result.premiosGanhos;
     assert.equal(d.finance.creditoSorteioAnterior, esperado,
       `${d.id}: crédito ${d.finance.creditoSorteioAnterior} ≠ ${esperado} ` +
       `(guardado ${prev.finance.valorGuardadoProximoSorteio} + prêmios ${prev.result.premiosGanhos} de ${prev.id})`);

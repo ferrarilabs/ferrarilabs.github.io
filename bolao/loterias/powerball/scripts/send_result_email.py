@@ -844,7 +844,7 @@ def result_balls_html(numbers, special, multiplier, special_label="Powerball"):
     return row + caption
 
 
-def _bloco_proximo_bolao(draw, doc=None, lancamentos=None):
+def _bloco_proximo_bolao(draw, doc=None, lancamentos=None, reservas_cfg=None):
     """
     Caixa e próximo bolão no e-mail de resultado — a pergunta que todo mundo faz em seguida.
 
@@ -894,9 +894,25 @@ def _bloco_proximo_bolao(draw, doc=None, lancamentos=None):
     deste = [e for e in lancamentos if e.get("poolId") == draw_id]
     if deste:
         premio = sum(e["amountCents"] for e in deste if e.get("type") == "PRIZE_CREDIT")
-        linhas = [("Prêmio deste sorteio", usd(premio)),
-                  ("Crédito que entrou do sorteio anterior", usd(anterior)),
-                  ("Saldo disponível agora", usd(sum(e["amountCents"] for e in lancamentos)))]
+        # Reserva de ganhadores tem dono (lottery_core.reservas): fica fora do saldo do bolão e
+        # aparece em linha própria.
+        if reservas_cfg is None:
+            try:
+                reservas_cfg = _caixa_ledger.le_reservas()
+            except Exception:  # noqa: BLE001 — sem a configuração não dá para separar: sem caixa
+                reservas_cfg = None
+        if reservas_cfg is None:
+            linhas = [("Prêmio deste sorteio", usd(premio))]
+        else:
+            reservadas = [(r["label"], len(r.get("beneficiaries") or []),
+                           sum(e["amountCents"] for e in lancamentos
+                               if e.get("poolId") == r["sourcePoolId"]))
+                          for r in reservas_cfg]
+            total = sum(e["amountCents"] for e in lancamentos)
+            linhas = [("Prêmio deste sorteio", usd(premio)),
+                      ("Crédito que entrou do sorteio anterior", usd(anterior)),
+                      ("Saldo disponível agora", usd(total - sum(c for _, _, c in reservadas)))]
+            linhas += [(f"{rotulo} ({n} participantes)", usd(c)) for rotulo, n, c in reservadas]
         tabela = "".join(
             f'<tr><td style="padding:3px 0;color:#475569">{esc(k)}</td>'
             f'<td style="padding:3px 0;text-align:right;font-weight:bold">{esc(v)}</td></tr>'
