@@ -1019,7 +1019,7 @@ window.POWERBALL_DRAWS = [
       { name: "Samuel Huller", cotas: 1, valor: 10, metodo: "Reserva dos ganhadores de 02/11", data: "03/11/2026", hora: "8:20:48 AM", status: "verificado", state: "NC" },
       { name: "Simone Hirle da Costa", cotas: 1, valor: 10, metodo: "Reserva dos ganhadores de 02/11", data: "03/11/2026", hora: "8:20:48 AM", status: "verificado", state: "NC" },
       { name: "Thiago Locatelli", cotas: 1, valor: 10, metodo: "Reserva dos ganhadores de 02/11", data: "03/11/2026", hora: "8:20:48 AM", status: "verificado", state: "TX" },
-      { name: "Marcelo Barsotti", cotas: 1, valor: 10, metodo: "Pix", data: "03/11/2026", hora: "8:45:59 AM", status: "verificado", state: "ON" }
+      { name: "Marcelo Barsotti", cotas: 1, valor: 10, metodo: "Pix", data: "03/11/2026", hora: "10:45:59 AM", status: "verificado", state: "ON" }
     ],
 
     // Sem bilhetes ainda. Os numeros entram depois da compra -- abrir o bolao nunca dependeu
