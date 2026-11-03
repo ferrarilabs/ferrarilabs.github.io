@@ -61,6 +61,12 @@ class FakeBanco:
         self.estado["draws"].append(d)
         return d["draw_id"]
 
+    def cria_participante(self, display_name):
+        self.escritas += 1
+        p = {"participant_id": f"p-novo-{len(self.estado['participants'])}", "display_name": display_name}
+        self.estado["participants"].append(p)
+        return p["participant_id"]
+
     def cria_participacao(self, participant_id, pool_id, draw_id):
         self.escritas += 1
         pa = {"participation_id": f"pa-{participant_id}-{draw_id}", "participant_id": participant_id,
@@ -185,6 +191,43 @@ class Aplicacao(unittest.TestCase):
                                 for i in range(2)]
         with self.assertRaisesRegex(od.OperatorError, "2 participacoes"):
             od.planeja(od.valida_manifesto(manifesto()), b, "op")
+
+
+class ParticipanteNovo(unittest.TestCase):
+    """Pessoa nova so entra declarada por nome em `new_participants` (decisao do Eduardo)."""
+
+    def novo(self):
+        m = manifesto()
+        m["contributions"].append({"name": "Marcelo Barsotti", "amount": 10, "method": "Pix",
+                                   "paid_at": "2026-11-03T15:00:00-05:00"})
+        m["new_participants"] = ["Marcelo Barsotti"]
+        return m
+
+    def test_declarado_e_criado_uma_vez_e_reexecucao_e_noop(self):
+        fake = FakeBanco(banco())
+        m = od.valida_manifesto(self.novo())
+        r1 = od.aplica(od.planeja(m, fake.le(), "op"), fake)
+        self.assertTrue(all(r["applied"] for r in r1))
+        self.assertEqual([p["display_name"] for p in fake.estado["participants"]
+                          if p["display_name"] == "Marcelo Barsotti"], ["Marcelo Barsotti"])
+        self.assertEqual([t["method"] for t in fake.txns][-1], "Pix")
+        # Na reexecucao ele ja existe: declarado novo e existente e recusado, sem gravar nada.
+        escritas = fake.escritas
+        with self.assertRaisesRegex(od.OperatorError, "declarado novo, mas ja existe"):
+            od.planeja(m, fake.le(), "op")
+        self.assertEqual(fake.escritas, escritas)
+
+    def test_sem_declarar_continua_recusado(self):
+        m = self.novo()
+        del m["new_participants"]
+        with self.assertRaisesRegex(od.OperatorError, "ZERO escritas"):
+            od.planeja(od.valida_manifesto(m), FakeBanco(banco()).le(), "op")
+
+    def test_declarado_sem_contribuicao_recusado(self):
+        m = manifesto()
+        m["new_participants"] = ["Ninguem"]
+        with self.assertRaises(od.OperatorError):
+            od.valida_manifesto(m)
 
 
 class ManifestoVersionado(unittest.TestCase):
