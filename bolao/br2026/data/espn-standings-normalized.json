@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-11-02T04:56:42Z",
-  "sourceUpdatedAt": "2026-11-02T04:56:42Z",
+  "generatedAt": "2026-11-03T03:37:43Z",
+  "sourceUpdatedAt": "2026-11-03T03:37:43Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "9f11f48a4f201cfd94014a8f5b60c35d2f3e9d659ac1a159c1224ea29dbd03a2",
+  "payloadHash": "68290a1293b4d4928bba19f68d781fe96af600d94c416b0c6c983b91f35f7d3f",
   "matches": [
     {
       "name": "Flamengo",
@@ -107,32 +107,32 @@
       "gd": 5.0
     },
     {
-      "name": "Santos",
-      "abbr": "SAN",
-      "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/2674.png",
-      "rank": 8.0,
-      "points": 47.0,
-      "played": 33.0,
-      "wins": 12.0,
-      "draws": 11.0,
-      "losses": 10.0,
-      "gf": 49.0,
-      "ga": 47.0,
-      "gd": 2.0
-    },
-    {
       "name": "Red Bull Bragantino",
       "abbr": "BRA",
       "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/6079.png",
-      "rank": 9.0,
-      "points": 44.0,
-      "played": 33.0,
-      "wins": 12.0,
+      "rank": 8.0,
+      "points": 47.0,
+      "played": 34.0,
+      "wins": 13.0,
       "draws": 8.0,
       "losses": 13.0,
-      "gf": 42.0,
-      "ga": 38.0,
-      "gd": 4.0
+      "gf": 44.0,
+      "ga": 39.0,
+      "gd": 5.0
+    },
+    {
+      "name": "Santos",
+      "abbr": "SAN",
+      "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/2674.png",
+      "rank": 9.0,
+      "points": 47.0,
+      "played": 34.0,
+      "wins": 12.0,
+      "draws": 11.0,
+      "losses": 11.0,
+      "gf": 50.0,
+      "ga": 49.0,
+      "gd": 1.0
     },
     {
       "name": "São Paulo",
