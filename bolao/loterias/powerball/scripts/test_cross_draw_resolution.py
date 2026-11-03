@@ -185,6 +185,26 @@ class ResolucaoEntreSorteios(unittest.TestCase):
             os.environ.pop("POWERBALL_PRIVATE_CONTACTS_EXTRA", None)
             S.DRAWS = original
 
+    def test_segundo_segredo_suplementar_acrescenta_sem_apagar_o_primeiro(self):
+        """Segredo nao se le: um contato novo vai em POWERBALL_PRIVATE_CONTACTS_EXTRA_2."""
+        original = S.DRAWS
+        S.DRAWS = {"powerball": [{"id": SORTEIO_INEXISTENTE, "gameType": "powerball",
+                                  "participants": [{"name": "Ana"}, {"name": "Novato"},
+                                                   {"name": "Outro"}]}]}
+        os.environ["POWERBALL_PRIVATE_CONTACTS_EXTRA"] = json.dumps(
+            {"Novato": "novato@example.invalid"})
+        os.environ["POWERBALL_PRIVATE_CONTACTS_EXTRA_2"] = json.dumps(
+            {"Outro": "outro@example.invalid", "Novato": "impostor@example.invalid"})
+        try:
+            segredo({SORTEIO_INEXISTENTE: {"Ana": {"email": ANA}}})
+            r = {p["name"]: p["email"] for p in S.load_participants_from_private_env(SORTEIO_INEXISTENTE)}
+            self.assertEqual(r, {"Ana": ANA, "Novato": "novato@example.invalid",
+                                 "Outro": "outro@example.invalid"})
+        finally:
+            os.environ.pop("POWERBALL_PRIVATE_CONTACTS_EXTRA", None)
+            os.environ.pop("POWERBALL_PRIVATE_CONTACTS_EXTRA_2", None)
+            S.DRAWS = original
+
     def test_fixtures_nao_usam_dominio_real(self):
         """Gate de PII sobre este proprio arquivo: ja flagrei fixture com dominio real duas vezes."""
         src = open(__file__, encoding="utf-8").read()

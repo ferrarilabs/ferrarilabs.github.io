@@ -255,6 +255,9 @@ def _expected_names_for_draw(draw_id):
     return set()
 
 SUPPLEMENTARY_CONTACTS_ENV = "POWERBALL_PRIVATE_CONTACTS_EXTRA"
+# Segredo de GitHub nao se le, so se reescreve inteiro. Cada lote novo de contatos vai num segredo
+# proprio para nao apagar os anteriores; todos so ACRESCENTAM, e o primeiro que resolve vence.
+SUPPLEMENTARY_CONTACTS_ENVS = (SUPPLEMENTARY_CONTACTS_ENV, "POWERBALL_PRIVATE_CONTACTS_EXTRA_2")
 
 
 def _merge_supplementary_contacts(draw_entries, draw_id):
@@ -279,16 +282,22 @@ def _merge_supplementary_contacts(draw_entries, draw_id):
     NAO substitui a consolidacao no segredo principal -- e o caminho seguro para acrescentar sem
     poder ler. Quando o principal for reescrito com todo mundo, este pode ficar vazio.
     """
-    bruto = (os.environ.get(SUPPLEMENTARY_CONTACTS_ENV) or "").strip()
-    if not bruto:
-        return draw_entries
-    try:
-        extra = json.loads(bruto)
-    except Exception:
-        logger.error(f"❌ {SUPPLEMENTARY_CONTACTS_ENV} nao e JSON valido — ignorado")
-        return draw_entries
-    if not isinstance(extra, dict):
-        logger.error(f"❌ {SUPPLEMENTARY_CONTACTS_ENV} nao e um objeto — ignorado")
+    extra = {}
+    for env in SUPPLEMENTARY_CONTACTS_ENVS:
+        bruto = (os.environ.get(env) or "").strip()
+        if not bruto:
+            continue
+        try:
+            lote = json.loads(bruto)
+        except Exception:
+            logger.error(f"❌ {env} nao e JSON valido — ignorado")
+            continue
+        if not isinstance(lote, dict):
+            logger.error(f"❌ {env} nao e um objeto — ignorado")
+            continue
+        for nome, email in lote.items():
+            extra.setdefault(nome, email)
+    if not extra:
         return draw_entries
 
     esperados = {_normalize_name(n): n for n in _expected_names_for_draw(draw_id)}

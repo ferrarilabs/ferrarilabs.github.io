@@ -1,0 +1,14 @@
+{
+  "declarations": [
+    {
+      "surface_id": "NOTIFICATION_WORKFLOWS",
+      "reason": "Participante novo do Powerball (pagamento por Pix) precisa receber os e-mails. O segredo POWERBALL_PRIVATE_CONTACTS_EXTRA nao pode ser lido, entao acrescentar alguem nele apagaria os contatos ja gravados.",
+      "expected_behavior_change": "powerball-results-email.yml e powerball_ticket_email.yml passam tambem o segredo POWERBALL_PRIVATE_CONTACTS_EXTRA_2, lido do mesmo jeito que o EXTRA: so acrescenta quem joga o sorteio e ainda nao tem contato, e o segredo principal e o EXTRA vencem em conflito. Gatilhos, cron, destinatarios canonicos e transporte nao mudam.",
+      "tests_required": [
+        "powerball-cross-draw",
+        "powerball-workflow-arming",
+        "email-send-safety"
+      ]
+    }
+  ]
+}
