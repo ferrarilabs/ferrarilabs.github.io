@@ -22,6 +22,8 @@ from pathlib import Path as _Path
 # Formatador USD canônico compartilhado (BATCH 5) — ver bolao/shared/scripts/money.py
 _sys.path.insert(0, str(_Path(__file__).parent.parent.parent.parent / "shared" / "scripts"))
 import money as _money
+_sys.path.insert(0, str(_Path(__file__).parent.parent.parent / "scripts"))
+import lottery_core as _caixa_ledger
 import subject_policy as _subject_policy
 
 
@@ -253,6 +255,9 @@ def _expected_names_for_draw(draw_id):
     return set()
 
 SUPPLEMENTARY_CONTACTS_ENV = "POWERBALL_PRIVATE_CONTACTS_EXTRA"
+# Segredo de GitHub nao se le, so se reescreve inteiro. Cada lote novo de contatos vai num segredo
+# proprio para nao apagar os anteriores; todos so ACRESCENTAM, e o primeiro que resolve vence.
+SUPPLEMENTARY_CONTACTS_ENVS = (SUPPLEMENTARY_CONTACTS_ENV, "POWERBALL_PRIVATE_CONTACTS_EXTRA_2")
 
 
 def _merge_supplementary_contacts(draw_entries, draw_id):
@@ -277,16 +282,22 @@ def _merge_supplementary_contacts(draw_entries, draw_id):
     NAO substitui a consolidacao no segredo principal -- e o caminho seguro para acrescentar sem
     poder ler. Quando o principal for reescrito com todo mundo, este pode ficar vazio.
     """
-    bruto = (os.environ.get(SUPPLEMENTARY_CONTACTS_ENV) or "").strip()
-    if not bruto:
-        return draw_entries
-    try:
-        extra = json.loads(bruto)
-    except Exception:
-        logger.error(f"❌ {SUPPLEMENTARY_CONTACTS_ENV} nao e JSON valido — ignorado")
-        return draw_entries
-    if not isinstance(extra, dict):
-        logger.error(f"❌ {SUPPLEMENTARY_CONTACTS_ENV} nao e um objeto — ignorado")
+    extra = {}
+    for env in SUPPLEMENTARY_CONTACTS_ENVS:
+        bruto = (os.environ.get(env) or "").strip()
+        if not bruto:
+            continue
+        try:
+            lote = json.loads(bruto)
+        except Exception:
+            logger.error(f"❌ {env} nao e JSON valido — ignorado")
+            continue
+        if not isinstance(lote, dict):
+            logger.error(f"❌ {env} nao e um objeto — ignorado")
+            continue
+        for nome, email in lote.items():
+            extra.setdefault(nome, email)
+    if not extra:
         return draw_entries
 
     esperados = {_normalize_name(n): n for n in _expected_names_for_draw(draw_id)}
@@ -842,7 +853,7 @@ def result_balls_html(numbers, special, multiplier, special_label="Powerball"):
     return row + caption
 
 
-def _bloco_proximo_bolao(draw):
+def _bloco_proximo_bolao(draw, doc=None, lancamentos=None, reservas_cfg=None):
     """
     Caixa e próximo bolão no e-mail de resultado — a pergunta que todo mundo faz em seguida.
 
@@ -858,24 +869,69 @@ def _bloco_proximo_bolao(draw):
     Sem o documento, o bloco simplesmente NÃO SAI. Um e-mail afirmando "saldo disponível
     US$ 0,00" porque um arquivo não estava lá é pior que um e-mail sem o bloco: o primeiro é uma
     afirmação falsa sobre dinheiro, o segundo é só uma informação a menos.
+
+    ═══ O CAIXA TEM DE SER DESTE SORTEIO ════════════════════════════════════════════════════
+
+    Em 2026-11-02 o e-mail saiu com "Prêmio deste sorteio $36" e "Saldo disponível agora $38":
+    eram os números de 31/10, porque o livro-razão ainda não tinha liquidado 02/11 (prêmio
+    real US$432) e `lottery_status.json` era de antes do sorteio — os jackpots também ("sorteio
+    2026-11-02", já passado). Agora o caixa sai do LIVRO, e só quando ele já tem lançamentos
+    deste sorteio; sem isso o bloco diz que o caixa ainda vai ser fechado, em vez de repetir o
+    anterior. Jackpot e próximo bolão com data igual ou anterior a este sorteio são velhos e
+    não saem.
     """
-    caminho = (_Path(__file__).resolve().parents[3] / "loterias" / "config"
-               / "lottery_status.json")
-    try:
-        doc = json.loads(caminho.read_text(encoding="utf-8"))
-    except Exception:  # noqa: BLE001 — arquivo ausente/ilegível: o bloco não sai, e ponto
-        return ""
+    if doc is None:
+        caminho = (_Path(__file__).resolve().parents[3] / "loterias" / "config"
+                   / "lottery_status.json")
+        try:
+            doc = json.loads(caminho.read_text(encoding="utf-8"))
+        except Exception:  # noqa: BLE001 — arquivo ausente/ilegível: o bloco não sai, e ponto
+            return ""
 
     def usd(c):
         return "—" if c is None else _money.usd(c / 100)
 
-    f = doc.get("funds") or {}
+    draw_id = str(draw.get("id") or "")
     fin = draw.get("finance") or {}
     anterior = int(fin.get("creditoSorteioAnterior") or 0) * 100
 
-    linhas = [("Prêmio deste sorteio", usd(f.get("lastDrawWinningsCents"))),
-              ("Crédito que entrou do sorteio anterior", usd(anterior)),
-              ("Saldo disponível agora", usd(f.get("carryoverAvailableCents")))]
+    if lancamentos is None:
+        try:
+            lancamentos = _caixa_ledger.le_ledger()
+        except Exception:  # noqa: BLE001 — livro ilegível: o caixa não sai, e ponto
+            lancamentos = []
+    deste = [e for e in lancamentos if e.get("poolId") == draw_id]
+    if deste:
+        premio = sum(e["amountCents"] for e in deste if e.get("type") == "PRIZE_CREDIT")
+        # Reserva de ganhadores tem dono (lottery_core.reservas): fica fora do saldo do bolão e
+        # aparece em linha própria.
+        if reservas_cfg is None:
+            try:
+                reservas_cfg = _caixa_ledger.le_reservas()
+            except Exception:  # noqa: BLE001 — sem a configuração não dá para separar: sem caixa
+                reservas_cfg = None
+        if reservas_cfg is None:
+            linhas = [("Prêmio deste sorteio", usd(premio))]
+        else:
+            reservadas = [(r["label"], len(r.get("beneficiaries") or []),
+                           sum(e["amountCents"] for e in lancamentos
+                               if e.get("poolId") == r["sourcePoolId"]))
+                          for r in reservas_cfg]
+            total = sum(e["amountCents"] for e in lancamentos)
+            linhas = [("Prêmio deste sorteio", usd(premio)),
+                      ("Crédito que entrou do sorteio anterior", usd(anterior)),
+                      ("Saldo disponível agora", usd(total - sum(c for _, _, c in reservadas)))]
+            linhas += [(f"{rotulo} ({n} participantes)", usd(c)) for rotulo, n, c in reservadas]
+        tabela = "".join(
+            f'<tr><td style="padding:3px 0;color:#475569">{esc(k)}</td>'
+            f'<td style="padding:3px 0;text-align:right;font-weight:bold">{esc(v)}</td></tr>'
+            for k, v in linhas)
+    else:
+        tabela = ('<tr><td style="padding:3px 0;color:#475569">O caixa deste sorteio ainda está '
+                  'sendo fechado; o saldo atualizado aparece no site.</td></tr>')
+
+    def velho(data):
+        return not data or str(data) <= draw_id
 
     jogos = []
     for chave in ("powerball", "megamillions"):
@@ -885,21 +941,21 @@ def _bloco_proximo_bolao(draw):
         if g.get("error"):
             jogos.append((g["label"], "não foi possível ler agora", ""))
             continue
+        if chave == draw.get("gameType", "powerball") and velho(g.get("nextDrawDate")):
+            continue
         jogos.append((g["label"], usd(g.get("advertisedAnnuityCents")),
                       f"sorteio {g.get('nextDrawDate') or '—'}"))
 
     np = doc.get("nextPool")
-    if np:
+    if np and np.get("game") == draw.get("gameType", "powerball") and velho(np.get("drawDate")):
+        veredito = ("O organizador avisa quando abrir o próximo bolão.")
+    elif np:
         veredito = (f"<strong>{esc(np['label'])}</strong> — {usd(np.get('jackpotCents'))}, "
                     f"sorteio {esc(np.get('drawDate'))}. O organizador avisa quando abrir.")
     else:
         veredito = ("<strong>Nenhum por enquanto.</strong> Nenhum dos dois jackpots passa de "
                     "US$ 500 milhões, então o saldo fica guardado até que um deles passe.")
 
-    tabela = "".join(
-        f'<tr><td style="padding:3px 0;color:#475569">{esc(k)}</td>'
-        f'<td style="padding:3px 0;text-align:right;font-weight:bold">{esc(v)}</td></tr>'
-        for k, v in linhas)
     cartoes = "".join(
         f'<td style="padding:8px;vertical-align:top">'
         f'<div style="font-size:11px;color:#666;text-transform:uppercase">{esc(nome)}</div>'
