@@ -80,10 +80,14 @@ export function aplicarNoDataJs(src, drawId, rows) {
   const bloco = src.slice(ini, fimBloco);
 
   const abre = bloco.indexOf("\n    participants: [");
-  const fecha = bloco.indexOf("\n    ],", abre);
+  // Sorteio recem-aberto por open_next_draw.py traz `participants: [],` numa linha so (2026-11-03:
+  // a abertura de 04/11 gravou no banco e o site nao foi atualizado por isso).
+  const vazio = bloco.startsWith("\n    participants: [],", abre);
+  const fecha = vazio ? abre + "\n    participants: [".length : bloco.indexOf("\n    ],", abre);
   if (abre === -1 || fecha === -1) throw new Error(`sorteio ${drawId}: array participants nao encontrado`);
   const corpo = rows.length ? "\n" + rows.map(linhaJs).join(",\n") : "";
-  let novo = bloco.slice(0, abre) + "\n    participants: [" + corpo + bloco.slice(fecha);
+  let novo = bloco.slice(0, abre) + "\n    participants: [" + corpo
+    + (vazio ? "\n    ]" + bloco.slice(fecha + 1) : bloco.slice(fecha));
 
   const total = rows.reduce((a, r) => a + r.valor, 0);
   const reTotal = /\n      totalArrecadado: [\d.]+,[^\n]*/;

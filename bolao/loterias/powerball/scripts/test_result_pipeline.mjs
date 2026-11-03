@@ -30,6 +30,10 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(HERE, "..", "..", "..", "..");
 const DATA_JS = join(ROOT, "bolao/loterias/powerball/js/data.js");
 const APP_JS = join(ROOT, "bolao/loterias/powerball/js/app.js");
+// Pools cujo premio virou reserva de ganhadores (config/lottery_reserves.json): nao passam credito.
+const POOLS_RESERVADOS = new Set(
+  (JSON.parse(readFileSync(join(ROOT, "bolao/loterias/config/lottery_reserves.json"), "utf8")).reserves || [])
+    .map((r) => r.sourcePoolId));
 const FETCHER = join(ROOT, "bolao/loterias/powerball/scripts/fetch_and_send_results.py");
 
 let pass = 0, fail = 0;
@@ -286,7 +290,9 @@ test("cada sorteio encadeia com o anterior e o crédito bate com o resultado del
     if (!cur.previousDrawId) continue;
     eq(cur.previousDrawId, prev.id, `${cur.id} aponta para o sorteio anterior errado`);
     if (prev.result && prev.result.numbers && cur.finance) {
-      const expected = (prev.finance.valorGuardadoProximoSorteio || 0) + (prev.result.premiosGanhos || 0);
+      // Premio + guardado de um pool reservado ficam com os ganhadores: credito 0.
+      const expected = POOLS_RESERVADOS.has(prev.id) ? 0
+        : (prev.finance.valorGuardadoProximoSorteio || 0) + (prev.result.premiosGanhos || 0);
       eq(cur.finance.creditoSorteioAnterior, expected,
         `crédito de ${cur.id} não bate: guardado(${prev.finance.valorGuardadoProximoSorteio}) + ` +
         `prêmios(${prev.result.premiosGanhos}) do ${prev.id}`);
