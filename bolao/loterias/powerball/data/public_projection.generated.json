@@ -738,6 +738,92 @@
         "valor": 10,
         "metodo": "Zelle"
       }
+    ],
+    [
+      {
+        "name": "Alan Rech",
+        "cotas": 1,
+        "valor": 10,
+        "metodo": "Reserva dos ganhadores de 02/11"
+      },
+      {
+        "name": "Camila Ribeiro",
+        "cotas": 1,
+        "valor": 10,
+        "metodo": "Reserva dos ganhadores de 02/11"
+      },
+      {
+        "name": "Eduardo Ferrari",
+        "cotas": 1,
+        "valor": 10,
+        "metodo": "Reserva dos ganhadores de 02/11"
+      },
+      {
+        "name": "Ewerton Gruba Silva",
+        "cotas": 1,
+        "valor": 10,
+        "metodo": "Reserva dos ganhadores de 02/11"
+      },
+      {
+        "name": "Gustavo Bossle",
+        "cotas": 1,
+        "valor": 10,
+        "metodo": "Reserva dos ganhadores de 02/11"
+      },
+      {
+        "name": "Leandro Augustineli",
+        "cotas": 1,
+        "valor": 10,
+        "metodo": "Reserva dos ganhadores de 02/11"
+      },
+      {
+        "name": "Marcelo G de Jesus",
+        "cotas": 1,
+        "valor": 10,
+        "metodo": "Reserva dos ganhadores de 02/11"
+      },
+      {
+        "name": "Marcelo Minghetti Pereira",
+        "cotas": 1,
+        "valor": 10,
+        "metodo": "Reserva dos ganhadores de 02/11"
+      },
+      {
+        "name": "Marcelo Moreira",
+        "cotas": 1,
+        "valor": 10,
+        "metodo": "Reserva dos ganhadores de 02/11"
+      },
+      {
+        "name": "Marcus Steffenon",
+        "cotas": 1,
+        "valor": 10,
+        "metodo": "Reserva dos ganhadores de 02/11"
+      },
+      {
+        "name": "Rodrigo Hajj",
+        "cotas": 1,
+        "valor": 10,
+        "metodo": "Reserva dos ganhadores de 02/11"
+      },
+      {
+        "name": "Samuel Huller",
+        "cotas": 1,
+        "valor": 10,
+        "metodo": "Reserva dos ganhadores de 02/11"
+      },
+      {
+        "name": "Simone Hirle da Costa",
+        "cotas": 1,
+        "valor": 10,
+        "metodo": "Reserva dos ganhadores de 02/11"
+      },
+      {
+        "name": "Thiago Locatelli",
+        "cotas": 1,
+        "valor": 10,
+        "metodo": "Reserva dos ganhadores de 02/11"
+      }
     ]
   ]
 }
