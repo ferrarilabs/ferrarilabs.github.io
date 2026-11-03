@@ -932,6 +932,14 @@
       itens.push([esc(lotDinheiro(f.carryoverAvailableCents)),
                   "Saldo disponível para o próximo bolão", true]);
     }
+    // Reserva de ganhadores: dinheiro com dono (decisão do organizador em 2026-11-03 — o prêmio
+    // de 02/11 é só dos 14 daquele sorteio). Sai do saldo do bolão e aparece em linha própria,
+    // sem a marca de saldo corrente: não é o que paga a cota de quem entra.
+    (f.reserves || []).forEach(function (r) {
+      if (!r.cents) return;
+      itens.push([esc(lotDinheiro(r.cents)),
+                  esc(r.label) + " (" + r.beneficiaryCount + " participantes)", false]);
+    });
     document.getElementById("lotFunds").innerHTML = itens.map(function (row) {
       var marca = row[2] ? ' data-current-balance="ledger"' : "";
       return '<div class="pb-summary-item"' + marca + '><div class="v">' + row[0]

@@ -53,14 +53,14 @@ STATUS_ANTES_DO_SORTEIO = {
 
 class CaixaDoSorteio(unittest.TestCase):
     def test_livro_sem_este_sorteio_nao_repete_o_caixa_anterior(self):
-        html = S._bloco_proximo_bolao(DRAW, STATUS_ANTES_DO_SORTEIO, LIVRO_SEM_ESTE)
+        html = S._bloco_proximo_bolao(DRAW, STATUS_ANTES_DO_SORTEIO, LIVRO_SEM_ESTE, [])
         self.assertNotIn("$36", html)
         self.assertNotIn("$38.00", html)
         self.assertNotIn("Saldo disponível agora", html)
         self.assertIn("ainda está sendo fechado", html)
 
     def test_livro_liquidado_mostra_premio_e_saldo_deste_sorteio(self):
-        html = S._bloco_proximo_bolao(DRAW, STATUS_ANTES_DO_SORTEIO, LIVRO_LIQUIDADO)
+        html = S._bloco_proximo_bolao(DRAW, STATUS_ANTES_DO_SORTEIO, LIVRO_LIQUIDADO, [])
         self.assertRegex(html, r"Prêmio deste sorteio.*\$432")
         self.assertRegex(html, r"Saldo disponível agora.*\$433")
         self.assertRegex(html, r"Crédito que entrou do sorteio anterior.*\$38")
@@ -68,12 +68,12 @@ class CaixaDoSorteio(unittest.TestCase):
     def test_sorteio_sem_premio_mostra_zero_e_nao_o_premio_anterior(self):
         livro = [e for e in LIVRO_LIQUIDADO
                  if not (e["poolId"] == "2026-11-02" and e["type"] == "PRIZE_CREDIT")]
-        html = S._bloco_proximo_bolao(DRAW, STATUS_ANTES_DO_SORTEIO, livro)
+        html = S._bloco_proximo_bolao(DRAW, STATUS_ANTES_DO_SORTEIO, livro, [])
         self.assertRegex(html, r"Prêmio deste sorteio.*\$0")
         self.assertNotRegex(html, r"Prêmio deste sorteio[^$]*\$36")
 
     def test_jackpot_e_proximo_bolao_de_data_ja_passada_nao_saem(self):
-        html = S._bloco_proximo_bolao(DRAW, STATUS_ANTES_DO_SORTEIO, LIVRO_LIQUIDADO)
+        html = S._bloco_proximo_bolao(DRAW, STATUS_ANTES_DO_SORTEIO, LIVRO_LIQUIDADO, [])
         self.assertNotIn("sorteio 2026-11-02", html)
         self.assertIn("Mega Millions", html)
         self.assertIn("sorteio 2026-11-03", html)
@@ -82,8 +82,64 @@ class CaixaDoSorteio(unittest.TestCase):
         doc = json.loads(json.dumps(STATUS_ANTES_DO_SORTEIO))
         doc["games"]["powerball"]["nextDrawDate"] = "2026-11-04"
         doc["nextPool"]["drawDate"] = "2026-11-04"
-        html = S._bloco_proximo_bolao(DRAW, doc, LIVRO_LIQUIDADO)
+        html = S._bloco_proximo_bolao(DRAW, doc, LIVRO_LIQUIDADO, [])
         self.assertIn("sorteio 2026-11-04", html)
+
+
+RESERVA = [{"id": "ganhadores-2026-11-02", "sourcePoolId": "2026-11-02",
+            "label": "Reserva dos ganhadores de 02/11", "beneficiaries": ["A"] * 14}]
+# 14 cotas de 04/11 pagas pela reserva: sai US$140 do pool de 02/11.
+LIVRO_COM_USO = LIVRO_LIQUIDADO + [
+    {"type": "CARRYOVER_OUT", "poolId": "2026-11-02", "amountCents": -14000},
+]
+DRAW_0411 = {"id": "2026-11-04", "gameType": "powerball",
+             "finance": {"creditoSorteioAnterior": 0, "valorGuardadoProximoSorteio": 0}}
+
+
+class ReservaDosGanhadores(unittest.TestCase):
+    """Decisao de 2026-11-03: o premio de 02/11 e so dos 14 daquele sorteio."""
+
+    def test_reserva_sai_do_saldo_do_bolao_e_aparece_em_linha_propria(self):
+        html = S._bloco_proximo_bolao(DRAW, STATUS_ANTES_DO_SORTEIO, LIVRO_LIQUIDADO, RESERVA)
+        self.assertRegex(html, r"Saldo disponível agora</td><td[^>]*>\$0<")
+        self.assertRegex(html, r"Reserva dos ganhadores de 02/11 \(14 participantes\).*?\$433")
+
+    def test_depois_das_14_cotas_a_reserva_tem_293(self):
+        livro = LIVRO_COM_USO + [
+            {"type": "CONTRIBUTION", "poolId": "2026-11-04", "amountCents": 15000},
+            {"type": "TICKET_PURCHASE", "poolId": "2026-11-04", "amountCents": -15000},
+        ]
+        html = S._bloco_proximo_bolao(DRAW_0411, STATUS_ANTES_DO_SORTEIO, livro, RESERVA)
+        self.assertRegex(html, r"Reserva dos ganhadores de 02/11 \(14 participantes\).*?\$293")
+        self.assertRegex(html, r"Saldo disponível agora</td><td[^>]*>\$0<")
+
+    def test_core_reserva_e_saldo_do_bolao_derivados_do_livro(self):
+        sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "scripts"))
+        import lottery_core as L
+        d = tempfile.mkdtemp()
+        livro, cfg = os.path.join(d, "l.jsonl"), os.path.join(d, "r.json")
+        with open(livro, "w") as f:
+            f.write("".join(json.dumps(e) + "\n" for e in LIVRO_COM_USO))
+        with open(cfg, "w") as f:
+            json.dump({"reserves": RESERVA}, f)
+        r = L.reservas(livro, cfg)
+        self.assertEqual([(x["id"], x["cents"], x["beneficiaryCount"]) for x in r],
+                         [("ganhadores-2026-11-02", 29300, 14)])
+        self.assertEqual(L.saldo(livro), 29300)
+        self.assertEqual(L.saldo_do_bolao(livro, cfg), 0)
+
+    def test_operador_so_aceita_cota_da_reserva_para_ganhador(self):
+        import operator_open_draw as O
+        m = {"draw_date": "2026-11-04", "contributions": [
+            {"name": "Rodrigo Hajj", "amount": 10, "method": O.RESERVA_0211,
+             "paid_at": "2026-11-03T14:00:00-05:00"}]}
+        O.valida_manifesto(m)
+        m["contributions"][0]["name"] = "Pessoa Nova"
+        with self.assertRaises(O.OperatorError):
+            O.valida_manifesto(m)
+        m["contributions"][0].update(name="Rodrigo Hajj", amount=20)
+        with self.assertRaises(O.OperatorError):
+            O.valida_manifesto(m)
 
 
 class LiquidaAntesDoEmail(unittest.TestCase):

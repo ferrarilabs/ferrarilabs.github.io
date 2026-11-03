@@ -36,6 +36,7 @@ from pathlib import Path
 RAIZ = Path(__file__).resolve().parents[3]
 CONFIG = RAIZ / "bolao" / "loterias" / "config" / "lottery_policy.json"
 LEDGER = RAIZ / "bolao" / "loterias" / "config" / "lottery_ledger.jsonl"
+RESERVAS = RAIZ / "bolao" / "loterias" / "config" / "lottery_reserves.json"
 
 TIPOS = {"CONTRIBUTION", "TICKET_PURCHASE", "PRIZE_CREDIT",
          "CARRYOVER_IN", "CARRYOVER_OUT", "OPERATOR_ADJUSTMENT"}
@@ -326,6 +327,36 @@ def saldo(caminho=None, pool_id=None):
     """Saldo DERIVADO. Não existe campo de saldo guardado para divergir do extrato."""
     return sum(e["amountCents"] for e in le_ledger(caminho)
                if pool_id is None or e.get("poolId") == pool_id)
+
+
+# ══ RESERVA DE GANHADORES ═══════════════════════════════════════════════════════════════════
+#
+# Em 2026-11-03 o organizador decidiu que o prêmio de 02/11 (US$432 + US$1 guardado) pertence SÓ
+# aos 14 participantes daquele sorteio: paga uma cota de US$10 de cada um em 04/11 e o resto fica
+# guardado para eles. Quem entra depois paga a própria cota e não concorre com esse dinheiro.
+#
+# A reserva é o saldo DERIVADO do pool de origem no extrato — não um número digitado. Cada uso
+# dela é um CARRYOVER_OUT nesse pool, com motivo. O caixa do bolão (o que pode pagar bilhete de
+# qualquer participante) é o saldo total MENOS as reservas.
+def le_reservas(caminho=None):
+    p = Path(caminho or RESERVAS)
+    if not p.exists():
+        return []
+    return json.loads(p.read_text(encoding="utf-8")).get("reserves") or []
+
+
+def reservas(caminho_ledger=None, caminho_reservas=None):
+    """Cada reserva com o saldo atual do pool de origem, em centavos."""
+    return [{"id": r["id"], "label": r["label"], "sourcePoolId": r["sourcePoolId"],
+             "beneficiaryCount": len(r.get("beneficiaries") or []),
+             "cents": saldo(caminho_ledger, pool_id=r["sourcePoolId"])}
+            for r in le_reservas(caminho_reservas)]
+
+
+def saldo_do_bolao(caminho_ledger=None, caminho_reservas=None):
+    """Saldo que paga bilhete de qualquer participante: o total menos as reservas."""
+    return saldo(caminho_ledger) - sum(
+        r["cents"] for r in reservas(caminho_ledger, caminho_reservas))
 
 
 def resumo(caminho=None):
