@@ -334,6 +334,10 @@
       "classification": "REGISTERED_AND_EXECUTED",
       "coverage": "Identidade de sorteio (P0 de 2026-08-10) + POWERBALL_PARTIAL_HISTORICAL_DELIVERY_RECOVERY: a entrega parcial de 2026-08-08 (14 de 15) nunca pode virar reenvio para os 14. Exercita retryable_recipients/settle reais com o banco substituido; mutacao-testado."
     },
+    "bolao/loterias/powerball/scripts/test_result_email_caixa.py": {
+      "classification": "REGISTERED_AND_EXECUTED",
+      "coverage": "O e-mail de 2026-11-02 mostrou o caixa de 31/10 ($36/$38) com US$432 ganhos. Caixa vem do livro deste sorteio; jackpot passado nao sai; liquidacao antes do e-mail."
+    },
     "bolao/loterias/powerball/scripts/test_result_email_visual.py": {
       "classification": "REGISTERED_AND_EXECUTED",
       "coverage": "PB-R1. Achou o link do e-mail apontando para origem que responde 301."
