@@ -1,0 +1,14 @@
+{
+  "declarations": [
+    {
+      "surface_id": "NOTIFICATION_WORKFLOWS",
+      "reason": "O e-mail de resultado de 2026-11-02 mostrou o caixa de 31/10 (premio $36, saldo $38) com US$432 ganhos e o jackpot de um sorteio ja passado: o livro-razao nao era liquidado antes do envio e lottery_status.json era de antes do sorteio.",
+      "expected_behavior_change": "powerball-results-email.yml publica todos os commits do ciclo (format-patch $GITHUB_SHA..HEAD) e leva lottery_ledger.jsonl e lottery_status.json no PR do site, alem do data.js. Gatilhos, cron, destinatarios e transporte nao mudam.",
+      "tests_required": [
+        "powerball-email-caixa",
+        "powerball-workflow-arming",
+        "email-send-safety"
+      ]
+    }
+  ]
+}

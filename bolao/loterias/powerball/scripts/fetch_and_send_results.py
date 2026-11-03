@@ -593,11 +593,17 @@ class _PonteM8M9:
 
 class Deps:
     """Fronteiras externas injetaveis. O padrao e a producao."""
-    def __init__(self, ledger=None, send_email=None, resolve_recipients=None, bridge=None):
+    def __init__(self, ledger=None, send_email=None, resolve_recipients=None, bridge=None,
+                 liquida_caixa=None):
+        producao = ledger is None
         if ledger is None:
             import powerball_notification as _pn
             ledger = _pn
         self.ledger = ledger
+        # Escreve no livro e faz commit: so a producao liquida por padrao. Um teste que injeta o
+        # ledger nunca toca no livro real sem pedir.
+        self.liquida_caixa = liquida_caixa or (
+            liquida_caixa_antes_do_email if producao else (lambda draw_id: "NAO_EXECUTADO"))
         self.send_email = send_email or _default_send_email
         self.resolve_recipients = resolve_recipients or _default_resolve_recipients
         self.bridge = bridge or _PonteM8M9()
@@ -849,6 +855,42 @@ def _reconcilia_outbox_orfao(deps, rel, corr, draw_id):
                            correlation_id=corr)
 
 
+LEDGER_REL = "bolao/loterias/config/lottery_ledger.jsonl"
+STATUS_REL = "bolao/loterias/config/lottery_status.json"
+LOTERIAS_SCRIPTS = os.path.join(REPO_ROOT, "bolao", "loterias", "scripts")
+
+
+def liquida_caixa_antes_do_email(draw_id, run=subprocess.run):
+    """Fecha o livro-razão deste sorteio e regenera `lottery_status.json` ANTES do e-mail.
+
+    Em 2026-11-02 o e-mail de resultado mostrou o caixa de 31/10 ("Prêmio deste sorteio $36",
+    saldo $38) com US$432 ganhos: a liquidação (`settle_draw.py`) era manual e o status era de
+    antes do sorteio. Os dois passos são idempotentes e não tocam no provedor. Só roda quando o
+    livro ainda não tem nenhum lançamento deste sorteio, então execuções seguintes não geram
+    commit novo. Falha não impede o e-mail: o bloco do caixa sabe que não está fechado e diz isso.
+    """
+    ledger = os.path.join(REPO_ROOT, LEDGER_REL)
+    try:
+        with open(ledger, encoding="utf-8") as f:
+            if any(json.loads(l).get("poolId") == draw_id for l in f if l.strip()):
+                return "JA_LIQUIDADO"
+    except FileNotFoundError:
+        pass
+    try:
+        run(["python3", os.path.join(LOTERIAS_SCRIPTS, "settle_draw.py"), "--draw", draw_id],
+            check=True, cwd=LOTERIAS_SCRIPTS)
+        run(["python3", os.path.join(LOTERIAS_SCRIPTS, "lottery_status.py"),
+             "--out", os.path.join(REPO_ROOT, STATUS_REL)], check=True, cwd=LOTERIAS_SCRIPTS)
+        run(["git", "-C", REPO_ROOT, "add", LEDGER_REL, STATUS_REL], check=True)
+        run(["git", "-C", REPO_ROOT, "commit", "-m",
+             f"Powerball: livro-razao e caixa do sorteio de {draw_id} (automatico)"], check=True)
+    except (subprocess.CalledProcessError, OSError) as e:
+        print(f"⚠️  Liquidação do caixa de {draw_id} falhou ({e}); o e-mail sai sem o caixa")
+        return "FALHOU"
+    print(f"✓ Livro-razão e caixa de {draw_id} fechados antes do e-mail")
+    return "LIQUIDADO"
+
+
 def run_lifecycle(game_type="powerball", dry_run=False, force_resend=False, deps=None):
     """Ciclo completo: reconcilia resultado, depois trata a notificacao. Devolve o relatorio.
 
@@ -887,6 +929,10 @@ def run_lifecycle(game_type="powerball", dry_run=False, force_resend=False, deps
          upstreamResultDate=(result or {}).get("drawDate", draw_id),
          resultReconciled=rel["resultReconciled"],
          idempotencyKey=deps.ledger.draw_key(draw_id) if hasattr(deps.ledger, "draw_key") else None)
+
+    # O caixa do e-mail tem de ser o deste sorteio (ver liquida_caixa_antes_do_email).
+    if not dry_run:
+        rel["caixa"] = getattr(deps, "liquida_caixa", lambda _id: "NAO_EXECUTADO")(draw_id)
 
     # ── FATO 2: NOTIFICACAO ────────────────────────────────────────────────────────────────
     disponivel, porque = deps.ledger.ledger_available()
