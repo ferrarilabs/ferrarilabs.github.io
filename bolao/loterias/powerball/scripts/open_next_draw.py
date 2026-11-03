@@ -167,6 +167,13 @@ def main():
     fin = ultimo.get("finance") or {}
     credito = int((ultimo.get("result") or {}).get("premiosGanhos") or 0) + \
         int(fin.get("valorGuardadoProximoSorteio") or 0)
+    # Premio que virou reserva de ganhadores (config/lottery_reserves.json) tem dono: nao entra
+    # como credito do proximo sorteio. As cotas pagas por ela entram como contribuicao.
+    sys.path.insert(0, os.path.join(AQUI, "..", "..", "scripts"))
+    import lottery_core as L  # noqa: E402
+    if any(r["sourcePoolId"] == ultimo["id"] for r in L.le_reservas()):
+        print(f"\n  {ultimo['id']} e origem de reserva de ganhadores: credito 0 (era {credito})")
+        credito = 0
 
     print(f"\n  credito do anterior         {credito}  "
           f"(premios {(ultimo.get('result') or {}).get('premiosGanhos')} + "

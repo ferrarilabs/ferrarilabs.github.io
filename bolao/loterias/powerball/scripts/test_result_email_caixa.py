@@ -142,6 +142,40 @@ class ReservaDosGanhadores(unittest.TestCase):
             O.valida_manifesto(m)
 
 
+class LiquidacaoComReserva(unittest.TestCase):
+    """settle_draw.liquida nas guardas da reserva, com o livro real copiado (nada e gravado nele)."""
+
+    def setUp(self):
+        sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "scripts"))
+        import lottery_core as L
+        import settle_draw as SD
+        self.L, self.SD = L, SD
+        self.livro = os.path.join(tempfile.mkdtemp(), "l.jsonl")
+        with open(L.LEDGER, encoding="utf-8") as f, open(self.livro, "w", encoding="utf-8") as g:
+            g.write(f.read())
+        self.anterior = {"id": "2026-11-02"}
+        nomes = L.le_reservas()[0]["beneficiaries"]
+        self.draw = {"id": "2026-11-04", "previousDrawId": "2026-11-02",
+                     "participants": [{"name": n, "valor": 10, "metodo": "Reserva dos ganhadores de 02/11"}
+                                      for n in nomes] + [{"name": "Pagante", "valor": 10, "metodo": "Zelle"}],
+                     "finance": {"creditoSorteioAnterior": 0},
+                     "sharedTickets": {"valorPorTicket": 3, "series": []}}
+
+    def test_14_cotas_conferem_e_a_reserva_continua_293(self):
+        self.SD.liquida(self.draw, self.anterior, ledger=self.livro, verificar_ao_vivo=False)
+        self.assertEqual([r["cents"] for r in self.L.reservas(self.livro)], [29300])
+
+    def test_cota_a_menos_e_recusada(self):
+        self.draw["participants"].pop(0)
+        with self.assertRaisesRegex(RuntimeError, "RESERVA_NAO_CONFERE"):
+            self.SD.liquida(self.draw, self.anterior, ledger=self.livro, verificar_ao_vivo=False)
+
+    def test_reserva_nao_vira_credito(self):
+        self.draw["finance"]["creditoSorteioAnterior"] = 433
+        with self.assertRaisesRegex(RuntimeError, "RESERVA_VIROU_CREDITO"):
+            self.SD.liquida(self.draw, self.anterior, ledger=self.livro, verificar_ao_vivo=False)
+
+
 class LiquidaAntesDoEmail(unittest.TestCase):
     def setUp(self):
         self.dir = tempfile.mkdtemp()

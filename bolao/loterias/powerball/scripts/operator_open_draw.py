@@ -96,6 +96,10 @@ def valida_manifesto(m: dict) -> dict:
                         f"contribuicao {i}: {nome} nao e ganhador de 02/11 -- a reserva nao paga a cota dele")
             op._require(float(e["amount"]) == 10,
                         f"contribuicao {i}: a reserva paga exatamente uma cota de US$10")
+            # A decisao de 2026-11-03 cobre so o sorteio de 04/11 (lancamento
+            # reserva:ganhadores-2026-11-02->2026-11-04 no livro). Outro uso e outra decisao.
+            op._require(m["draw_date"] == "2026-11-04",
+                        f"contribuicao {i}: a reserva de 02/11 so paga cotas do sorteio de 04/11")
         try:
             pago = datetime.fromisoformat(e.get("paid_at") or "")
         except ValueError as ex:

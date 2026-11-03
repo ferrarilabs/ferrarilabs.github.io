@@ -339,9 +339,9 @@ def saldo(caminho=None, pool_id=None):
 # dela é um CARRYOVER_OUT nesse pool, com motivo. O caixa do bolão (o que pode pagar bilhete de
 # qualquer participante) é o saldo total MENOS as reservas.
 def le_reservas(caminho=None):
+    # Arquivo ausente NAO e "nenhuma reserva": seria mostrar dinheiro com dono como caixa de
+    # todos. Sem ele, quem le falha alto.
     p = Path(caminho or RESERVAS)
-    if not p.exists():
-        return []
     return json.loads(p.read_text(encoding="utf-8")).get("reserves") or []
 
 
