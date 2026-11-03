@@ -6,6 +6,16 @@ outros três bolões.
 
 ---
 
+## 2026-11-03 — Imposto estimado para participante do Canadá (ON)
+
+Marcelo Barsotti (Ottawa, Ontário) entrou no sorteio de 04/11 e a linha dele aparecia sem
+estimativa (`stateKnown: false`). Agora `ON` tem regra própria: 30% federais fixos de não
+residente (IRC 871/1441, Form 1042-S; o tratado EUA–Canadá não reduz loteria) + 3,99% da NC, onde
+o bilhete é comprado; o Canadá não tributa prêmio de loteria. Total 33,99%. As alíquotas de
+NC/FL/TX não mudaram. Aviso da página e `docs/PARTICIPANT_FRAMEWORK.md` atualizados (a regra
+"todos nos EUA" passou a admitir o Canadá por decisão do organizador). Sem efeito em pagamentos,
+razão ou e-mails já enviados.
+
 ## 2026-10-05 — Issue #451: Worker de reporte aponta para `eduardomferrari/support-intake`
 
 Na migração GitHub da FerrariLabs a conta pessoal `ferrarilabs` virou `eduardomferrari` e

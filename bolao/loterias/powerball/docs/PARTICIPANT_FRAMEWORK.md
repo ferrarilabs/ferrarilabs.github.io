@@ -65,12 +65,15 @@ Tax calculations use federal + state rates:
   - **NC (North Carolina)**: 3.99%
   - **FL (Florida)**: 0% (no state income tax)
   - **TX (Texas)**: 0% (no state income tax)
+  - **ON (Ontario, Canada)**: 3.99% — not a US state; NC withholds its rate from any winner of a ticket bought in NC
+- **Federal Tax for non-US residents (ON)**: 30% flat withholding (IRC 871/1441, Form 1042-S) instead of 37%. The US–Canada treaty does not reduce it for lottery prizes, and Canada does not tax lottery winnings.
   - **Other States**: Look up current rate; update this doc
 
 **Total Effective Tax Rates:**
 - NC residents: 37% + 3.99% = **40.99%**
 - FL residents: 37% + 0% = **37%**
 - TX residents: 37% + 0% = **37%**
+- ON (Canada) residents: 30% + 3.99% = **33.99%**
 
 ### Prize Display Formula
 
@@ -171,6 +174,12 @@ When adding a new participant:
 - Tax Rate: 37% (no state income tax)
 - Used for Texas residents (e.g., Thiago Locatelli)
 
+### Ontario, Canada (ON)
+- Tax Rate: 33.99% (30% US non-resident withholding + 3.99% NC; Canada does not tax lottery winnings)
+- Added 2026-11-03 for Marcelo Barsotti (Ottawa), who pays by Pix to the organizer in Brazil
+- Needs a US ITIN to claim; how his share is paid out is decided by the organizer if a large prize hits
+- PENDING CONFIRMATION: rule researched from public sources (IRS, Canadian tax guides), not a tax advisor; the site shows this disclaimer and it must be checked with a US–Canada cross-border specialist before any real claim
+
 ### Other States
 - Research current income tax rate
 - Add to this table
@@ -182,7 +191,7 @@ When adding a new participant:
 A: State income tax varies; some states have no tax, others have high rates. This affects final winnings significantly. For full transparency, participants need accurate estimates.
 
 **Q: Can I add someone without a state?**
-A: No. All participants must be US-based (non-Brazilian). You MUST have a state for tax calculations.
+A: No. You MUST have a state/province for tax calculations. Participants were originally US-based only; since 2026-11-03 the organizer also accepts a Canadian resident (ON), with the non-resident rule above. Any other country needs its rule researched and added here first.
 
 **Q: What if someone is in a state not listed?**
 A: Look up the current state income tax rate, add it to this framework document, update the calculation code, and mention it in your commit message.

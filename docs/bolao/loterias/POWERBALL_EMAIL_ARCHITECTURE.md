@@ -15,7 +15,8 @@ Scope: `bolao/loterias/powerball/` only. Independent from Copa2026/BR2026/CDB202
 - **Prize calculation** (jackpot / lump sum / annuity / tax) lives in
   `js/app.js` as `calculatePrizePerParticipant(draw, participant)` (originally
   private to the page's IIFE). It reads `STATE_TAX_RATES` (`FL: 0`, `NC:
-  0.0399`) and `FEDERAL_TAX_RATE` (0.37), and returns `stateKnown: false` with
+  0.0399`) and `FEDERAL_TAX_RATE` (0.37; 0.30 for non-US residents via
+  `FEDERAL_TAX_RATE_NONRESIDENT`, today only `ON`), and returns `stateKnown: false` with
   `null` net figures when the participant's `state` isn't in
   `STATE_TAX_RATES` — i.e. it already refuses to guess.
 - **Email provider**: EmailJS (see `js/config.js`) — `publicKey:

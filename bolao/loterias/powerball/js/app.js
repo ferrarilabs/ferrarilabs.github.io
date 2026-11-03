@@ -386,9 +386,15 @@
   var STATE_TAX_RATES = {
     FL: 0,      // Florida — sem imposto de renda estadual
     NC: 0.0399, // North Carolina — 3,99% flat sobre a renda (inclui prêmios de loteria)
-    TX: 0       // Texas — sem imposto de renda estadual
+    TX: 0,      // Texas — sem imposto de renda estadual
+    ON: 0.0399  // Ontário (Canadá) — não é estado americano: paga a NC, onde o bilhete foi
+                // comprado (a loteria da NC retém 3,99% de qualquer ganhador)
   };
   var FEDERAL_TAX_RATE = 0.37; // Faixa federal mais alta, aplicável a prêmios deste porte
+  // Quem não é residente nos EUA não entra na tabela progressiva: o IRS retém 30% fixos na
+  // fonte (IRC 871/1441, Form 1042-S). O tratado EUA–Canadá não reduz isso para loteria, e o
+  // Canadá não tributa prêmio de loteria — por isso não há terceira camada para ON.
+  var FEDERAL_TAX_RATE_NONRESIDENT = { ON: 0.30 };
 
   // Duas opções de recebimento, INDEPENDENTES entre si — o ganhador escolhe UMA delas,
   // nunca as duas:
@@ -403,6 +409,8 @@
   function calculatePrizePerParticipant(draw, participant) {
     var totalCotas = draw.participants.reduce(function (s, p) { return s + p.cotas; }, 0);
     var stateRate = STATE_TAX_RATES.hasOwnProperty(participant.state) ? STATE_TAX_RATES[participant.state] : null;
+    var federalRate = FEDERAL_TAX_RATE_NONRESIDENT.hasOwnProperty(participant.state)
+      ? FEDERAL_TAX_RATE_NONRESIDENT[participant.state] : FEDERAL_TAX_RATE;
 
     // --- Opção 1: LUMP SUM (à vista) — base: Cash Value oficial (ou estimativa de
     // 50,5% do jackpot só quando o Cash Value oficial ainda não foi divulgado). ---
@@ -417,7 +425,7 @@
         stateKnown: false
       };
     }
-    var lumpSumTax = lumpSumBruto * (FEDERAL_TAX_RATE + stateRate);
+    var lumpSumTax = lumpSumBruto * (federalRate + stateRate);
     var lumpSumNet = lumpSumBruto - lumpSumTax;
 
     // --- Opção 2: ANUIDADE (parcelado, 30 anos) — base: valor CHEIO do jackpot,
@@ -427,7 +435,7 @@
     // só uma divisão didática da média anual por 12 — o Powerball paga anualmente,
     // não mensalmente. ---
     var annuityTotalBruto = (draw.drawing.jackpot / totalCotas) * participant.cotas;
-    var annuityTotalNet = annuityTotalBruto * (1 - FEDERAL_TAX_RATE - stateRate);
+    var annuityTotalNet = annuityTotalBruto * (1 - federalRate - stateRate);
     var annuityMonthlyNet = annuityTotalNet / 30 / 12;
 
     return {
