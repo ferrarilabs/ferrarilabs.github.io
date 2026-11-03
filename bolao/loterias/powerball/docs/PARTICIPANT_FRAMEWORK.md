@@ -178,6 +178,7 @@ When adding a new participant:
 - Tax Rate: 33.99% (30% US non-resident withholding + 3.99% NC; Canada does not tax lottery winnings)
 - Added 2026-11-03 for Marcelo Barsotti (Ottawa), who pays by Pix to the organizer in Brazil
 - Needs a US ITIN to claim; how his share is paid out is decided by the organizer if a large prize hits
+- PENDING CONFIRMATION: rule researched from public sources (IRS, Canadian tax guides), not a tax advisor; the site shows this disclaimer and it must be checked with a US–Canada cross-border specialist before any real claim
 
 ### Other States
 - Research current income tax rate
