@@ -971,6 +971,77 @@ window.POWERBALL_DRAWS = [
       ajustesPendentes: 0
     },
 
+    result: {
+      numbers: [7, 23, 29, 64, 66],
+      special: 23,
+      multiplier: 4,
+      checkedAt: "03/11/2026 12:00 ET",
+      premiosGanhos: 432,
+      jackpotHit: false,
+      breakdown: ["1x 1 + Powerball", "1x Powerball", "1x 4 acertos"]
+    },
+    profit: null
+  },
+
+  {
+    id: "2026-11-04",
+    gameType: "powerball",
+    status: "planejamento",
+    createdAt: "2026-11-03T08:20:48-05:00",
+    previousDrawId: "2026-11-02",
+
+    drawing: {
+      name: "Powerball Jackpot",
+      // jackpot/cashValue sao publicados pela loteria; ficam null ate serem informados.
+      jackpot: 835000000,
+      cashValue: 357900000,
+      jackpotSource: "powerball_official",
+      jackpotFetchedAt: "2026-11-03T13:19:49Z",
+      jackpotDrawId: "2026-11-04",
+      drawDateIso: "2026-11-04T22:59:00-05:00",
+      drawDateLabel: "04/11/2026 22:59 ET"
+    },
+
+    // BOLAO ABERTO. As 14 cotas dos ganhadores de 02/11 sao pagas pela reserva deles
+    // (config/lottery_reserves.json); quem entra depois paga a propria cota (Zelle/Venmo/Cash App).
+    participants: [
+      { name: "Alan Rech", cotas: 1, valor: 10, metodo: "Reserva dos ganhadores de 02/11", data: "03/11/2026", hora: "8:20:48 AM", status: "verificado", state: "FL" },
+      { name: "Camila Ribeiro", cotas: 1, valor: 10, metodo: "Reserva dos ganhadores de 02/11", data: "03/11/2026", hora: "8:20:48 AM", status: "verificado", state: "NC" },
+      { name: "Eduardo Ferrari", cotas: 1, valor: 10, metodo: "Reserva dos ganhadores de 02/11", data: "03/11/2026", hora: "8:20:48 AM", status: "verificado", state: "NC" },
+      { name: "Ewerton Gruba Silva", cotas: 1, valor: 10, metodo: "Reserva dos ganhadores de 02/11", data: "03/11/2026", hora: "8:20:48 AM", status: "verificado", state: "NC" },
+      { name: "Gustavo Bossle", cotas: 1, valor: 10, metodo: "Reserva dos ganhadores de 02/11", data: "03/11/2026", hora: "8:20:48 AM", status: "verificado", state: "NC" },
+      { name: "Leandro Augustineli", cotas: 1, valor: 10, metodo: "Reserva dos ganhadores de 02/11", data: "03/11/2026", hora: "8:20:48 AM", status: "verificado", state: "NC" },
+      { name: "Marcelo G de Jesus", cotas: 1, valor: 10, metodo: "Reserva dos ganhadores de 02/11", data: "03/11/2026", hora: "8:20:48 AM", status: "verificado", state: "FL" },
+      { name: "Marcelo Minghetti Pereira", cotas: 1, valor: 10, metodo: "Reserva dos ganhadores de 02/11", data: "03/11/2026", hora: "8:20:48 AM", status: "verificado", state: "NC" },
+      { name: "Marcelo Moreira", cotas: 1, valor: 10, metodo: "Reserva dos ganhadores de 02/11", data: "03/11/2026", hora: "8:20:48 AM", status: "verificado", state: "NC" },
+      { name: "Marcus Steffenon", cotas: 1, valor: 10, metodo: "Reserva dos ganhadores de 02/11", data: "03/11/2026", hora: "8:20:48 AM", status: "verificado", state: "NC" },
+      { name: "Rodrigo Hajj", cotas: 1, valor: 10, metodo: "Reserva dos ganhadores de 02/11", data: "03/11/2026", hora: "8:20:48 AM", status: "verificado", state: "NC" },
+      { name: "Samuel Huller", cotas: 1, valor: 10, metodo: "Reserva dos ganhadores de 02/11", data: "03/11/2026", hora: "8:20:48 AM", status: "verificado", state: "NC" },
+      { name: "Simone Hirle da Costa", cotas: 1, valor: 10, metodo: "Reserva dos ganhadores de 02/11", data: "03/11/2026", hora: "8:20:48 AM", status: "verificado", state: "NC" },
+      { name: "Thiago Locatelli", cotas: 1, valor: 10, metodo: "Reserva dos ganhadores de 02/11", data: "03/11/2026", hora: "8:20:48 AM", status: "verificado", state: "TX" },
+      { name: "Marcelo Barsotti", cotas: 1, valor: 10, metodo: "Pix", data: "03/11/2026", hora: "10:45:59 AM", status: "verificado", state: "ON" }
+    ],
+
+    // Sem bilhetes ainda. Os numeros entram depois da compra -- abrir o bolao nunca dependeu
+    // de ja existirem jogos.
+    sharedTickets: {
+      compradoPor: null,
+      dataComprovante: null,
+      valorPorTicket: 3,
+      series: []
+    },
+
+    finance: {
+      totalArrecadado: 150, // 15 participante(s), soma das contribuicoes no banco
+      // ZERO por decisao do organizador (2026-11-03): o premio de 02/11 + o guardado (US$433) e so
+      // dos 14 daquele sorteio. Ele paga as 14 cotas deles aqui (contam em totalArrecadado) e o
+      // resto (US$293) fica na reserva dos ganhadores, fora do caixa deste sorteio.
+      creditoSorteioAnterior: 0,
+      valorUtilizado: 0,
+      valorGuardadoProximoSorteio: 0,
+      ajustesPendentes: 0
+    },
+
     result: null,
     profit: null
   }

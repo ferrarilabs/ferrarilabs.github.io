@@ -556,6 +556,8 @@ const CHECKS = [
     why: "Resolucao de contato entre sorteios: endereco divergente NUNCA e adivinhado" },
   { id: "powerball-email-visual", group: "app", cmd: ["python3", "bolao/loterias/powerball/scripts/test_result_email_visual.py"],
     why: "PB-R1: bolas do e-mail de resultado, degradacao sem CSS, origem canonica do link" },
+  { id: "powerball-email-caixa", group: "app", cmd: ["python3", "bolao/loterias/powerball/scripts/test_result_email_caixa.py"],
+    why: "Caixa do e-mail de resultado vem do livro DESTE sorteio, liquidado antes do envio (2026-11-02)" },
   { id: "powerball-workflow-arming", group: "security", cmd: ["python3", "bolao/loterias/powerball/scripts/test_workflow_arming_contract.py"],
     why: "PB-R3 + NO_FAKE_EMAIL: concorrencia, cobertura de cron, transporte real, estado de armamento" },
   { id: "powerball-crash-matrix", group: "security", cmd: ["python3", "bolao/loterias/powerball/scripts/test_crash_matrix.py"],

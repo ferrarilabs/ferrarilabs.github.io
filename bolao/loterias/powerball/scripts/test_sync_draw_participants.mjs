@@ -93,6 +93,30 @@ let semParticipacao = false;
 try { participantesDoSorteio({ ...linhas, participacoes: [] }, "2026-10-31"); } catch { semParticipacao = true; }
 checa("sorteio sem participacao e recusado", semParticipacao);
 
+// Sorteio recem-aberto por open_next_draw.py: `participants: [],` numa linha so (2026-11-03).
+const RECEM_ABERTO = `window.POWERBALL_DRAWS = [
+  {
+    id: "2026-11-04",
+    participants: [],
+
+    sharedTickets: {
+      series: []
+    },
+
+    finance: {
+      totalArrecadado: 0,
+    },
+  }
+];
+`;
+const aberto = aplicarNoDataJs(RECEM_ABERTO, "2026-11-04", rows).src;
+const abertoAval = new Function(aberto.replace("window.POWERBALL_DRAWS =", "return"))();
+checa("sorteio recem-aberto (participants: []) e preenchido",
+      abertoAval[0].participants.length === 3 && abertoAval[0].finance.totalArrecadado === 30,
+      aberto);
+checa("sorteio recem-aberto: reaplicar e idempotente",
+      aplicarNoDataJs(aberto, "2026-11-04", rows).src === aberto);
+
 let recusou = false;
 try { aplicarNoDataJs(DATA_JS, "2026-11-02", rows); } catch { recusou = true; }
 checa("sorteio inexistente e recusado", recusou);

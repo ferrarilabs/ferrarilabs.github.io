@@ -144,6 +144,27 @@ def liquida(draw, anterior, jogo="powerball", ledger=None, verificar_ao_vivo=Tru
               f"{len(draw.get('participants') or [])} participantes",
               f"data.js:{pool}.participants")
 
+    # ── reserva de ganhadores ───────────────────────────────────────────────────────────────
+    # O premio de um pool reservado tem dono (config/lottery_reserves.json). Ele nunca entra como
+    # credito do proximo sorteio, e cada cota paga por ele tem de ter saido do pool de origem.
+    reservas = {r["label"]: r for r in L.le_reservas()}
+    if anterior and any(r["sourcePoolId"] == anterior["id"] for r in reservas.values()) \
+            and int((draw.get("finance") or {}).get("creditoSorteioAnterior") or 0):
+        raise RuntimeError(
+            f"RESERVA_VIROU_CREDITO: {anterior['id']} e origem de reserva de ganhadores, mas {pool} "
+            f"declara creditoSorteioAnterior. Esse dinheiro e so dos ganhadores; as cotas deles "
+            f"entram como contribuicao.")
+    for rotulo, r in reservas.items():
+        cotas = sum(int(p.get("valor") or 0) for p in draw.get("participants") or []
+                    if p.get("metodo") == rotulo) * 100
+        saiu = -sum(e["amountCents"] for e in L.le_ledger(ledger)
+                    if e.get("type") == "CARRYOVER_OUT" and e.get("poolId") == r["sourcePoolId"]
+                    and e.get("idempotencyKey") == f"reserva:{r['id']}->{pool}")
+        if cotas != saiu:
+            raise RuntimeError(
+                f"RESERVA_NAO_CONFERE: {pool} tem {L.dinheiro(cotas)} em cotas pagas por "
+                f"'{rotulo}', mas saiu {L.dinheiro(saiu)} do pool {r['sourcePoolId']} para ele.")
+
     # ── carryover que entrou ────────────────────────────────────────────────────────────────
     credito = int((draw.get("finance") or {}).get("creditoSorteioAnterior") or 0)
     if credito:
@@ -291,6 +312,8 @@ def main():
               "CARRYOVER_MOVED_OUT",
               "OTHER_ADJUSTMENTS", "CURRENT_AVAILABLE_CARRYOVER"):
         print(f"  {k:<30} {L.dinheiro(r[k]):>14}")
+    for res in L.reservas(ledger):
+        print(f"    dos quais reservado: {res['label']:<30} {L.dinheiro(res['cents']):>12}")
     print(f"  {'PB_PRIZE_CREDIT_COUNT':<30} "
           f"{sum(1 for e in L.le_ledger(ledger) if e['type'] == 'PRIZE_CREDIT'):>14}")
     print(f"  {'PROVIDER_CALLS':<30} {rel['providerCalls']:>14}")

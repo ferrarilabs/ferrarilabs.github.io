@@ -102,6 +102,7 @@ jobs:
           # valor inteiro, e quem nao tem o conteudo atual apagaria todo mundo. Este e o caminho
           # seguro. O principal sempre vence em caso de conflito.
           POWERBALL_PRIVATE_CONTACTS_EXTRA: ${{ secrets.POWERBALL_PRIVATE_CONTACTS_EXTRA }}
+          POWERBALL_PRIVATE_CONTACTS_EXTRA_2: ${{ secrets.POWERBALL_PRIVATE_CONTACTS_EXTRA_2 }}
         run: python3 recipient_preflight.py
 
       # CANARIO DO LEDGER — prova, de dentro do runner, que a credencial privilegiada
@@ -133,6 +134,7 @@ jobs:
           # Mesmo suplemento do preflight -- os dois TEM de ver o mesmo conjunto. Preflight que
           # aprova o que o sender recusa (ou o contrario) e falso verde; ja aconteceu neste fluxo.
           POWERBALL_PRIVATE_CONTACTS_EXTRA: ${{ secrets.POWERBALL_PRIVATE_CONTACTS_EXTRA }}
+          POWERBALL_PRIVATE_CONTACTS_EXTRA_2: ${{ secrets.POWERBALL_PRIVATE_CONTACTS_EXTRA_2 }}
           # N24: o ledger exige credencial privilegiada. A anon key e publica (vai em todo
           # config.js servido ao navegador) e, apos a migracao 021, nao tem mais execute nas
           # RPCs de notificacao. Sem esta variavel o ciclo falha FECHADO em vez de silenciosamente
@@ -188,7 +190,9 @@ jobs:
             echo "Nenhum resultado novo gravado — nada a publicar."; exit 0
           fi
           mkdir -p "$RUNNER_TEMP/resultado"
-          git format-patch -1 HEAD -o "$RUNNER_TEMP/resultado" >/dev/null
+          # Todos os commits do ciclo: o resultado no data.js e, quando houver, o livro-razao e o
+          # lottery_status.json fechados antes do e-mail (liquida_caixa_antes_do_email).
+          git format-patch "$GITHUB_SHA"..HEAD -o "$RUNNER_TEMP/resultado" >/dev/null
           echo "result_commit=true" >> "$GITHUB_OUTPUT"
 
       - name: Enviar o patch ao job site
@@ -235,8 +239,10 @@ jobs:
           BRANCH="auto/data/powerball-resultado-$DRAW"
           scripts/ci/publish_data_via_pr.sh "$BRANCH" \
             "Powerball: resultado do sorteio de $DRAW (automatico)" \
-            "Resultado oficial e premios do sorteio de $DRAW gravados no data.js por powerball-results-email.yml. Merge automatico com \`npm run check\` verde." \
-            bolao/loterias/powerball/js/data.js
+            "Resultado oficial e premios do sorteio de $DRAW gravados no data.js, e livro-razao e caixa liquidados, por powerball-results-email.yml. Merge automatico com \`npm run check\` verde." \
+            bolao/loterias/powerball/js/data.js \
+            bolao/loterias/config/lottery_ledger.jsonl \
+            bolao/loterias/config/lottery_status.json
           scripts/ci/merge_data_pr.sh "$BRANCH" \
             "Powerball: resultado do sorteio de $DRAW (automatico)" \
             "Resultado oficial e premios do sorteio de $DRAW gravados por powerball-results-email.yml."

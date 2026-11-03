@@ -167,7 +167,9 @@ def monta(cfg=None, draws=None, fetcher=None, agora=None, ledger=None):
             # Tudo DERIVADO do extrato. Não existe saldo guardado que possa divergir.
             "lastDrawWinningsCents": premios[-1]["amountCents"] if premios else 0,
             "lastDrawId": premios[-1].get("poolId") if premios else None,
-            "carryoverAvailableCents": L.saldo(ledger),
+            # Sem as reservas de ganhadores: esse dinheiro tem dono (ver lottery_core.reservas).
+            "carryoverAvailableCents": L.saldo_do_bolao(ledger),
+            "reserves": L.reservas(ledger),
             "ledgerEntries": len(ev),
         },
         "currentDraw": {
@@ -213,6 +215,8 @@ def main():
     print(f"\n  ultimo premio        {L.dinheiro(f['lastDrawWinningsCents'])} "
           f"({f['lastDrawId']})")
     print(f"  carryover disponivel {L.dinheiro(f['carryoverAvailableCents'])}")
+    for r in f.get("reserves") or []:
+        print(f"  {r['label']:<40} {L.dinheiro(r['cents'])} ({r['beneficiaryCount']} pessoas)")
     print(f"\n  sorteio {doc['currentDraw']['id']}: {doc['currentDraw']['lifecycleState']} "
           f"— {doc['currentDraw']['reason']}")
     print(f"  AUTO_PURCHASE = {'YES' if doc['autoPurchase'] else 'NO'}")

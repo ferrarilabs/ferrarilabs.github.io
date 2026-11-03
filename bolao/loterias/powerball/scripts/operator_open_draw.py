@@ -49,7 +49,18 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import operator_payments as op  # noqa: E402
 
 OperatorError = op.OperatorError
-METODOS = ("Zelle", "Venmo", "Cash App", "Fundo próprio (organizador)")
+RESERVA_0211 = "Reserva dos ganhadores de 02/11"
+METODOS = ("Zelle", "Venmo", "Cash App", "Pix", "Fundo próprio (organizador)", RESERVA_0211)
+
+
+def _beneficiarios_da_reserva(metodo: str) -> set:
+    """Nomes normalizados que podem ter cota paga por esta reserva (lottery_reserves.json)."""
+    sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "scripts"))
+    import lottery_core as L  # noqa: E402
+    for r in L.le_reservas():
+        if r["label"] == metodo:
+            return {_norm(n) for n in r.get("beneficiaries") or []}
+    raise OperatorError(f"reserva {metodo!r} nao existe em lottery_reserves.json")
 
 
 def _norm(nome: str) -> str:
@@ -70,6 +81,14 @@ def valida_manifesto(m: dict) -> dict:
             op._require(isinstance(m[k], (int, float)) and m[k] > 0, f"{k} invalido: {m[k]!r}")
     entradas = m.get("contributions")
     op._require(isinstance(entradas, list) and entradas, "manifesto sem contribuicoes")
+    # PESSOA NOVA E DECISAO DO EDUARDO, declarada por nome no manifesto revisado em PR. Sem estar
+    # aqui, um nome que nao existe no banco continua reprovando a execucao (ver planeja).
+    novos = m.get("new_participants") or []
+    op._require(isinstance(novos, list) and all(isinstance(n, str) and n.strip() for n in novos),
+                "new_participants precisa ser uma lista de nomes")
+    nomes_entrada = {_norm(e.get("name") or "") for e in entradas}
+    for n in novos:
+        op._require(_norm(n) in nomes_entrada, f"new_participants: {n} sem contribuicao no manifesto")
     vistos = set()
     for i, e in enumerate(entradas):
         nome = (e.get("name") or "").strip()
@@ -79,6 +98,16 @@ def valida_manifesto(m: dict) -> dict:
         op._amount(e.get("amount"))
         op._require(float(e["amount"]) > 0, f"contribuicao {i}: valor precisa ser positivo")
         op._require(e.get("method") in METODOS, f"contribuicao {i}: metodo desconhecido {e.get('method')!r}")
+        if e.get("method") == RESERVA_0211:
+            # A reserva tem dono: so os ganhadores de 02/11, uma cota de US$10 cada.
+            op._require(_norm(nome) in _beneficiarios_da_reserva(RESERVA_0211),
+                        f"contribuicao {i}: {nome} nao e ganhador de 02/11 -- a reserva nao paga a cota dele")
+            op._require(float(e["amount"]) == 10,
+                        f"contribuicao {i}: a reserva paga exatamente uma cota de US$10")
+            # A decisao de 2026-11-03 cobre so o sorteio de 04/11 (lancamento
+            # reserva:ganhadores-2026-11-02->2026-11-04 no livro). Outro uso e outra decisao.
+            op._require(m["draw_date"] == "2026-11-04",
+                        f"contribuicao {i}: a reserva de 02/11 so paga cotas do sorteio de 04/11")
         try:
             pago = datetime.fromisoformat(e.get("paid_at") or "")
         except ValueError as ex:
@@ -110,9 +139,17 @@ def planeja(m: dict, banco: dict, operador: str) -> dict:
     for p in banco["participants"]:
         por_nome.setdefault(_norm(p["display_name"]), []).append(p)
 
+    novos = {_norm(n) for n in m.get("new_participants") or []}
     problemas, itens = [], []
     for e in m["contributions"]:
         candidatos = por_nome.get(_norm(e["name"]), [])
+        if _norm(e["name"]) in novos:
+            if candidatos:
+                problemas.append(f"{e['name']}: declarado novo, mas ja existe no banco")
+            else:
+                itens.append({"entrada": e, "participant_id": None, "novo": True,
+                              "display_name": e["name"].strip(), "participation_id": None})
+            continue
         if len(candidatos) != 1:
             problemas.append(f"{e['name']}: {len(candidatos)} participante(s) no banco com esse nome")
             continue
@@ -156,7 +193,8 @@ def resumo(plano: dict) -> str:
         e = it["entrada"]
         pa = it["participation_id"]
         linhas.append(f"  {it['display_name']:<28} {float(e['amount']):>7.2f} {e['method']:<10} "
-                      f"participacao {'existe ' + pa[:8] + '…' if pa else 'CRIAR'}")
+                      f"participacao {'existe ' + pa[:8] + '…' if pa else 'CRIAR'}"
+                      + (" · PARTICIPANTE NOVO" if it.get("novo") else ""))
     total = sum(float(it["entrada"]["amount"]) for it in plano["itens"])
     linhas.append(f"  TOTAL {len(plano['itens'])} contribuicao(oes) = {total:.2f}")
     return "\n".join(linhas)
@@ -184,6 +222,11 @@ class SupabaseDrawWriter:
             linha["cash_value_estimate"] = plano["cash_value"]
         return self.pg._request("POST", "lottery_draws", [linha], prefer="return=representation")[0]["draw_id"]
 
+    def cria_participante(self, display_name: str) -> str:
+        # So o nome. Contato fica no segredo de contatos, nunca no banco nem no repositorio.
+        return self.pg._request("POST", "lottery_participants", [{"display_name": display_name}],
+                                prefer="return=representation")[0]["participant_id"]
+
     def cria_participacao(self, participant_id: str, pool_id: str, draw_id: str) -> str:
         linha = {"participant_id": participant_id, "pool_id": pool_id, "draw_id": draw_id, "cotas": 1}
         return self.pg._request("POST", "lottery_participations", [linha],
@@ -194,6 +237,8 @@ def aplica(plano: dict, escritor) -> list:
     draw_id = plano["draw"]["draw_id"] if plano["draw"] else escritor.cria_sorteio(plano)
     out = []
     for it in plano["itens"]:
+        if it.get("novo") and not it["participant_id"]:
+            it["participant_id"] = escritor.cria_participante(it["display_name"])
         pa = it["participation_id"] or escritor.cria_participacao(
             it["participant_id"], plano["pool_id"], draw_id)
         res = escritor.pg.insert_transaction(requisicao_de_contribuicao(it, pa, plano["operador"]))
