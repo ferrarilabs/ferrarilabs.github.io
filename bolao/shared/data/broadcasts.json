@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "sourceModel": "EPG_CORROBORATED_WITH_CURATED_OVERRIDE",
   "_comment": "Fonte de dados de 'Onde assistir' (bolao/shared/js/where_to_watch.js). Modelo EPG_CORROBORATED_WITH_CURATED_OVERRIDE (#431): registros sem 'origin' são curadoria humana e sempre vencem; registros 'origin: epg' são gerados por bolao/shared/scripts/sync_epg_broadcasts.mjs a partir da grade de TV — não edite esses à mão. Ver docs/bolao/BROADCAST_OPERATIONS.md antes de editar este arquivo.",
-  "updatedAt": "2026-11-04T17:15:35Z",
+  "updatedAt": "2026-11-04T23:39:59Z",
   "entries": [
     {
       "espnId": "401909114",
@@ -146,7 +146,7 @@
           "programmeStart": "2026-11-04T22:30:00Z",
           "programmeStop": "2026-11-05T01:30:00Z",
           "matchedTeams": ["athletico-pr", "vasco"],
-          "collectedAt": "2026-11-04T17:15:35Z"
+          "collectedAt": "2026-11-04T23:39:59Z"
         }
       ]
     },
