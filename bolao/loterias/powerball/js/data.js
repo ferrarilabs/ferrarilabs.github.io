@@ -1022,13 +1022,34 @@ window.POWERBALL_DRAWS = [
       { name: "Marcelo Barsotti", cotas: 1, valor: 10, metodo: "Pix", data: "03/11/2026", hora: "10:45:59 AM", status: "verificado", state: "ON" }
     ],
 
-    // Sem bilhetes ainda. Os numeros entram depois da compra -- abrir o bolao nunca dependeu
-    // de ja existirem jogos.
     sharedTickets: {
-      compradoPor: null,
-      dataComprovante: null,
-      valorPorTicket: 3,
-      series: []
+      compradoPor: "Eduardo Ferrari (organizador)",
+      dataComprovante: "04/11/2026",
+      valorPorTicket: 3, // Power Play
+      series: [
+        {
+          serial: "27614C449EAFB386B", qtd: 50, jogos: "1–50",
+          numeros: [
+            "01-13-14-32-58 — PB 23", "01-20-28-41-64 — PB 24", "01-22-25-44-55 — PB 10",
+            "02-06-09-43-46 — PB 15", "02-22-35-62-67 — PB 03", "02-23-27-59-64 — PB 06",
+            "02-28-37-51-61 — PB 03", "03-12-40-43-45 — PB 15", "03-19-57-62-66 — PB 09",
+            "03-32-47-50-69 — PB 18", "04-09-25-45-68 — PB 16", "04-10-36-57-67 — PB 05",
+            "04-32-37-53-66 — PB 14", "04-33-43-56-61 — PB 04", "05-06-08-38-69 — PB 04",
+            "05-10-21-41-52 — PB 11", "05-17-43-54-66 — PB 17", "05-31-36-49-60 — PB 06",
+            "06-17-26-39-52 — PB 21", "07-08-26-46-59 — PB 08", "07-10-14-37-64 — PB 09",
+            "07-16-40-56-65 — PB 25", "07-35-42-57-58 — PB 24", "08-24-25-47-58 — PB 26",
+            "09-12-59-60-66 — PB 20", "09-18-31-48-63 — PB 23", "10-11-18-40-53 — PB 20",
+            "11-16-42-46-51 — PB 07", "11-24-31-45-62 — PB 12", "12-20-39-54-65 — PB 14",
+            "12-23-36-50-63 — PB 13", "13-20-48-52-61 — PB 26", "13-22-28-49-59 — PB 02",
+            "13-27-33-44-68 — PB 12", "14-15-30-48-67 — PB 08", "14-21-35-38-49 — PB 16",
+            "15-19-44-51-58 — PB 01", "15-24-33-38-63 — PB 11", "16-17-34-55-60 — PB 01",
+            "16-30-41-53-54 — PB 07", "17-29-30-37-68 — PB 22", "18-24-34-57-61 — PB 18",
+            "18-29-36-62-65 — PB 22", "19-25-34-54-69 — PB 21", "21-23-34-44-48 — PB 19",
+            "21-29-55-56-64 — PB 13", "22-27-29-42-63 — PB 02", "23-38-46-47-53 — PB 10",
+            "26-30-31-40-51 — PB 25", "28-35-39-50-68 — PB 19"
+          ]
+        }
+      ]
     },
 
     finance: {
@@ -1037,7 +1058,7 @@ window.POWERBALL_DRAWS = [
       // dos 14 daquele sorteio. Ele paga as 14 cotas deles aqui (contam em totalArrecadado) e o
       // resto (US$293) fica na reserva dos ganhadores, fora do caixa deste sorteio.
       creditoSorteioAnterior: 0,
-      valorUtilizado: 0,
+      valorUtilizado: 150, // 50 x US$3 (Power Play)
       valorGuardadoProximoSorteio: 0,
       ajustesPendentes: 0
     },
