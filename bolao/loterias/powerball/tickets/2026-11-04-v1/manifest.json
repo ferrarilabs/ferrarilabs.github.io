@@ -1,0 +1,559 @@
+{
+  "poolId": "powerball",
+  "drawId": "2026-11-04",
+  "publicationVersion": 1,
+  "publishedAtUtc": "2026-11-04T14:09:56.572Z",
+  "tickets": [
+    {
+      "numbers": [
+        1,
+        13,
+        14,
+        32,
+        58
+      ],
+      "special": 23,
+      "serial": "27614C449EAFB386B"
+    },
+    {
+      "numbers": [
+        1,
+        20,
+        28,
+        41,
+        64
+      ],
+      "special": 24,
+      "serial": "27614C449EAFB386B"
+    },
+    {
+      "numbers": [
+        1,
+        22,
+        25,
+        44,
+        55
+      ],
+      "special": 10,
+      "serial": "27614C449EAFB386B"
+    },
+    {
+      "numbers": [
+        2,
+        6,
+        9,
+        43,
+        46
+      ],
+      "special": 15,
+      "serial": "27614C449EAFB386B"
+    },
+    {
+      "numbers": [
+        2,
+        22,
+        35,
+        62,
+        67
+      ],
+      "special": 3,
+      "serial": "27614C449EAFB386B"
+    },
+    {
+      "numbers": [
+        2,
+        23,
+        27,
+        59,
+        64
+      ],
+      "special": 6,
+      "serial": "27614C449EAFB386B"
+    },
+    {
+      "numbers": [
+        2,
+        28,
+        37,
+        51,
+        61
+      ],
+      "special": 3,
+      "serial": "27614C449EAFB386B"
+    },
+    {
+      "numbers": [
+        3,
+        12,
+        40,
+        43,
+        45
+      ],
+      "special": 15,
+      "serial": "27614C449EAFB386B"
+    },
+    {
+      "numbers": [
+        3,
+        19,
+        57,
+        62,
+        66
+      ],
+      "special": 9,
+      "serial": "27614C449EAFB386B"
+    },
+    {
+      "numbers": [
+        3,
+        32,
+        47,
+        50,
+        69
+      ],
+      "special": 18,
+      "serial": "27614C449EAFB386B"
+    },
+    {
+      "numbers": [
+        4,
+        9,
+        25,
+        45,
+        68
+      ],
+      "special": 16,
+      "serial": "27614C449EAFB386B"
+    },
+    {
+      "numbers": [
+        4,
+        10,
+        36,
+        57,
+        67
+      ],
+      "special": 5,
+      "serial": "27614C449EAFB386B"
+    },
+    {
+      "numbers": [
+        4,
+        32,
+        37,
+        53,
+        66
+      ],
+      "special": 14,
+      "serial": "27614C449EAFB386B"
+    },
+    {
+      "numbers": [
+        4,
+        33,
+        43,
+        56,
+        61
+      ],
+      "special": 4,
+      "serial": "27614C449EAFB386B"
+    },
+    {
+      "numbers": [
+        5,
+        6,
+        8,
+        38,
+        69
+      ],
+      "special": 4,
+      "serial": "27614C449EAFB386B"
+    },
+    {
+      "numbers": [
+        5,
+        10,
+        21,
+        41,
+        52
+      ],
+      "special": 11,
+      "serial": "27614C449EAFB386B"
+    },
+    {
+      "numbers": [
+        5,
+        17,
+        43,
+        54,
+        66
+      ],
+      "special": 17,
+      "serial": "27614C449EAFB386B"
+    },
+    {
+      "numbers": [
+        5,
+        31,
+        36,
+        49,
+        60
+      ],
+      "special": 6,
+      "serial": "27614C449EAFB386B"
+    },
+    {
+      "numbers": [
+        6,
+        17,
+        26,
+        39,
+        52
+      ],
+      "special": 21,
+      "serial": "27614C449EAFB386B"
+    },
+    {
+      "numbers": [
+        7,
+        8,
+        26,
+        46,
+        59
+      ],
+      "special": 8,
+      "serial": "27614C449EAFB386B"
+    },
+    {
+      "numbers": [
+        7,
+        10,
+        14,
+        37,
+        64
+      ],
+      "special": 9,
+      "serial": "27614C449EAFB386B"
+    },
+    {
+      "numbers": [
+        7,
+        16,
+        40,
+        56,
+        65
+      ],
+      "special": 25,
+      "serial": "27614C449EAFB386B"
+    },
+    {
+      "numbers": [
+        7,
+        35,
+        42,
+        57,
+        58
+      ],
+      "special": 24,
+      "serial": "27614C449EAFB386B"
+    },
+    {
+      "numbers": [
+        8,
+        24,
+        25,
+        47,
+        58
+      ],
+      "special": 26,
+      "serial": "27614C449EAFB386B"
+    },
+    {
+      "numbers": [
+        9,
+        12,
+        59,
+        60,
+        66
+      ],
+      "special": 20,
+      "serial": "27614C449EAFB386B"
+    },
+    {
+      "numbers": [
+        9,
+        18,
+        31,
+        48,
+        63
+      ],
+      "special": 23,
+      "serial": "27614C449EAFB386B"
+    },
+    {
+      "numbers": [
+        10,
+        11,
+        18,
+        40,
+        53
+      ],
+      "special": 20,
+      "serial": "27614C449EAFB386B"
+    },
+    {
+      "numbers": [
+        11,
+        16,
+        42,
+        46,
+        51
+      ],
+      "special": 7,
+      "serial": "27614C449EAFB386B"
+    },
+    {
+      "numbers": [
+        11,
+        24,
+        31,
+        45,
+        62
+      ],
+      "special": 12,
+      "serial": "27614C449EAFB386B"
+    },
+    {
+      "numbers": [
+        12,
+        20,
+        39,
+        54,
+        65
+      ],
+      "special": 14,
+      "serial": "27614C449EAFB386B"
+    },
+    {
+      "numbers": [
+        12,
+        23,
+        36,
+        50,
+        63
+      ],
+      "special": 13,
+      "serial": "27614C449EAFB386B"
+    },
+    {
+      "numbers": [
+        13,
+        20,
+        48,
+        52,
+        61
+      ],
+      "special": 26,
+      "serial": "27614C449EAFB386B"
+    },
+    {
+      "numbers": [
+        13,
+        22,
+        28,
+        49,
+        59
+      ],
+      "special": 2,
+      "serial": "27614C449EAFB386B"
+    },
+    {
+      "numbers": [
+        13,
+        27,
+        33,
+        44,
+        68
+      ],
+      "special": 12,
+      "serial": "27614C449EAFB386B"
+    },
+    {
+      "numbers": [
+        14,
+        15,
+        30,
+        48,
+        67
+      ],
+      "special": 8,
+      "serial": "27614C449EAFB386B"
+    },
+    {
+      "numbers": [
+        14,
+        21,
+        35,
+        38,
+        49
+      ],
+      "special": 16,
+      "serial": "27614C449EAFB386B"
+    },
+    {
+      "numbers": [
+        15,
+        19,
+        44,
+        51,
+        58
+      ],
+      "special": 1,
+      "serial": "27614C449EAFB386B"
+    },
+    {
+      "numbers": [
+        15,
+        24,
+        33,
+        38,
+        63
+      ],
+      "special": 11,
+      "serial": "27614C449EAFB386B"
+    },
+    {
+      "numbers": [
+        16,
+        17,
+        34,
+        55,
+        60
+      ],
+      "special": 1,
+      "serial": "27614C449EAFB386B"
+    },
+    {
+      "numbers": [
+        16,
+        30,
+        41,
+        53,
+        54
+      ],
+      "special": 7,
+      "serial": "27614C449EAFB386B"
+    },
+    {
+      "numbers": [
+        17,
+        29,
+        30,
+        37,
+        68
+      ],
+      "special": 22,
+      "serial": "27614C449EAFB386B"
+    },
+    {
+      "numbers": [
+        18,
+        24,
+        34,
+        57,
+        61
+      ],
+      "special": 18,
+      "serial": "27614C449EAFB386B"
+    },
+    {
+      "numbers": [
+        18,
+        29,
+        36,
+        62,
+        65
+      ],
+      "special": 22,
+      "serial": "27614C449EAFB386B"
+    },
+    {
+      "numbers": [
+        19,
+        25,
+        34,
+        54,
+        69
+      ],
+      "special": 21,
+      "serial": "27614C449EAFB386B"
+    },
+    {
+      "numbers": [
+        21,
+        23,
+        34,
+        44,
+        48
+      ],
+      "special": 19,
+      "serial": "27614C449EAFB386B"
+    },
+    {
+      "numbers": [
+        21,
+        29,
+        55,
+        56,
+        64
+      ],
+      "special": 13,
+      "serial": "27614C449EAFB386B"
+    },
+    {
+      "numbers": [
+        22,
+        27,
+        29,
+        42,
+        63
+      ],
+      "special": 2,
+      "serial": "27614C449EAFB386B"
+    },
+    {
+      "numbers": [
+        23,
+        38,
+        46,
+        47,
+        53
+      ],
+      "special": 10,
+      "serial": "27614C449EAFB386B"
+    },
+    {
+      "numbers": [
+        26,
+        30,
+        31,
+        40,
+        51
+      ],
+      "special": 25,
+      "serial": "27614C449EAFB386B"
+    },
+    {
+      "numbers": [
+        28,
+        35,
+        39,
+        50,
+        68
+      ],
+      "special": 19,
+      "serial": "27614C449EAFB386B"
+    }
+  ],
+  "sha256": "efeae31561215aab52f0ea3bd18def4bd35424e198cd56de7b0e7dfe3bb08f4f"
+}
