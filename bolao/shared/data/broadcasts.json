@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "sourceModel": "EPG_CORROBORATED_WITH_CURATED_OVERRIDE",
   "_comment": "Fonte de dados de 'Onde assistir' (bolao/shared/js/where_to_watch.js). Modelo EPG_CORROBORATED_WITH_CURATED_OVERRIDE (#431): registros sem 'origin' são curadoria humana e sempre vencem; registros 'origin: epg' são gerados por bolao/shared/scripts/sync_epg_broadcasts.mjs a partir da grade de TV — não edite esses à mão. Ver docs/bolao/BROADCAST_OPERATIONS.md antes de editar este arquivo.",
-  "updatedAt": "2026-11-03T17:04:33Z",
+  "updatedAt": "2026-11-04T06:23:47Z",
   "entries": [
     {
       "espnId": "401909114",
@@ -219,7 +219,7 @@
       "kickoffUtc": "2026-11-06T23:00Z",
       "home": "Vitória",
       "away": "Fluminense",
-      "channels": ["SporTV"],
+      "channels": ["SporTV", "Premiere"],
       "origin": "epg",
       "source": "EPG XMLTV epgshare01 (BR1/BR2) — corroboração automática: programa cita os dois clubes no horário do kickoff",
       "confirmedAt": "2026-11-03",
@@ -235,6 +235,30 @@
           "programmeStop": "2026-11-07T01:00:00Z",
           "matchedTeams": ["vitoria", "fluminense"],
           "collectedAt": "2026-11-03T17:04:33Z"
+        },
+        {
+          "channel": "SporTV",
+          "source": "epgshare-br2",
+          "epgChannelId": "SporTV.br",
+          "programmeTitle": "Vitória x Fluminense - Ao Vivo",
+          "programmeSubTitle": null,
+          "programmeCategories": ["Esporte", "Futebol"],
+          "programmeStart": "2026-11-06T22:30:00Z",
+          "programmeStop": "2026-11-07T01:00:00Z",
+          "matchedTeams": ["vitoria", "fluminense"],
+          "collectedAt": "2026-11-04T06:23:47Z"
+        },
+        {
+          "channel": "Premiere",
+          "source": "epgshare-br2",
+          "epgChannelId": "Premiere.Clubes.br",
+          "programmeTitle": "Vitória x Fluminense - Ao Vivo",
+          "programmeSubTitle": null,
+          "programmeCategories": ["Esporte", "Futebol"],
+          "programmeStart": "2026-11-06T22:30:00Z",
+          "programmeStop": "2026-11-07T01:10:00Z",
+          "matchedTeams": ["vitoria", "fluminense"],
+          "collectedAt": "2026-11-04T06:23:47Z"
         }
       ]
     }
