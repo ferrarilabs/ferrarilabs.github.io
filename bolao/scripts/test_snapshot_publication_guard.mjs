@@ -83,6 +83,20 @@ test("a validacao so gasta navegador quando o snapshot MUDOU", () => {
     "os passos de node/playwright nao estao condicionados a mudanca do snapshot");
 });
 
+// 2026-11-05: o cron de 10 min do snapshot rodava 3 a 7 vezes por dia; o produtor (5 min, Cloudflare)
+// passou a acioná-lo. Este caso trava as três propriedades que mantêm esse gatilho seguro.
+test("o produtor aciona o snapshot um app por vez, só sem outra execução ativa e gravando de verdade", () => {
+  const produtor = readFileSync(join(RAIZ, ".github/workflows/live_cache_producer.yml"), "utf-8");
+  const job = produtor.split(/\n  aciona-snapshot:\n/)[1];
+  assert(job, "o job aciona-snapshot sumiu do live_cache_producer.yml");
+  assert(/inputs\.dry_run != true/.test(job), "um dispatch de diagnóstico (dry_run) passaria a acionar o snapshot");
+  assert(/--workflow bolao_provider_snapshot\.yml[\s\S]*select\(\.status != "completed"\)/.test(job),
+    "sem a checagem de execução ativa, dois snapshots disputariam a main");
+  assert(/-f app="\$APP" -f dry_run=false/.test(job), "o dispatch do snapshot tem padrão dry_run=true e não publicaria nada");
+  assert(/APP=br2026/.test(job) && /APP=cdb2026/.test(job), "um dos apps deixou de ser acionado");
+  assert(/app:[\s\S]*options: \["copa2026", "br2026", "cdb2026"\]/.test(wf), "o snapshot deixou de aceitar o app por input");
+});
+
 console.log(`\n  ${pass} passed, ${fail} failed\n`);
 if (fail) { console.log("✗ GUARDA DE PUBLICACAO REPROVADA\n"); process.exit(1); }
 console.log("✓ GUARDA DE PUBLICACAO OK\n");
