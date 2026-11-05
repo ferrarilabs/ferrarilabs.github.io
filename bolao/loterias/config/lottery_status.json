@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-05T01:45:46Z",
+  "generatedAt": "2026-11-05T10:46:16Z",
   "threshold": {
     "minJackpotCents": 50000000000,
     "comparison": "strictly_greater",
@@ -10,17 +10,12 @@
     "powerball": {
       "game": "powerball",
       "label": "Powerball",
-      "advertisedAnnuityCents": 83500000000,
-      "cashValueCents": 35790000000,
-      "nextDrawDate": "2026-11-04",
-      "nextDrawAt": "2026-11-05T03:59:00Z",
-      "source": "https://www.powerball.com/",
-      "verificationState": "PRIMARY_CONFIRMED",
-      "fetchedAt": "2026-11-05T01:45:46Z",
-      "sourceHash": "ed0e8ff047e72135",
-      "eligible": true,
-      "state": "ELIGIBLE",
-      "error": null
+      "advertisedAnnuityCents": null,
+      "cashValueCents": null,
+      "nextDrawDate": null,
+      "eligible": false,
+      "state": "UNKNOWN",
+      "error": "ResultadoInvalido: oficial: ResultadoInvalido: CASCA_SEM_CONTEUDO: 10 de 10 respostas de https://www.powerball.com/ vieram sem 'Estimated Jackpot'; nc_education_lottery: ResultadoInvalido: JACKPOT_NAO"
     },
     "megamillions": {
       "game": "megamillions",
@@ -31,7 +26,7 @@
       "nextDrawAt": "2026-11-07T04:00:00Z",
       "source": "https://www.megamillions.com/cmspages/utilservice.asmx/GetLatestDrawData",
       "verificationState": "PRIMARY_CONFIRMED",
-      "fetchedAt": "2026-11-05T01:45:46Z",
+      "fetchedAt": "2026-11-05T10:46:16Z",
       "sourceHash": "a90d0115d604bd38",
       "eligible": true,
       "state": "ELIGIBLE",
@@ -39,10 +34,10 @@
     }
   },
   "nextPool": {
-    "game": "powerball",
-    "label": "Powerball",
-    "jackpotCents": 83500000000,
-    "drawDate": "2026-11-04"
+    "game": "megamillions",
+    "label": "Mega Millions",
+    "jackpotCents": 50500000000,
+    "drawDate": "2026-11-06"
   },
   "funds": {
     "lastDrawWinningsCents": 43200,
@@ -61,8 +56,8 @@
   },
   "currentDraw": {
     "id": "2026-11-04",
-    "lifecycleState": "LOCKED",
-    "reason": "bilhetes comprados; entradas encerradas",
+    "lifecycleState": "AWAITING_RESULT",
+    "reason": "o sorteio já ocorreu; aguardando publicação oficial",
     "result": null
   },
   "autoPurchase": false,
