@@ -110,7 +110,14 @@ function friendlyEntryDate(dataStr, horaStr) {
   return { friendly, compact: `${dataStr} ${horaStr || ""}`.trim() };
 }
 
-function shell({ title, bodyHtml, testMode }) {
+// Nome e bola do jogo do payload. Sem `poolId` (fixtures antigas) e Powerball, o unico jogo de entao.
+function gameOf(payload) {
+  return payload && payload.poolId === "megamillions"
+    ? { mega: true, label: "Mega Millions", icon: "🟡", bola: "Mega Ball", ballBg: "#FFC72C", ballColor: "#1a1a1a" }
+    : { mega: false, label: "Powerball", icon: "🔴", bola: "Powerball", ballBg: RED, ballColor: "#ffffff" };
+}
+
+function shell({ title, bodyHtml, testMode, game = gameOf() }) {
   return `<!doctype html>
 <html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>${esc(title)}</title></head>
@@ -120,13 +127,13 @@ ${testMode ? `<div style="background:#fff3cd;color:#7a5b00;text-align:center;pad
 <tr><td align="center">
 <table role="presentation" width="100%" style="max-width:600px;background:#ffffff;border-radius:12px;overflow:hidden;border:1px solid #e5e5ea;" cellpadding="0" cellspacing="0">
 <tr><td style="background:linear-gradient(135deg, ${RED}, ${BLUE});padding:20px 24px;">
-  <span style="color:#fff;font-size:20px;font-weight:bold;">🔴 Bolão Powerball</span>
+  <span style="color:#fff;font-size:20px;font-weight:bold;">${game.icon} Bolão ${game.label}</span>
 </td></tr>
 <tr><td style="padding:24px;">
 ${bodyHtml}
 </td></tr>
 <tr><td style="background:#fafafa;padding:16px 24px;font-size:12px;color:#777;border-top:1px solid #eee;">
-  Ferrari Labs — Bolão Powerball · Este e-mail é informativo, não constitui aconselhamento fiscal ou financeiro.
+  Ferrari Labs — Bolão ${game.label} · Este e-mail é informativo, não constitui aconselhamento fiscal ou financeiro.
 </td></tr>
 </table>
 </td></tr>
@@ -138,8 +145,11 @@ ${bodyHtml}
 // survives any client/font/stripped styling because it is 100% literal text,
 // no reliance on color or position to convey which number is the Powerball:
 //   "24 · 31 · 47 · 52 · 64 | Powerball: 17 | Power Play: Sim"
-function ticketPlainLine(ticket, powerPlay) {
+function ticketPlainLine(ticket, powerPlay, game = gameOf()) {
   const nums = ticket.numbers.slice().sort((a, b) => a - b).join(" · ");
+  if (game.mega) {
+    return `${nums} | Mega Ball: ${ticket.special}${ticket.multiplier ? ` | Multiplicador: ${ticket.multiplier}X` : ""}`;
+  }
   return `${nums} | Powerball: ${ticket.special} | Power Play: ${powerPlay ? "Sim" : "Não"}`;
 }
 
@@ -180,13 +190,16 @@ function ballCellHtml(value, { size, background, color, border }) {
     `${border ? `border:1px solid ${border};` : ""}color:${color};font-size:13px;font-weight:bold;text-align:center;font-family:Arial,Helvetica,sans-serif;">${value}</div>` +
     `</td>`;
 }
-function ballsRowHtml(ticket, powerPlay) {
+function ballsRowHtml(ticket, powerPlay, game = gameOf()) {
   const nums = ticket.numbers.slice().sort((a, b) => a - b);
   const spacerCell = `<td style="width:6px;min-width:6px;">&nbsp;</td>`;
   const numCells = nums.map((n) => ballCellHtml(n, { size: BALL_SIZE, background: "#f2f2f2", color: "#1a1a1a", border: "#cccccc" }) + spacerCell).join("");
-  const pbCell = ballCellHtml(ticket.special, { size: PB_BALL_SIZE, background: RED, color: "#ffffff" });
+  const pbCell = ballCellHtml(ticket.special, { size: PB_BALL_SIZE, background: game.ballBg, color: game.ballColor });
   const circleRow = `<table role="presentation" cellpadding="0" cellspacing="0" style="border-collapse:collapse;"><tr>${numCells}${pbCell}</tr></table>`;
   const powerPlayLine = `<div style="font-size:11px;color:#666;margin-top:4px;">Power Play: <strong>${powerPlay ? "Sim" : "Não"}</strong></div>`;
+  if (game.mega) {
+    return circleRow + (ticket.multiplier ? `<div style="font-size:11px;color:#666;margin-top:4px;">Multiplicador: <strong>${ticket.multiplier}X</strong></div>` : "");
+  }
   return circleRow + powerPlayLine;
 }
 
@@ -194,7 +207,7 @@ function ballsRowHtml(ticket, powerPlay) {
 
 export function renderParticipantConfirmationSubject(payload, testMode) {
   const prefix = testMode ? "[TESTE ADMIN] " : "";
-  return `${prefix}✅ Participação confirmada — Bolão Powerball — Sorteio de ${subjectSafeDate(payload.drawDateLabel)}`;
+  return `${prefix}✅ Participação confirmada — Bolão ${gameOf(payload).label} — Sorteio de ${subjectSafeDate(payload.drawDateLabel)}`;
 }
 
 export function renderParticipantConfirmationHtml(payload, testMode) {
@@ -202,7 +215,7 @@ export function renderParticipantConfirmationHtml(payload, testMode) {
   const entry = friendlyEntryDate(payload.entryDate, payload.entryTime);
   const body = `
 <h2 style="color:${RED};margin:0 0 12px;">Olá, ${esc(payload.participantName)}!</h2>
-<p style="font-size:14px;line-height:1.5;">Sua participação no Bolão Powerball foi registrada com sucesso. Confira abaixo os dados considerados para este sorteio.</p>
+<p style="font-size:14px;line-height:1.5;">Sua participação no Bolão ${gameOf(payload).label} foi registrada com sucesso. Confira abaixo os dados considerados para este sorteio.</p>
 <h3 style="color:${BLUE};margin:20px 0 8px;">Sua participação</h3>
 <table role="presentation" width="100%" cellpadding="6" style="font-size:14px;border-collapse:collapse;">
 <tr><td style="color:#666;">Sorteio</td><td>${friendlyDate(payload.drawDateIso)}<br><span style="font-size:11px;color:#999;">${esc(payload.drawDateLabel)}</span></td></tr>
@@ -231,7 +244,7 @@ ${e.stateKnown === false ? `<tr><td colspan="2" style="color:#a00;">Estado não 
 ${e.stateKnown === false ? "" : `<p style="font-size:11px;color:#999;margin-top:4px;">Os pagamentos anuais oficiais não são necessariamente iguais entre si (a anuidade real cresce ano a ano). A média anual acima é apenas ilustrativa, não uma previsão de parcela.</p>`}
 <p style="font-size:12px;color:#999;margin-top:12px;">Estimativas calculadas considerando o estado declarado: ${esc(stateName(payload.state))}. Os valores são estimativas e podem mudar. O pagamento final depende das regras oficiais, opção escolhida, residência e obrigações fiscais.</p>
 <p style="font-size:14px;margin-top:16px;">${isRealUrl(payload.siteUrl) ? `<a href="${esc(payload.siteUrl)}" style="color:${BLUE};">Ver o bolão</a>` : `Site: <em>${esc(payload.siteUrl)}</em> (endereço não é um link real neste teste)`}</p>`;
-  return shell({ title: "Participação confirmada — Bolão Powerball", bodyHtml: body, testMode });
+  return shell({ title: `Participação confirmada — Bolão ${gameOf(payload).label}`, bodyHtml: body, testMode, game: gameOf(payload) });
 }
 
 export function renderParticipantConfirmationText(payload, testMode) {
@@ -240,7 +253,7 @@ export function renderParticipantConfirmationText(payload, testMode) {
   const lines = [
     testMode ? "TESTE ADMINISTRATIVO — Esta mensagem não representa uma publicação ou envio de produção." : null,
     `Olá, ${payload.participantName}!`,
-    "Sua participação no Bolão Powerball foi registrada com sucesso.",
+    `Sua participação no Bolão ${gameOf(payload).label} foi registrada com sucesso.`,
     "",
     "Sua participação:",
     `  Sorteio: ${friendlyDate(payload.drawDateIso)} (${payload.drawDateLabel})`,
@@ -275,9 +288,9 @@ export function renderTicketPublicationSubject(payload, testMode) {
   const prefix = testMode ? "[TESTE ADMIN] " : "";
   const dateLabel = subjectSafeDate(payload.drawDateLabel);
   if (payload.templateId === "tickets-corrected") {
-    return `${prefix}⚠️ Correção dos bilhetes — Powerball de ${dateLabel} — Versão ${payload.publicationVersion}`;
+    return `${prefix}⚠️ Correção dos bilhetes — ${gameOf(payload).label} de ${dateLabel} — Versão ${payload.publicationVersion}`;
   }
-  return `${prefix}🎟️ Bilhetes publicados — Powerball de ${dateLabel} — ${payload.tickets.length} jogos`;
+  return `${prefix}🎟️ Bilhetes publicados — ${gameOf(payload).label} de ${dateLabel} — ${payload.tickets.length} jogos`;
 }
 
 // Single financial table — was two ("Resumo geral do bolão" + "Reconciliação") that repeated
@@ -320,9 +333,10 @@ export function renderTicketPublicationHtml(payload, testMode) {
   const f = payload.financialSummary;
   const isCorrection = payload.templateId === "tickets-corrected";
   const powerPlay = !!f.costPerTicket;
+  const game = gameOf(payload);
   const showInlineTickets = payload.tickets.length <= INLINE_TICKET_LIST_MAX;
   const ticketsHtml = showInlineTickets ? payload.tickets.map((t, i) =>
-    `<tr><td style="padding:8px 8px;color:#666;font-size:12px;width:60px;vertical-align:middle;">Jogo ${String(i + 1).padStart(2, "0")}</td><td style="padding:8px 8px;">${ballsRowHtml(t, powerPlay)}</td></tr>`
+    `<tr><td style="padding:8px 8px;color:#666;font-size:12px;width:60px;vertical-align:middle;">Jogo ${String(i + 1).padStart(2, "0")}</td><td style="padding:8px 8px;">${ballsRowHtml(t, powerPlay, game)}</td></tr>`
   ).join("") : "";
 
   let diffHtml = "";
@@ -335,9 +349,9 @@ ${payload.diff.changed.map((c) => {
   <div style="background:#fff3cd;border-radius:8px;padding:10px 14px;margin-bottom:8px;font-size:13px;">
     <strong>Jogo ${String(c.index + 1).padStart(2, "0")}</strong>
     <div style="margin-top:6px;color:#666;font-size:11px;">Antes:</div>
-    ${c.before ? ballsRowHtml(c.before, powerPlayFlag) : `<em>(não existia)</em>`}
+    ${c.before ? ballsRowHtml(c.before, powerPlayFlag, game) : `<em>(não existia)</em>`}
     <div style="margin-top:8px;color:#666;font-size:11px;">Depois:</div>
-    ${c.after ? ballsRowHtml(c.after, powerPlayFlag) : `<em>(removido)</em>`}
+    ${c.after ? ballsRowHtml(c.after, powerPlayFlag, game) : `<em>(removido)</em>`}
     ${payload.correctionReason ? `<div style="margin-top:8px;">Motivo: ${esc(payload.correctionReason)}</div>` : ""}
   </div>`;
 }).join("")}
@@ -348,8 +362,8 @@ ${payload.diff.changed.map((c) => {
   const body = `
 <h2 style="color:${RED};margin:0 0 12px;">${isCorrection ? `Correção dos bilhetes — Versão ${esc(payload.publicationVersion)}` : "Bilhetes publicados"}</h2>
 <p style="font-size:14px;">${isCorrection
-    ? `Uma correção foi identificada nos bilhetes do Powerball de ${esc(friendlyDrawDate)}.`
-    : `Os bilhetes do Powerball de ${esc(friendlyDrawDate)} foram registrados e publicados. Confira abaixo todas as informações usadas nesta publicação.`}</p>
+    ? `Uma correção foi identificada nos bilhetes do ${game.label} de ${esc(friendlyDrawDate)}.`
+    : `Os bilhetes do ${game.label} de ${esc(friendlyDrawDate)} foram registrados e publicados. Confira abaixo todas as informações usadas nesta publicação.`}</p>
 ${payload.jackpot ? `<p style="font-size:15px;margin:0 0 12px;">Jackpot deste sorteio: <strong style="color:${RED};">${usd(payload.jackpot)}</strong></p>` : ""}
 ${diffHtml}
 <h3 style="color:${BLUE};margin:16px 0 8px;">Sua participação</h3>
@@ -394,17 +408,18 @@ ${isRealUrl(payload.ticketsPdfUrl) || isRealUrl(payload.ticketsCsvUrl) || isReal
 ${!isCorrection ? `<p style="font-size:13px;line-height:1.5;">Próximo passo: você recebe outro e-mail assim que o sorteio de ${esc(friendlyDrawDate)} sair, com o resultado oficial e o desempenho de cada bilhete.</p>` : ""}
 <p style="font-size:14px;margin-top:16px;">${isRealUrl(payload.siteUrl) ? `<a href="${esc(payload.siteUrl)}" style="color:${BLUE};">Ver o bolão</a>` : `Site: <em>${esc(payload.siteUrl)}</em>`}</p>
 <p style="font-size:11px;color:#999;margin-top:20px;">Publicado em ${friendlyDate(payload.generatedAtUtc)} · código de verificação (identifica esta versão exata dos bilhetes — muda se qualquer número mudar): <code style="background:#f5f5f5;padding:1px 3px;border-radius:3px;">${esc(payload.manifestHashShort)}</code></p>`;
-  return shell({ title: isCorrection ? "Correção dos bilhetes — Powerball" : "Bilhetes publicados — Powerball", bodyHtml: body, testMode });
+  return shell({ title: `${isCorrection ? "Correção dos bilhetes" : "Bilhetes publicados"} — ${game.label}`, bodyHtml: body, testMode, game });
 }
 
 export function renderTicketPublicationText(payload, testMode) {
   const f = payload.financialSummary;
   const isCorrection = payload.templateId === "tickets-corrected";
   const powerPlay = !!f.costPerTicket;
+  const game = gameOf(payload);
   const showInlineTickets = payload.tickets.length <= INLINE_TICKET_LIST_MAX;
   const lines = [
     testMode ? "TESTE ADMINISTRATIVO — Esta mensagem não representa uma publicação ou envio de produção." : null,
-    isCorrection ? `Correção dos bilhetes — Versão ${payload.publicationVersion}` : `Bilhetes publicados — Powerball ${payload.drawDateLabel} — ${payload.tickets.length} jogos`,
+    isCorrection ? `Correção dos bilhetes — Versão ${payload.publicationVersion}` : `Bilhetes publicados — ${game.label} ${payload.drawDateLabel} — ${payload.tickets.length} jogos`,
     payload.jackpot ? `Jackpot deste sorteio: ${usd(payload.jackpot)}` : null,
     "",
   ];
@@ -438,7 +453,7 @@ export function renderTicketPublicationText(payload, testMode) {
     ...(f.diferencaNaoConciliada !== 0 ? [`  Diferença não conciliada: ${usd(f.diferencaNaoConciliada)}`] : []),
     "",
     ...(showInlineTickets
-      ? ["Jogos:", ...payload.tickets.map((t, i) => `  Jogo ${String(i + 1).padStart(2, "0")}: ${ticketPlainLine(t, powerPlay)}`)]
+      ? ["Jogos:", ...payload.tickets.map((t, i) => `  Jogo ${String(i + 1).padStart(2, "0")}: ${ticketPlainLine(t, powerPlay, game)}`)]
       : [`Este sorteio teve ${payload.tickets.length} jogos — a lista completa não cabe no corpo deste e-mail (limite do provedor).`,
          isRealUrl(payload.ticketsPdfUrl) || isRealUrl(payload.ticketsCsvUrl)
            ? `Confira todos os números: ${[
@@ -501,6 +516,7 @@ export function renderDrawResultHtml(payload, testMode) {
   const f = payload.financialSummary;
   const officialTicket = { numbers: payload.official.numbers, special: payload.official.special };
   const powerPlay = payload.official.multiplier > 1;
+  const game = gameOf(payload);
   const won = f.totalWon != null;
   const winners = payload.tickets.filter((t) => t.prizeAmount || t.jackpotHit);
   const siteLink = isRealUrl(payload.siteUrl) ? payload.siteUrl : null;
@@ -509,7 +525,7 @@ export function renderDrawResultHtml(payload, testMode) {
     const idx = payload.tickets.indexOf(t) + 1;
     return `<div style="background:#e8f9ee;border:1px solid #2a7;border-radius:10px;padding:12px 14px;margin-bottom:10px;">
       <div style="font-size:12px;color:#666;margin-bottom:6px;">Jogo ${String(idx).padStart(2, "0")}</div>
-      ${ballsRowHtml(t, powerPlay)}
+      ${ballsRowHtml(t, powerPlay, game)}
       <div style="font-size:12px;color:#444;margin-top:8px;">Acertos: ${t.mainMatches} número${t.mainMatches === 1 ? "" : "s"}${t.specialMatch ? " + Powerball" : ""}</div>
       <div style="font-size:14px;margin-top:4px;color:#1a7a3d;font-weight:bold;">
         ${t.jackpotHit ? "🎉 JACKPOT!" : `${esc(t.prizeLabel)} — ${usd(t.prizeAmount)}`}
@@ -531,11 +547,11 @@ export function renderDrawResultHtml(payload, testMode) {
 <h2 style="color:${RED};margin:0 0 12px;">Resultado do sorteio — ${esc(payload.drawDateLabel)}</h2>
 <p style="font-size:14px;line-height:1.5;">O sorteio de ${esc(friendlyDate(payload.drawDateIso))} foi conferido${payload.checkedAt ? ` em ${esc(payload.checkedAt)}` : ""}.</p>
 <h3 style="color:${BLUE};margin:20px 0 8px;">Números sorteados</h3>
-${ballsRowHtml(officialTicket, powerPlay)}
+${ballsRowHtml(officialTicket, powerPlay, game)}
 <table role="presentation" width="100%" cellpadding="6" style="font-size:14px;border-collapse:collapse;margin-top:8px;">
 <tr><td style="color:#666;">Jackpot anunciado</td><td>${usd(payload.jackpot)}</td></tr>
-<tr><td style="color:#666;">Power Play</td><td>${payload.official.multiplier}x</td></tr>
-<tr><td style="color:#666;">Jackpot premiado nesta rodada?</td><td>${payload.jackpotHit ? "🎉 SIM" : "Não"}</td></tr>
+${game.mega ? "" : `<tr><td style="color:#666;">Power Play</td><td>${payload.official.multiplier}x</td></tr>
+`}<tr><td style="color:#666;">Jackpot premiado nesta rodada?</td><td>${payload.jackpotHit ? "🎉 SIM" : "Não"}</td></tr>
 </table>
 <h3 style="color:${BLUE};margin:20px 0 8px;">Resumo</h3>
 <table role="presentation" width="100%" cellpadding="6" style="font-size:14px;border-collapse:collapse;background:#f8f9fc;border-radius:8px;">
@@ -557,7 +573,7 @@ ${winnersSection}
 <p style="font-size:14px;line-height:1.5;">${payload.jackpotHit
     ? "🎉 Ligue para o organizador imediatamente para os próximos passos de resgate do prêmio."
     : (won ? "Os prêmios ganhos entram no saldo do bolão para o próximo sorteio." : "Boa sorte no próximo sorteio!")}</p>`;
-  return shell({ title: `Resultado Powerball — ${payload.drawDateLabel}`, bodyHtml: body, testMode });
+  return shell({ title: `Resultado ${game.label} — ${payload.drawDateLabel}`, bodyHtml: body, testMode, game });
 }
 
 export function renderDrawResultText(payload, testMode) {
@@ -570,7 +586,8 @@ export function renderDrawResultText(payload, testMode) {
     `Resultado do sorteio — ${payload.drawDateLabel}`,
     `O sorteio de ${friendlyDate(payload.drawDateIso)} foi conferido${payload.checkedAt ? ` em ${payload.checkedAt}` : ""}.`,
     "",
-    `Números sorteados: ${nums} | Powerball: ${payload.official.special} | Power Play: ${payload.official.multiplier}x`,
+    game.mega ? `Números sorteados: ${nums} | Mega Ball: ${payload.official.special}`
+      : `Números sorteados: ${nums} | Powerball: ${payload.official.special} | Power Play: ${payload.official.multiplier}x`,
     `Jackpot anunciado: ${usd(payload.jackpot)}`,
     `Jackpot premiado nesta rodada?: ${payload.jackpotHit ? "SIM" : "Não"}`,
     "",
@@ -587,7 +604,7 @@ export function renderDrawResultText(payload, testMode) {
     winners.length ? "Jogos premiados:" : `Nenhum dos nossos ${payload.ticketCount} jogos teve prêmio nesta rodada.`,
     ...winners.map((t) => {
       const idx = payload.tickets.indexOf(t) + 1;
-      return `  Jogo ${String(idx).padStart(2, "0")}: ${ticketPlainLine(t, payload.official.multiplier > 1)} -> Acertos: ${t.mainMatches}${t.specialMatch ? "+PB" : ""} -> ${t.jackpotHit ? "JACKPOT!" : `${t.prizeLabel} (${usd(t.prizeAmount)})`}`;
+      return `  Jogo ${String(idx).padStart(2, "0")}: ${ticketPlainLine(t, payload.official.multiplier > 1, game)} -> Acertos: ${t.mainMatches}${t.specialMatch ? "+PB" : ""} -> ${t.jackpotHit ? "JACKPOT!" : `${t.prizeLabel} (${usd(t.prizeAmount)})`}`;
     }),
     "",
     "Ver todos os jogos e detalhes no site:",

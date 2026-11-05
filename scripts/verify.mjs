@@ -560,6 +560,8 @@ const CHECKS = [
     why: "Caixa do e-mail de resultado vem do livro DESTE sorteio, liquidado antes do envio (2026-11-02)" },
   { id: "powerball-megamillions-game", group: "app", cmd: ["python3", "bolao/loterias/powerball/scripts/test_megamillions_game.py"],
     why: "Mega Millions: tabela de premio igual a politica, multiplicador por aposta, apostas gravadas validas, abertura e jackpot do jogo certo" },
+  { id: "powerball-megamillions-pipeline", group: "app", cmd: ["python3", "bolao/loterias/powerball/scripts/test_megamillions_pipeline.py"],
+    why: "Mega Millions: resultado, livro e e-mail chegam ao mesmo premio em todas as faixas; aposta sem multiplicador recusa" },
   { id: "powerball-workflow-arming", group: "security", cmd: ["python3", "bolao/loterias/powerball/scripts/test_workflow_arming_contract.py"],
     why: "PB-R3 + NO_FAKE_EMAIL: concorrencia, cobertura de cron, transporte real, estado de armamento" },
   { id: "powerball-crash-matrix", group: "security", cmd: ["python3", "bolao/loterias/powerball/scripts/test_crash_matrix.py"],

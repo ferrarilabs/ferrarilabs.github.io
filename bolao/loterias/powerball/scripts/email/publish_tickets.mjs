@@ -131,6 +131,7 @@ export async function runPublishTickets({ drawId, publicationVersion, testMode, 
 
   const csv = manifestToCsv(shared.manifest);
   const pdf = buildTextPdf(ticketPublicationPdfBlocks({
+    gameType: draw.gameType,
     drawId: draw.id,
     publicationVersion,
     isCorrection: shared.templateId === "tickets-corrected",
@@ -139,7 +140,7 @@ export async function runPublishTickets({ drawId, publicationVersion, testMode, 
     financialSummary: shared.financialSummary,
     tickets: shared.tickets,
     generatedAtUtc: shared.generatedAtUtc,
-  }), { title: "Powerball tickets" });
+  }), { title: `${draw.gameType === "megamillions" ? "Mega Millions" : "Powerball"} tickets` });
 
   return { ok: true, shared, results, csv, pdf, manifest: shared.manifest };
 }

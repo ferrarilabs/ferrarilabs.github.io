@@ -5,7 +5,7 @@ Sends result email (PT only) to all participants after lottery drawing.
 
 Supports multiple game types via gameType parameter in draw data:
   - "powerball": Powerball (red ball 1-35)
-  - "megamillions": Mega Millions (gold ball 1-25)
+  - "megamillions": Mega Millions (gold ball 1-24)
 
 Usage:
   python3 send_result_email.py --test-send [gameType]    # preview to admin (default: powerball)
@@ -526,12 +526,11 @@ if (!draw) { process.exit(1); }
 const gt = sb.window.LOTTERY_GAME_TYPES[draw.gameType];
 const off = draw.result; const out = [];
 (draw.sharedTickets && draw.sharedTickets.series || []).forEach(s => (s.numeros||[]).forEach(str => {
-  const m = String(str).match(/^([\\d\\s-]+?)\\s*—\\s*(?:PB|MB)\\s*(\\d+)$/);
-  if (!m) return;
-  const nums = m[1].trim().split(/[\\s-]+/).map(Number);
-  const main = nums.filter(n => off.numbers.indexOf(n) !== -1).length;
-  const sp = Number(m[2]) === off.special;
-  const r = gt.prizeTable(main, sp, off.multiplier || 1);
+  const t = sb.window.LOTTERY_TICKETS.parse(str);
+  if (!t) { process.exit(1); }
+  const main = t.numbers.filter(n => off.numbers.indexOf(n) !== -1).length;
+  const sp = t.special === off.special;
+  const r = gt.prizeTable(main, sp, sb.window.LOTTERY_TICKETS.multiplier(gt, t, off));
   if (r && r.amount) out.push(str);
 }));
 process.stdout.write(JSON.stringify(out));
@@ -822,6 +821,7 @@ def fmtUsd(n):
 _BALL_SIZE = 32
 _PB_BALL_SIZE = 36
 _PB_RED = "#CE1141"
+_MB_GOLD = "#FFC72C"
 
 
 def _ball_cell(value, size, background, color, border=None):
@@ -842,14 +842,18 @@ def result_balls_html(numbers, special, multiplier, special_label="Powerball"):
         _ball_cell(n, _BALL_SIZE, "#f2f2f2", "#1a1a1a", "#cccccc") + spacer
         for n in sorted(numbers)
     )
-    cells += _ball_cell(special, _PB_BALL_SIZE, _PB_RED, "#ffffff")
+    if special_label == "Mega Ball":
+        cells += _ball_cell(special, _PB_BALL_SIZE, _MB_GOLD, "#1a1a1a")
+    else:
+        cells += _ball_cell(special, _PB_BALL_SIZE, _PB_RED, "#ffffff")
     row = ('<table role="presentation" cellpadding="0" cellspacing="0" '
            f'style="border-collapse:collapse;"><tr>{cells}</tr></table>')
     # Resumo textual ao lado das bolas: acessível a leitor de tela e sobrevive a qualquer
     # degradação de estilo. A informação nunca depende só do desenho.
     plain = f'{"-".join(str(n) for n in sorted(numbers))} · {special_label} {special}'
-    caption = (f'<div style="font-size:11px;color:#666;margin-top:6px;">{plain}'
-               f' · Power Play <strong>{multiplier}x</strong></div>')
+    # Na Mega Millions o multiplicador e de cada aposta: o sorteio nao tem um para mostrar.
+    power_play = f' · Power Play <strong>{multiplier}x</strong>' if special_label == "Powerball" else ""
+    caption = f'<div style="font-size:11px;color:#666;margin-top:6px;">{plain}{power_play}</div>'
     return row + caption
 
 
@@ -986,7 +990,9 @@ def build_html(draw):
 
     nums_sorted = sorted(r["numbers"])
     special_label = "Powerball" if draw["gameType"] == "powerball" else "Mega Ball"
-    result_line = f'{"-".join(str(n) for n in nums_sorted)}  ·  {special_label} {r["special"]}  ·  Power Play {r["multiplier"]}x'
+    result_line = f'{"-".join(str(n) for n in nums_sorted)}  ·  {special_label} {r["special"]}'
+    if draw["gameType"] == "powerball":
+        result_line += f'  ·  Power Play {r["multiplier"]}x'
     result_balls = result_balls_html(r["numbers"], r["special"], r["multiplier"], special_label)
 
     header_title = f"{game_icon} Loteria {game_label} — Resultado do Sorteio"
