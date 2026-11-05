@@ -151,7 +151,7 @@ class AtualizadorDeMetadadosEIsolado(unittest.TestCase):
         src = open(os.path.join(AQUI, "refresh_jackpot.py"), encoding="utf-8").read()
         # A leitura do texto tem de acontecer DEPOIS da consulta a fonte oficial (que demora), e
         # imediatamente antes da edicao -- nao no comeco do processo.
-        i_fonte = src.index("draw_id, jackpot, cash, erro = busca_proximo_sorteio()")
+        i_fonte = src.index("draw_id, jackpot, cash, erro = busca_proximo_mega_millions() if mega else busca_proximo_sorteio()")
         i_leitura = src.index('fonte_txt = open(DATA_JS, encoding="utf-8").read()')
         self.assertLess(i_fonte, i_leitura,
                         "o data.js e lido ANTES da consulta a fonte — a janela de corrida aumenta "

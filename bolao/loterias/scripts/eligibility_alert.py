@@ -35,8 +35,6 @@ LABEL = "bolao-elegivel"
 # Estados do sorteio corrente em que o operador JA agiu: o sorteio existe no site. ELIGIBLE aqui e
 # o sorteio criado por `open_next_draw.py` ainda sem participantes -- aberto, so vazio.
 EM_ANDAMENTO = ("ELIGIBLE", "OPEN", "LOCKED", "AWAITING_RESULT")
-# O unico jogo com bolao modelado no site. Pool de outro jogo nunca casa com o sorteio corrente.
-JOGO_DO_SITE = "powerball"
 PAGINA = "https://www.ferrarilabs.com/bolao/loterias/powerball/"
 
 
@@ -59,7 +57,8 @@ def decide(doc: dict) -> dict:
         return {"known": True, "alert": False, "key": "", "reason": "nenhum jackpot acima do limiar"}
 
     atual = doc.get("currentDraw") or {}
-    aberto = (pool["game"] == JOGO_DO_SITE and atual.get("id") == pool["drawDate"]
+    # Pool de outro jogo nunca casa com o sorteio corrente, mesmo na mesma data.
+    aberto = (pool["game"] == atual.get("game", "powerball") and atual.get("id") == pool["drawDate"]
               and atual.get("lifecycleState") in EM_ANDAMENTO)
     k = chave(pool["game"], pool["drawDate"])
     if aberto:
