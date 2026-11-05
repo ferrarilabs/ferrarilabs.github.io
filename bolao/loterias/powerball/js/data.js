@@ -30,6 +30,7 @@ window.LOTTERY_GAME_TYPES = {
     label: "Powerball",
     icon: "🔴",
     specialBallLabel: "Powerball",
+    multiplierLabel: "Power Play",
     accent: "#CE1141",
     accent2: "#003DA5",
     previousResultsUrl: "https://www.powerball.com/previous-results",
@@ -68,20 +69,49 @@ window.LOTTERY_GAME_TYPES = {
       var parts = row.winning_numbers.trim().split(/\s+/).map(Number);
       return { numbers: parts.slice(0, 5), special: Number(row.mega_ball), multiplier: Number(row.multiplier) || 1 };
     },
-    // Tabela oficial simplificada (Megaplier); confirmar valor exato no site oficial
-    // quando o prêmio for relevante — multiplicadores/tiers mudam de tempos em tempos.
+    // Sem Megaplier desde abril/2025: o multiplicador (2X/3X/4X/5X/10X) vem impresso em CADA aposta
+    // ("01-14-27-63-64 — MB 25 — 3X"), a fonte oficial nao publica multiplicador do sorteio e a
+    // aposta custa US$5.
+    multiplierOnTicket: true,
+    // Matriz oficial, identica a config/lottery_policy.json (MatrixID 4, conferida por
+    // verify_mm_matrix.py). NAO e base x fator: 4 acertos paga 599 na base e 1000 no 2X. Tem de ser
+    // a tabela. Multiplicador fora dela lanca: nao se inventa valor de premio.
     prizeTable: function (mainMatches, specialMatch, multiplier) {
       if (mainMatches === 5 && specialMatch) return { label: "JACKPOT", amount: null };
-      if (mainMatches === 5) return { label: "5 acertos", amount: 1000000 };
-      if (mainMatches === 4 && specialMatch) return { label: "4 + Mega Ball", amount: 10000 * multiplier };
-      if (mainMatches === 4) return { label: "4 acertos", amount: 500 * multiplier };
-      if (mainMatches === 3 && specialMatch) return { label: "3 + Mega Ball", amount: 200 * multiplier };
-      if (mainMatches === 3) return { label: "3 acertos", amount: 10 * multiplier };
-      if (mainMatches === 2 && specialMatch) return { label: "2 + Mega Ball", amount: 10 * multiplier };
-      if (mainMatches === 1 && specialMatch) return { label: "1 + Mega Ball", amount: 4 * multiplier };
-      if (mainMatches === 0 && specialMatch) return { label: "Mega Ball", amount: 2 * multiplier };
-      return null;
+      var faixa = null;
+      if (mainMatches === 5) faixa = ["5 acertos", 1000000, 2000000, 3000000, 4000000, 5000000, 10000000];
+      else if (mainMatches === 4 && specialMatch) faixa = ["4 + Mega Ball", 10000, 20000, 30000, 40000, 50000, 100000];
+      else if (mainMatches === 4) faixa = ["4 acertos", 599, 1000, 1500, 2000, 2500, 5000];
+      else if (mainMatches === 3 && specialMatch) faixa = ["3 + Mega Ball", 200, 400, 600, 800, 1000, 2000];
+      else if (mainMatches === 3) faixa = ["3 acertos", 10, 20, 30, 40, 50, 100];
+      else if (mainMatches === 2 && specialMatch) faixa = ["2 + Mega Ball", 10, 20, 30, 40, 50, 100];
+      else if (mainMatches === 1 && specialMatch) faixa = ["1 + Mega Ball", 4, 14, 21, 28, 35, 70];
+      else if (mainMatches === 0 && specialMatch) faixa = ["Mega Ball", 2, 10, 15, 20, 25, 50];
+      if (!faixa) return null;
+      var coluna = [1, 2, 3, 4, 5, 10].indexOf(multiplier);
+      if (coluna === -1) throw new Error("MULTIPLICADOR_FORA_DA_MATRIZ: Mega Millions " + multiplier);
+      return { label: faixa[0], amount: faixa[coluna + 1] };
     }
+  }
+};
+
+// O formato da aposta no data.js, num lugar so: "01-14-27-63-64 — PB 25" ou, na Mega Millions,
+// "01-14-27-63-64 — MB 25 — 3X". Quem confere premio usa isto em vez de ter a propria regex.
+window.LOTTERY_TICKETS = {
+  parse: function (str) {
+    var m = String(str).match(/^([\d\s-]+?)\s*—\s*(PB|MB)\s*(\d+)(?:\s*—\s*(\d+)X)?$/);
+    if (!m) return null;
+    return {
+      numbers: m[1].trim().split(/[\s-]+/).map(Number),
+      code: m[2],
+      special: Number(m[3]),
+      multiplier: m[4] ? Number(m[4]) : null
+    };
+  },
+  // Power Play e do sorteio; na Mega Millions o multiplicador e da aposta. Aposta de Mega Millions
+  // sem multiplicador devolve null, e a prizeTable recusa em vez de pagar o valor base.
+  multiplier: function (gt, ticket, official) {
+    return gt.multiplierOnTicket ? ticket.multiplier : (official.multiplier || 1);
   }
 };
 

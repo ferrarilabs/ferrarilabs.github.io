@@ -502,18 +502,17 @@
     var pbHit = parsed.special === result.special;
     // Reconstrói a string marcando cada bola individualmente, preservando o formato original
     // ("01-14-27-63-64 — PB 25") em vez de reescrevê-lo.
-    var m = numeroStr.match(/^([\d\s-]+?)\s*—\s*(PB|MB)\s*(\d+)$/);
-    if (!m) return esc(numeroStr);
-    var balls = m[1].trim().split(/[\s-]+/).map(function (b) {
-      var hit = result.numbers.indexOf(Number(b)) !== -1;
-      return hit ? '<b class="pb-hit">' + esc(b) + "</b>" : esc(b);
+    var balls = parsed.numbers.map(function (n) {
+      var b = (n < 10 ? "0" : "") + n;
+      return result.numbers.indexOf(n) !== -1 ? '<b class="pb-hit">' + b + "</b>" : b;
     }).join("-");
-    var pbTxt = pbHit ? '<b class="pb-hit pb-hit--special">' + esc(m[3]) + "</b>" : esc(m[3]);
-    var prize = gt && gt.prizeTable ? gt.prizeTable(mainHits, pbHit, result.multiplier || 1) : null;
+    var sp = (parsed.special < 10 ? "0" : "") + parsed.special;
+    var pbTxt = pbHit ? '<b class="pb-hit pb-hit--special">' + sp + "</b>" : sp;
+    var prize = gt && gt.prizeTable ? gt.prizeTable(mainHits, pbHit, window.LOTTERY_TICKETS.multiplier(gt, parsed, result)) : null;
     var tag = prize && prize.amount
       ? ' <span class="pb-ticket-prize">' + esc(prize.label) + " · " + fmtUsd(prize.amount) + "</span>"
       : "";
-    return balls + " — " + esc(m[2]) + " " + pbTxt + tag;
+    return balls + " — " + parsed.code + " " + pbTxt + (parsed.multiplier ? " — " + parsed.multiplier + "X" : "") + tag;
   }
 
   function renderSharedTickets(draw, gt) {
@@ -527,7 +526,7 @@
       return;
     }
     document.getElementById("pbTicketsMeta").textContent =
-      "Comprado por " + t.compradoPor + " · " + t.dataComprovante + " · US$" + t.valorPorTicket + "/ticket (Power Play)";
+      "Comprado por " + t.compradoPor + " · " + t.dataComprovante + " · US$" + t.valorPorTicket + "/ticket" + (gt.multiplierLabel ? " (" + gt.multiplierLabel + ")" : "");
 
     document.getElementById("pbTicketsBody").innerHTML = t.series.map(function (s) {
       var numsHtml = s.numeros && s.numeros.length
@@ -549,11 +548,8 @@
     }).join("");
   }
 
-  // "01-14-27-63-64 — PB 25" -> { numbers:[1,14,27,63,64], special:25 }
   function parseTicketNumeros(str) {
-    var m = str.match(/^([\d\s-]+?)\s*—\s*PB\s*(\d+)$/);
-    if (!m) return null;
-    return { numbers: m[1].split("-").map(Number), special: Number(m[2]) };
+    return window.LOTTERY_TICKETS.parse(str);
   }
 
   function allTickets(draw) {
@@ -576,7 +572,7 @@
     tickets.forEach(function (t) {
       var mainMatches = t.numbers.filter(function (n) { return official.numbers.indexOf(n) !== -1; }).length;
       var specialMatch = t.special === official.special;
-      var prize = gt.prizeTable(mainMatches, specialMatch, official.multiplier);
+      var prize = gt.prizeTable(mainMatches, specialMatch, window.LOTTERY_TICKETS.multiplier(gt, t, official));
       if (!prize) return;
       if (prize.amount === null) { jackpotHit = true; return; }
       if (prize.amount > 0) {
@@ -685,7 +681,7 @@
       var sortedNums = r.numbers.slice().sort(function (a, b) { return a - b; });
       document.getElementById("pbResultNumbers").textContent =
         sortedNums.join("-") + "  ·  " + gt.specialBallLabel + " " + r.special +
-        (r.multiplier ? "  ·  Power Play " + r.multiplier + "x" : "");
+        (r.multiplier && gt.multiplierLabel ? "  ·  " + gt.multiplierLabel + " " + r.multiplier + "x" : "");
       document.getElementById("pbResultChecked").textContent = "Conferido automaticamente em " + r.checkedAt;
 
       renderHitStats(draw, gt);

@@ -35,6 +35,7 @@ DATA_JS = os.path.join(AQUI, "..", "js", "data.js")
 
 FONTE_URL = "https://www.powerball.com/"
 FONTE_ID = "powerball_official"
+FONTE_ID_MM = "megamillions_official"
 UA = ("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
       "(KHTML, like Gecko) Chrome/120 Safari/537.36")
 
@@ -127,6 +128,20 @@ def busca_proximo_sorteio():
     return draw_id, jackpot, cash, None
 
 
+def busca_proximo_mega_millions():
+    """(draw_id, jackpot, cash, erro), da API oficial, com as mesmas guardas da elegibilidade."""
+    sys.path.insert(0, os.path.join(AQUI, "..", "..", "scripts"))
+    import lottery_sources as S  # noqa: E402
+    try:
+        j = S.jackpot_oficial("megamillions")
+    except Exception as e:
+        return None, None, None, f"FONTE_INDISPONIVEL: {type(e).__name__}"
+    if not j.get("nextDrawDate") or not j.get("advertisedAnnuityCents"):
+        return j.get("nextDrawDate"), None, None, "JACKPOT_ILEGIVEL"
+    cash = j.get("cashValueCents")
+    return j["nextDrawDate"], j["advertisedAnnuityCents"] // 100, cash // 100 if cash else None, None
+
+
 def carrega_draws():
     leitor = (
         "const fs=require('fs'),vm=require('vm');const sb={window:{}};vm.createContext(sb);"
@@ -162,7 +177,7 @@ def main():
     abertos = [d for d in draws if not (d.get("result") or {}).get("numbers")]
 
     print("=" * 68)
-    print("  POWERBALL — ATUALIZACAO DE JACKPOT DO SORTEIO ABERTO")
+    print("  LOTERIAS — ATUALIZACAO DE JACKPOT DO SORTEIO ABERTO")
     print("=" * 68)
 
     if not abertos:
@@ -172,7 +187,11 @@ def main():
         return 0
     aberto = abertos[-1]
 
-    draw_id, jackpot, cash, erro = busca_proximo_sorteio()
+    # Cada jogo tem a sua fonte. Perguntar a powerball.com por um sorteio aberto de Mega Millions
+    # sairia em DRAW_ID_MISMATCH a cada 6 horas, com o prêmio real sem atualizar.
+    mega = aberto.get("gameType") == "megamillions"
+    fonte_id = FONTE_ID_MM if mega else FONTE_ID
+    draw_id, jackpot, cash, erro = busca_proximo_mega_millions() if mega else busca_proximo_sorteio()
     print(f"  sorteio aberto no data.js   {aberto['id']}")
     print(f"  proximo sorteio na fonte    {draw_id or '?'}")
 
@@ -221,18 +240,18 @@ def main():
         return 2
 
     # Proveniencia: sem ela, "de onde veio esse numero?" so tem resposta na memoria de alguem.
-    prov = (f'\n      jackpotSource: "{FONTE_ID}",'
+    prov = (f'\n      jackpotSource: "{fonte_id}",'
             f'\n      jackpotFetchedAt: "{agora}",'
             f'\n      jackpotDrawId: "{aberto["id"]}",')
     if "jackpotSource:" in novo_bloco:
-        novo_bloco = re.sub(r'\n      jackpotSource: "[^"]*",', f'\n      jackpotSource: "{FONTE_ID}",', novo_bloco)
+        novo_bloco = re.sub(r'\n      jackpotSource: "[^"]*",', f'\n      jackpotSource: "{fonte_id}",', novo_bloco)
         novo_bloco = re.sub(r'\n      jackpotFetchedAt: "[^"]*",', f'\n      jackpotFetchedAt: "{agora}",', novo_bloco)
     else:
         novo_bloco = re.sub(r"(\n      cashValue: [^,\n]+,)", r"\1" + prov, novo_bloco, count=1)
 
     if a.dry_run:
         print("\n  DRY RUN — nada gravado. Mudaria para:")
-        print(f"    jackpot: {jackpot}\n    cashValue: {cash}\n    jackpotSource: {FONTE_ID}")
+        print(f"    jackpot: {jackpot}\n    cashValue: {cash}\n    jackpotSource: {fonte_id}")
         print("=" * 68)
         return 0
 
