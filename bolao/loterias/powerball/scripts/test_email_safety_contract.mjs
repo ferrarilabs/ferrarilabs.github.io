@@ -244,7 +244,7 @@ await test("existir um sorteio mais novo não desloca a mira", () => {
 console.log("\nResultado como bolas visuais:");
 
 await test("o e-mail de resultado desenha 5 bolas brancas + Powerball vermelho + Power Play", () => {
-  const alvo = liquidados[liquidados.length - 1];
+  const alvo = liquidados.filter((d) => d.gameType === "powerball").slice(-1)[0];
   const official = { numbers: alvo.result.numbers, special: alvo.result.special, multiplier: alvo.result.multiplier };
   const { perRecipient } = buildDrawResultPayload({
     draw: alvo, participants: alvo.participants, official, prizeTableFn: gt.prizeTable,

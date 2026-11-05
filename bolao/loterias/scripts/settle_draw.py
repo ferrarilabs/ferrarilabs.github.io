@@ -64,6 +64,7 @@ def carrega_draws(caminho=None):
 def apostas_do_sorteio(draw):
     """
     "30-38-46-47-59 — PB 06" -> {numbers:[30,38,46,47,59], special:6, hasPowerPlay:True}
+    "30-38-46-47-59 — MB 06 — 3X" -> {numbers:[30,38,46,47,59], special:6, multiplier:3}
 
     `hasPowerPlay` vem do PREÇO PAGO POR BILHETE, não de uma suposição: US$3 é US$2 da aposta mais
     US$1 do Power Play. Uma compra sem Power Play não pode herdar o multiplicador do sorteio, ou o
@@ -71,15 +72,23 @@ def apostas_do_sorteio(draw):
     """
     st = draw.get("sharedTickets") or {}
     preco = int(st.get("valorPorTicket") or 0)
-    com_pp = preco >= 3
+    mega = draw.get("gameType") == "megamillions"
+    # Na Mega Millions a aposta custa US$5 e nao existe Power Play: o preco nao diz nada sobre ele.
+    com_pp = preco >= 3 and not mega
     apostas = []
     for serie in st.get("series") or []:
         for linha in serie.get("numeros") or []:
-            nums, _, esp = linha.partition("—")
-            apostas.append({"numbers": [int(x) for x in nums.strip().split("-")],
-                            "special": int(esp.strip().split()[-1]),
-                            "hasPowerPlay": com_pp,
-                            "serial": serie.get("serial")})
+            partes = [p.strip() for p in linha.split("—")]
+            aposta = {"numbers": [int(x) for x in partes[0].split("-")],
+                      "special": int(partes[1].split()[-1]),
+                      "hasPowerPlay": com_pp,
+                      "serial": serie.get("serial")}
+            if mega:
+                # Sem multiplicador o motor pagaria o valor base, e toda aposta traz um.
+                if len(partes) != 3 or not partes[2].endswith("X"):
+                    raise RuntimeError(f"APOSTA_SEM_MULTIPLICADOR: {linha}")
+                aposta["multiplier"] = int(partes[2][:-1])
+            apostas.append(aposta)
     return apostas
 
 
@@ -115,12 +124,13 @@ def resultado_certificado(draw, jogo, verificar_ao_vivo=True):
     return local, prov
 
 
-def liquida(draw, anterior, jogo="powerball", ledger=None, verificar_ao_vivo=True):
+def liquida(draw, anterior, jogo=None, ledger=None, verificar_ao_vivo=True):
     """
     Grava os lançamentos deste sorteio. Devolve o relatório com o que foi (ou não) gravado.
 
     Toda gravação passa por `append_ledger`, que é idempotente por chave e serializada por trava.
     """
+    jogo = jogo or draw.get("gameType") or "powerball"
     pool = draw["id"]
     rel = {"pool": pool, "gravados": [], "ja_existiam": [], "providerCalls": 0}
 
@@ -244,7 +254,7 @@ def relatorio(ledger=None):
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--draw", help="id do sorteio (padrão: o mais recente com resultado)")
-    ap.add_argument("--game", default="powerball")
+    ap.add_argument("--game", default=None, help="por padrao, o gameType do sorteio")
     ap.add_argument("--ledger", help="caminho do livro (padrão: config/lottery_ledger.jsonl)")
     ap.add_argument("--data-js", help="caminho do data.js")
     ap.add_argument("--offline", action="store_true",
@@ -280,6 +290,7 @@ def main():
         temporario.close()
         ledger = temporario.name
 
+    args.game = args.game or draw.get("gameType") or "powerball"
     print(f"LIQUIDAÇÃO — {args.game} {draw['id']}"
           f"{'  (DRY-RUN, nada é gravado no livro real)' if args.dry_run else ''}\n")
     try:

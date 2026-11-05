@@ -109,7 +109,7 @@ export function buildTicketPublicationPayload({ draw, participants, tickets, pub
     // ticket data — the exact bug found 2026-08-10 (public file hash didn't match the hash
     // quoted in the sent email).
     publishedAtUtc: publishedAtUtc || new Date().toISOString(),
-    tickets: tickets.map((t) => ({ numbers: t.numbers.slice().sort((a, b) => a - b), special: t.special, serial: t.serial || null })),
+    tickets: tickets.map((t) => ({ numbers: t.numbers.slice().sort((a, b) => a - b), special: t.special, ...(t.multiplier ? { multiplier: t.multiplier } : {}), serial: t.serial || null })),
   };
   const manifestHash = sha256Hex(stableStringify(manifest));
   manifest.sha256 = manifestHash;
@@ -208,10 +208,13 @@ export function buildTicketPublicationPayload({ draw, participants, tickets, pub
 // directly from draw.finance/draw.result/draw.profit — never invented.
 // ---------------------------------------------------------------------------
 
-function parseTicketNumeros(str) {
-  const m = str.match(/^([\d\s-]+?)\s*—\s*PB\s*(\d+)$/);
+export function parseTicketNumeros(str) {
+  // Mesmo formato de LOTTERY_TICKETS.parse (js/data.js). Mega Millions traz o multiplicador da aposta.
+  const m = str.match(/^([\d\s-]+?)\s*—\s*(?:PB|MB)\s*(\d+)(?:\s*—\s*(\d+)X)?$/);
   if (!m) return null;
-  return { numbers: m[1].split("-").map(Number), special: Number(m[2]) };
+  const t = { numbers: m[1].split("-").map(Number), special: Number(m[2]) };
+  if (m[3]) t.multiplier = Number(m[3]);
+  return t;
 }
 
 /** All shared tickets for a draw, flattened, with serial retained. */
@@ -235,7 +238,7 @@ export function computeTicketResults(tickets, official, prizeTableFn) {
   return tickets.map((t) => {
     const mainMatches = t.numbers.filter((n) => official.numbers.includes(n)).length;
     const specialMatch = t.special === official.special;
-    const prize = prizeTableFn(mainMatches, specialMatch, official.multiplier);
+    const prize = prizeTableFn(mainMatches, specialMatch, t.multiplier ?? official.multiplier);
     return {
       ...t,
       mainMatches,
@@ -316,11 +319,12 @@ export function buildDrawResultPayload({ draw, participants, official, prizeTabl
 }
 
 export function manifestToCsv(manifest) {
-  const rows = [["poolId", "drawId", "publicationVersion", "ticketIndex", "numbers", "special", "serial"]];
+  const comMult = manifest.tickets.some((t) => t.multiplier);
+  const rows = [["poolId", "drawId", "publicationVersion", "ticketIndex", "numbers", "special", ...(comMult ? ["multiplier"] : []), "serial"]];
   manifest.tickets.forEach((t, i) => {
-    rows.push([manifest.poolId, manifest.drawId, manifest.publicationVersion, i + 1, t.numbers.join("-"), t.special, t.serial || ""]);
+    rows.push([manifest.poolId, manifest.drawId, manifest.publicationVersion, i + 1, t.numbers.join("-"), t.special, ...(comMult ? [t.multiplier ? `${t.multiplier}X` : ""] : []), t.serial || ""]);
   });
-  rows.push(["sha256", manifest.sha256, "", "", "", "", ""]);
+  rows.push(["sha256", manifest.sha256, "", "", "", "", ...(comMult ? [""] : []), ""]);
   return rows.map((r) => r.map(csvCell).join(",")).join("\n") + "\n";
 }
 function csvCell(v) {

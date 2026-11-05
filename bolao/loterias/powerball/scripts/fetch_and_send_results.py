@@ -42,7 +42,8 @@ GAME_TYPES = {
         "api": MEGAMILLIONS_API,
         "parse": lambda row: {
             "numbers": sorted(list(map(int, row["winning_numbers"].strip().split()[:5]))),
-            "special": int(row.get("mega_ball", 1)),
+            # Sem default: bola ausente reprova o parse em vez de virar "1", um numero inventado.
+            "special": int(row["mega_ball"]),
             "multiplier": int(row.get("multiplier", 1))
         }
     }
@@ -125,7 +126,7 @@ def fetch_official_result(game_type, expected_draw_date):
 
 def validate_result(game_type, result):
     """(ok, motivo). Rejeita payload malformado ANTES de qualquer persistencia."""
-    faixa = {"powerball": (69, 26), "megamillions": (70, 25)}[game_type]
+    faixa = {"powerball": (69, 26), "megamillions": (70, 24)}[game_type]
     nums = result.get("numbers")
     if not isinstance(nums, list) or len(nums) != 5:
         return False, "esperados 5 numeros brancos"
@@ -293,13 +294,12 @@ if (!draw) { console.error('draw not found'); process.exit(1); }
 const gt = sb.window.LOTTERY_GAME_TYPES[draw.gameType];
 let total = 0, jackpotHit = false; const counts = {};
 (draw.sharedTickets && draw.sharedTickets.series || []).forEach(s => (s.numeros||[]).forEach(str => {
-  const m = String(str).match(/^([\\d\\s-]+?)\\s*—\\s*(?:PB|MB)\\s*(\\d+)$/);
-  if (!m) return;
-  const nums = m[1].trim().split(/[\\s-]+/).map(Number), special = Number(m[2]);
-  const main = nums.filter(n => off.numbers.indexOf(n) !== -1).length;
-  const sp = special === off.special;
+  const t = sb.window.LOTTERY_TICKETS.parse(str);
+  if (!t) { console.error('aposta ilegivel: ' + str); process.exit(1); }
+  const main = t.numbers.filter(n => off.numbers.indexOf(n) !== -1).length;
+  const sp = t.special === off.special;
   if (main === 5 && sp) jackpotHit = true;
-  const r = gt.prizeTable(main, sp, off.multiplier || 1);
+  const r = gt.prizeTable(main, sp, sb.window.LOTTERY_TICKETS.multiplier(gt, t, off));
   if (r && r.amount) { total += r.amount; counts[r.label] = (counts[r.label]||0) + 1; }
 }));
 const breakdown = Object.entries(counts).map(([k,v]) => v + 'x ' + k);
@@ -344,6 +344,9 @@ def check_and_update_results(game_type, dry_run=False, force_resend=False):
 
     _lbl = (target_draw.get("drawing") or {}).get("drawDateLabel") or target_draw.get("drawDateLabel", "?")
     print(f"📋 Sorteio alvo: {target_draw['id']}  ({_lbl})")
+    # O jogo e o DO SORTEIO. Perguntar a fonte da Powerball por um sorteio de Mega Millions daria
+    # NOT_READY para sempre, com o workflow verde e ninguem recebendo o resultado.
+    game_type = target_draw.get("gameType") or game_type
 
     # PORTAO 1 — TEMPORAL. Antes da hora oficial + carencia, nao existe resultado legitimo.
     ocorreu, porque = draw_has_occurred(target_draw)
@@ -446,7 +449,8 @@ def check_and_update_results(game_type, dry_run=False, force_resend=False):
         subprocess.run(["git", "-C", REPO_ROOT, "add", DATA_JS_REL], check=True)
         subprocess.run([
             "git", "-C", REPO_ROOT, "commit", "-m",
-            f"Powerball: resultado do sorteio de {target_draw['id']} ({official['numbers']} | PB{official['special']}) (automatico)"
+            f"{'Mega Millions' if game_type == 'megamillions' else 'Powerball'}: resultado do sorteio de {target_draw['id']} "
+            f"({official['numbers']} | {'MB' if game_type == 'megamillions' else 'PB'}{official['special']}) (automatico)"
         ], check=True)
         print(f"✓ Commit local do data.js (publicado por PR pelo workflow)")
     except subprocess.CalledProcessError as e:
@@ -923,6 +927,7 @@ def run_lifecycle(game_type="powerball", dry_run=False, force_resend=False, deps
 
     result = alvo["result"]
     draw_id = alvo["id"]
+    game_type = alvo.get("gameType") or game_type
     ocorreu, porque_tempo = draw_has_occurred(alvo)
     _obs(rel, drawEvaluated=draw_id, drawTimePassed=ocorreu, drawTimeReason=porque_tempo,
          upstreamResultExists=bool((result or {}).get("numbers")),

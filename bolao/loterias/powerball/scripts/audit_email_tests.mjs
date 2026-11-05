@@ -52,7 +52,7 @@ const { calculatePrizePerParticipant, DRAWS } = loadRealPrizeCalculator();
 // nunca `status`, que em produção está obsoleto (o 08/08 tem `status: "planejamento"` COM
 // resultado oficial gravado).
 const isSettled = (d) => !!(d.result && d.result.numbers);
-const realDraw = DRAWS.filter((d) => isSettled(d) && d.participants && d.participants.length > 0).slice(-1)[0];
+const realDraw = DRAWS.filter((d) => d.gameType === "powerball" && isSettled(d) && d.participants && d.participants.length > 0).slice(-1)[0];
 if (!realDraw) {
   console.error("Nenhum sorteio liquidado COM participantes em data.js — sem fixture, estes testes " +
     "não afirmam nada. Falhando em vez de passar vazio.");

@@ -68,10 +68,10 @@ def main():
     tem = bool(r.get("numbers"))
     print(f"  PB_{draw_id.replace('-', '')}_CANONICAL_RESULT_NULL = {'NO' if tem else 'YES'}")
     if tem:
-        print(f"    números    {r['numbers']} | PB {r['special']} | Power Play {r.get('multiplier')}x")
+        print(f"    números    {r['numbers']} | bola especial {r['special']} | multiplicador {r.get('multiplier')}x")
         print(f"    conferido  {r.get('checkedAt')}")
         print(f"    prêmios    US$ {r.get('premiosGanhos')}")
-        h = L.hash_resultado("powerball", draw_id,
+        h = L.hash_resultado(draw.get("gameType") or "powerball", draw_id,
                              {"numbers": r["numbers"], "special": r["special"],
                               "multiplier": r.get("multiplier") or 1})
         print(f"    RESULT_HASH_PRESENT = YES ({h})")

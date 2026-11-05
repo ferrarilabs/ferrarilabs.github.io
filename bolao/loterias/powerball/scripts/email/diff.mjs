@@ -6,10 +6,12 @@
 // generated directly from it, not retyped.
 
 function ticketKey(t) {
-  return t.numbers.slice().sort((a, b) => a - b).join("-") + "|" + t.special;
+  return t.numbers.slice().sort((a, b) => a - b).join("-") + "|" + t.special + (t.multiplier ? "|" + t.multiplier : "");
 }
 function fmtTicket(t) {
-  return t.numbers.slice().sort((a, b) => a - b).join(" · ") + " — Powerball " + t.special;
+  const nums = t.numbers.slice().sort((a, b) => a - b).join(" · ");
+  // So aposta de Mega Millions traz multiplicador proprio.
+  return t.multiplier ? `${nums} — Mega Ball ${t.special} — ${t.multiplier}X` : `${nums} — Powerball ${t.special}`;
 }
 
 /**
