@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-11-05T22:51:07Z",
-  "sourceUpdatedAt": "2026-11-05T22:51:07Z",
+  "generatedAt": "2026-11-05T23:12:15Z",
+  "sourceUpdatedAt": "2026-11-05T23:12:15Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "5d022d3c20f3954d3467fcb6d104120b633e82eae329c4a3e19ef910ff7c123c",
+  "payloadHash": "59565ebf43c96b5d7ab359f1111fbafc53e1a696dfd723176e9f941620f7d9f3",
   "matches": [
     {
       "id": "401840808",
@@ -56894,21 +56894,21 @@
       "state": "in",
       "statusName": "STATUS_FIRST_HALF",
       "statusDescription": "First Half",
-      "statusShortDetail": "20'",
-      "statusDetail": "20'",
+      "statusShortDetail": "41'",
+      "statusDetail": "41'",
       "completed": false,
       "homeTeam": "Palmeiras",
       "awayTeam": "Remo",
       "homeTeamId": "2029",
       "awayTeamId": "4936",
-      "homeScore": 2,
+      "homeScore": 4,
       "awayScore": 0,
       "homeWinner": false,
       "awayWinner": false,
       "venue": "Allianz Parque",
       "city": "Sao Paulo",
-      "clockSec": 1200.0,
-      "clockStr": "20'",
+      "clockSec": 2460.0,
+      "clockStr": "41'",
       "period": 1,
       "details": [
         {
@@ -56946,6 +56946,44 @@
             {
               "displayName": "Jhon Arias",
               "shortName": "J. Arias"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Goal"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "2029"
+          },
+          "clock": {
+            "value": 1243.0,
+            "displayValue": "21'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Maurício",
+              "shortName": "Maurício"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Own Goal"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "2029"
+          },
+          "clock": {
+            "value": 2259.0,
+            "displayValue": "38'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Marcelinho",
+              "shortName": "Marcelinho"
             }
           ]
         }
