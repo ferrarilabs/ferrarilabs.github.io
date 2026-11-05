@@ -830,6 +830,14 @@
         "valor": 10,
         "metodo": "Reserva dos ganhadores de 02/11"
       }
+    ],
+    [
+      {
+        "name": "Eduardo Ferrari",
+        "cotas": 1,
+        "valor": 10,
+        "metodo": "Fundo próprio (organizador)"
+      }
     ]
   ]
 }
