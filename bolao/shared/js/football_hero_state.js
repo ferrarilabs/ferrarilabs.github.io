@@ -152,7 +152,15 @@
       }
     }
 
-    if (proxima) {
+    // UPCOMING só vale enquanto o kickoff ainda não chegou — "próxima partida" sobre um horário
+    // já passado é uma contradição que os dois apps repassam direto para countdownTimerHtml(),
+    // cujo contrato (#436, deliberadamente sem lógica de provedor) é: diffMs<=0 => "Em
+    // andamento". Sem este guard, qualquer partida cujo kickoff passa sem confirmação ao vivo
+    // (fonte fora, cron atrasado, snapshot velho) afirma "ao vivo" por omissão — mesmo
+    // adiada/cancelada. `tProxima == null` (confronto conhecido mas sem data, ver #395) não tem
+    // kickoff para comparar, então continua UPCOMING normalmente — #467.
+    var proximaAindaNaoComecou = tProxima == null || agora < tProxima;
+    if (proxima && proximaAindaNaoComecou) {
       return saida(HERO.UPCOMING, "proxima partida autoritativa conhecida", !fonteOk || evidenciaVencida);
     }
 
