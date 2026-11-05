@@ -151,8 +151,12 @@ class LiquidacaoComReserva(unittest.TestCase):
         import settle_draw as SD
         self.L, self.SD = L, SD
         self.livro = os.path.join(tempfile.mkdtemp(), "l.jsonl")
-        with open(L.LEDGER, encoding="utf-8") as f, open(self.livro, "w", encoding="utf-8") as g:
-            g.write(f.read())
+        # O livro como estava ANTES de 04/11 liquidar. Copiar o arquivo inteiro faz o teste quebrar
+        # no dia em que o sorteio real liquida (#547): a chave contrib:powerball:2026-11-04 ja existe.
+        with open(self.livro, "w", encoding="utf-8") as g:
+            for e in L.le_ledger():
+                if e["poolId"] < "2026-11-04":
+                    g.write(json.dumps(e, ensure_ascii=False) + "\n")
         self.anterior = {"id": "2026-11-02"}
         nomes = L.le_reservas()[0]["beneficiaries"]
         self.draw = {"id": "2026-11-04", "previousDrawId": "2026-11-02",
