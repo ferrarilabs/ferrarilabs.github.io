@@ -1139,7 +1139,8 @@ window.POWERBALL_DRAWS = [
       { name: "Rodrigo Hajj", cotas: 1, valor: 10, metodo: "Reserva dos ganhadores de 02/11", data: "05/11/2026", hora: "10:00:33 AM", status: "verificado", state: "NC" },
       { name: "Samuel Huller", cotas: 1, valor: 10, metodo: "Reserva dos ganhadores de 02/11", data: "05/11/2026", hora: "10:00:33 AM", status: "verificado", state: "NC" },
       { name: "Simone Hirle da Costa", cotas: 1, valor: 10, metodo: "Reserva dos ganhadores de 02/11", data: "05/11/2026", hora: "10:00:33 AM", status: "verificado", state: "NC" },
-      { name: "Thiago Locatelli", cotas: 1, valor: 10, metodo: "Reserva dos ganhadores de 02/11", data: "05/11/2026", hora: "10:00:33 AM", status: "verificado", state: "TX" }
+      { name: "Thiago Locatelli", cotas: 1, valor: 10, metodo: "Reserva dos ganhadores de 02/11", data: "05/11/2026", hora: "10:00:33 AM", status: "verificado", state: "TX" },
+      { name: "Marcelo Barsotti", cotas: 1, valor: 10, metodo: "Pix", data: "05/11/2026", hora: "12:55:02 PM", status: "verificado", state: "ON" }
     ],
 
     // Sem bilhetes ainda. Os numeros entram depois da compra -- abrir o bolao nunca dependeu
@@ -1152,7 +1153,7 @@ window.POWERBALL_DRAWS = [
     },
 
     finance: {
-      totalArrecadado: 140, // 14 participante(s), soma das contribuicoes no banco
+      totalArrecadado: 150, // 15 participante(s), soma das contribuicoes no banco
       // Premio do sorteio anterior + o que ficou guardado. Derivado do que esta gravado, nao
       // arbitrado aqui.
       creditoSorteioAnterior: 16,
