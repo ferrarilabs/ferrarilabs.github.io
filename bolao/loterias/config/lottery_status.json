@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-05T14:29:41Z",
+  "generatedAt": "2026-11-05T15:32:00Z",
   "threshold": {
     "minJackpotCents": 50000000000,
     "comparison": "strictly_greater",
@@ -16,7 +16,7 @@
       "nextDrawAt": "2026-11-08T03:59:00Z",
       "source": "https://www.powerball.com/",
       "verificationState": "PRIMARY_CONFIRMED",
-      "fetchedAt": "2026-11-05T14:29:41Z",
+      "fetchedAt": "2026-11-05T15:32:00Z",
       "sourceHash": "466537adb2c47f0d",
       "eligible": false,
       "state": "BELOW_THRESHOLD",
@@ -31,7 +31,7 @@
       "nextDrawAt": "2026-11-07T04:00:00Z",
       "source": "https://www.megamillions.com/cmspages/utilservice.asmx/GetLatestDrawData",
       "verificationState": "PRIMARY_CONFIRMED",
-      "fetchedAt": "2026-11-05T14:29:41Z",
+      "fetchedAt": "2026-11-05T15:32:00Z",
       "sourceHash": "a90d0115d604bd38",
       "eligible": true,
       "state": "ELIGIBLE",
@@ -54,10 +54,10 @@
         "label": "Reserva dos ganhadores de 02/11",
         "sourcePoolId": "2026-11-02",
         "beneficiaryCount": 14,
-        "cents": 29300
+        "cents": 16300
       }
     ],
-    "ledgerEntries": 23
+    "ledgerEntries": 24
   },
   "currentDraw": {
     "id": "2026-11-06",
