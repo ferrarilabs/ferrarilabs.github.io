@@ -7,8 +7,11 @@ All tests use synthetic fixtures (Time Alfa / Time Beta) and injected fake fetch
 network calls, no real ESPN data, matching this task's hard constraint of fully deterministic,
 synthetic test data.
 """
+import json
 import sys
+import tempfile
 import unittest
+from datetime import datetime, timezone
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
@@ -301,6 +304,39 @@ class ScoreboardWindowUrlsTests(unittest.TestCase):
             today=datetime.date(2026, 10, 18),
         )
         self.assertEqual(urls, ["https://fake/scoreboard?limit=500&dates=20261018"])
+
+
+class OverdueScoreboardUrlsTests(unittest.TestCase):
+    NOW = datetime(2026, 11, 5, 18, 0, tzinfo=timezone.utc)
+
+    def urls(self, matches, **kwargs):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = str(Path(tmp) / "snapshot.json")
+            Path(path).write_text(json.dumps({"schemaVersion": 1, "matches": matches}))
+            return ep.overdue_scoreboard_urls("https://fake/scoreboard", path, now=self.NOW, **kwargs)
+
+    def test_frozen_match_is_queried_on_its_day_and_the_day_before(self):
+        urls = self.urls([{"state": "in", "date": "2026-10-18T19:00Z"}])
+        self.assertEqual(urls, ["https://fake/scoreboard?dates=20261018",
+                                "https://fake/scoreboard?dates=20261017"])
+
+    def test_finished_postponed_recent_and_future_matches_are_ignored(self):
+        self.assertEqual(self.urls([
+            {"state": "post", "date": "2026-10-18T19:00Z"},
+            {"state": "pre", "statusName": "STATUS_POSTPONED", "date": "2026-10-18T19:00Z"},
+            {"state": "in", "date": "2026-11-05T15:00Z"},
+            {"state": "pre", "date": "2026-11-20T15:00Z"},
+            {"state": "pre", "date": "sem data"},
+        ]), [])
+
+    def test_cap_keeps_the_most_recent_days(self):
+        urls = self.urls([{"state": "pre", "date": f"2026-10-{d:02d}T19:00Z"} for d in range(1, 21)],
+                         max_days=2)
+        self.assertEqual(urls, ["https://fake/scoreboard?dates=20261020",
+                                "https://fake/scoreboard?dates=20261019"])
+
+    def test_missing_snapshot_asks_nothing(self):
+        self.assertEqual(ep.overdue_scoreboard_urls("https://fake/s", "/nao/existe.json", now=self.NOW), [])
 
 
 class FetchJsonManyTests(unittest.TestCase):

@@ -178,6 +178,22 @@ test("mutante 'LIVE_CRITICAL_STALE ⇒ LIVE_DELAYED' (a expectativa antiga) é d
     "voltou a mapear crítico-obsoleto para LIVE_DELAYED — era exatamente o que o teste antigo exigia");
 });
 
+// Incidente 2026-11-05: dois jogos de 18/10 presos em "in" eram somados à Tabela do BR2026.
+test("isLiveMatch retira o ao vivo de um \"in\" passado do horizonte, sem declarar FINAL", () => {
+  const agora = Date.now();
+  const jogo = (msAtras) => ({ state: "in", statusName: "STATUS_SECOND_HALF", date: new Date(agora - msAtras).toISOString() });
+  A(STORE.isLiveMatch(jogo(STORE.KICKOFF_LIVE_HORIZON_MS - min(5))), "jogo dentro do horizonte deixou de ser ao vivo");
+  A(!STORE.isLiveMatch(jogo(STORE.KICKOFF_LIVE_HORIZON_MS + min(5))), "jogo preso continuou ao vivo");
+  A(STORE.terminalOf(jogo(STORE.KICKOFF_LIVE_HORIZON_MS + min(5))) === null, "a idade virou estado terminal");
+  A(STORE.isLiveMatch({ state: "in" }), "sem data não se inventa idade");
+});
+
+test("o horizonte do store é o mesmo de live_clock.js", () => {
+  const src = readFileSync(join(RAIZ, "bolao/shared/js/live_clock.js"), "utf8");
+  const m = src.match(/KICKOFF_LIVE_HORIZON_MS = (\d+) \* 60 \* 60 \* 1000/);
+  A(m && Number(m[1]) * 3_600_000 === STORE.KICKOFF_LIVE_HORIZON_MS, "os dois horizontes divergiram");
+});
+
 test("a fonte declara o limiar no PRÓPRIO código, não em prosa de teste", () => {
   const src = readFileSync(join(RAIZ, "bolao/shared/js/live_clock.js"), "utf8");
   const codigo = src.replace(/\/\*[\s\S]*?\*\//g, " ").split("\n").map(l => l.split("//")[0]).join("\n");
