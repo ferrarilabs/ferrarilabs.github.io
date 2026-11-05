@@ -141,6 +141,16 @@ class ReservaDosGanhadores(unittest.TestCase):
         with self.assertRaises(O.OperatorError):
             O.valida_manifesto(m)
 
+    def test_reserva_so_paga_os_sorteios_decididos(self):
+        import operator_open_draw as O
+        m = {"draw_date": "2026-11-06", "contributions": [
+            {"name": "Rodrigo Hajj", "amount": 10, "method": O.RESERVA_0211,
+             "paid_at": "2026-11-05T12:00:00-05:00"}]}
+        O.valida_manifesto(m)
+        m["draw_date"] = "2026-11-07"
+        with self.assertRaises(O.OperatorError):
+            O.valida_manifesto(m)
+
 
 class LiquidacaoComReserva(unittest.TestCase):
     """settle_draw.liquida nas guardas da reserva, com o livro real copiado (nada e gravado nele)."""
@@ -155,7 +165,8 @@ class LiquidacaoComReserva(unittest.TestCase):
         # no dia em que o sorteio real liquida (#547): a chave contrib:powerball:2026-11-04 ja existe.
         with open(self.livro, "w", encoding="utf-8") as g:
             for e in L.le_ledger():
-                if e["poolId"] < "2026-11-04":
+                # Cotas de sorteios seguintes tambem saem do pool de 02/11: nao contam neste retrato.
+                if e["poolId"] < "2026-11-04" and "->2026-11-06" not in e["idempotencyKey"]:
                     g.write(json.dumps(e, ensure_ascii=False) + "\n")
         self.anterior = {"id": "2026-11-02"}
         nomes = L.le_reservas()[0]["beneficiaries"]
