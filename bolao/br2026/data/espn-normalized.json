@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-11-05T23:12:15Z",
-  "sourceUpdatedAt": "2026-11-05T23:12:15Z",
+  "generatedAt": "2026-11-05T23:30:43Z",
+  "sourceUpdatedAt": "2026-11-05T23:30:43Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "59565ebf43c96b5d7ab359f1111fbafc53e1a696dfd723176e9f941620f7d9f3",
+  "payloadHash": "31bc6ac47b1e8bbe8812c36303e0beb5850291ad042cedfa6f4dce30b35608c4",
   "matches": [
     {
       "id": "401840808",
@@ -56892,23 +56892,23 @@
       "id": "401841300",
       "date": "2026-11-05T22:30Z",
       "state": "in",
-      "statusName": "STATUS_FIRST_HALF",
-      "statusDescription": "First Half",
-      "statusShortDetail": "41'",
-      "statusDetail": "41'",
+      "statusName": "STATUS_HALFTIME",
+      "statusDescription": "Halftime",
+      "statusShortDetail": "HT",
+      "statusDetail": "HT",
       "completed": false,
       "homeTeam": "Palmeiras",
       "awayTeam": "Remo",
       "homeTeamId": "2029",
       "awayTeamId": "4936",
       "homeScore": 4,
-      "awayScore": 0,
+      "awayScore": 1,
       "homeWinner": false,
       "awayWinner": false,
       "venue": "Allianz Parque",
       "city": "Sao Paulo",
-      "clockSec": 2460.0,
-      "clockStr": "41'",
+      "clockSec": 2700.0,
+      "clockStr": "45'+4'",
       "period": 1,
       "details": [
         {
@@ -56977,13 +56977,32 @@
             "id": "2029"
           },
           "clock": {
-            "value": 2259.0,
-            "displayValue": "38'"
+            "value": 2120.0,
+            "displayValue": "36'"
           },
           "athletesInvolved": [
             {
               "displayName": "Marcelinho",
               "shortName": "Marcelinho"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Goal"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "4936"
+          },
+          "clock": {
+            "value": 2700.0,
+            "displayValue": "45'+2'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "José Welison",
+              "shortName": "J. Welison"
             }
           ]
         }
