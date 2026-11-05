@@ -91,6 +91,10 @@
   };
   var NEAR_KICKOFF_WINDOW_MS = 30 * 60_000;
 
+  // Mesmo numero de KICKOFF_LIVE_HORIZON_MS em live_clock.js, onde esta o orcamento de 4 h;
+  // test_live_evidence_expiry.mjs prova que os dois nao divergem.
+  var KICKOFF_LIVE_HORIZON_MS = 4 * 60 * 60_000;
+
   /** Estados TERMINAIS declarados pela fonte. Nunca inferidos por relógio. */
   function terminalOf(m) {
     if (!m) return null;
@@ -110,7 +114,12 @@
   function isLiveMatch(m) {
     if (!m) return false;
     if (terminalOf(m)) return false;
-    return m.state === "in";
+    if (m.state !== "in") return false;
+    // Um "in" preso no snapshot nao pode valer para sempre: em 2026-11-05 dois jogos de 18/10
+    // seguiam "ao vivo" e eram somados a Tabela. Isto so retira a afirmacao de ao vivo; nao
+    // conclui que o jogo acabou (ver terminalOf).
+    var kick = parseTs(m.kickoff || m.date);
+    return !kick || Date.now() - kick <= KICKOFF_LIVE_HORIZON_MS;
   }
 
   function firstLive(matches) {
@@ -551,7 +560,7 @@
     if (!comp) return null;
     var t = (comp.status && comp.status.type) || {};
     return { id: ev.id, state: t.state, statusName: t.name, completed: t.completed,
-             postponed: ev.postponed === true };
+             postponed: ev.postponed === true, date: ev.date };
   }
   function isLiveEvent(ev) { return isLiveMatch(eventToMatchShape(ev)); }
   function isFinalEvent(ev) { return isFinalMatch(eventToMatchShape(ev)); }
@@ -565,6 +574,7 @@
     STATE: STATE, SOURCE: SOURCE, POLL: POLL,
     STALE_AFTER_MS: STALE_AFTER_MS,
     CRITICAL_STALE_AFTER_MS: CRITICAL_STALE_AFTER_MS,
+    KICKOFF_LIVE_HORIZON_MS: KICKOFF_LIVE_HORIZON_MS,
     FRESHNESS: FRESHNESS,
     freshnessOf: freshnessOf,
     isLiveMatch: isLiveMatch,

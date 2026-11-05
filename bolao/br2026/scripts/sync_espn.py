@@ -41,15 +41,18 @@ STANDINGS_CONFIG = {
 _DAYS_BACK = int(os.environ.get("ESPN_WINDOW_DAYS_BACK", "2"))
 _DAYS_AHEAD = int(os.environ.get("ESPN_WINDOW_DAYS_AHEAD", "10"))
 
+_SCOREBOARD_URL = "https://site.api.espn.com/apis/site/v2/sports/soccer/bra.1/scoreboard"
+_SCOREBOARD_OUTPUT = str(HERE.parent / "data" / "espn-normalized.json")
+
 SCOREBOARD_CONFIG = {
     "competition_id": "bra.1",
     "provider": "espn",
     "kind": "scoreboard",
-    "source_urls": ep.scoreboard_window_urls(
-        "https://site.api.espn.com/apis/site/v2/sports/soccer/bra.1/scoreboard",
-        days_back=_DAYS_BACK, days_ahead=_DAYS_AHEAD,
-    ),
-    "output_path": str(HERE.parent / "data" / "espn-normalized.json"),
+    "source_urls": list(dict.fromkeys(
+        ep.scoreboard_window_urls(_SCOREBOARD_URL, days_back=_DAYS_BACK, days_ahead=_DAYS_AHEAD)
+        + ep.overdue_scoreboard_urls(_SCOREBOARD_URL, _SCOREBOARD_OUTPUT)
+    )),
+    "output_path": _SCOREBOARD_OUTPUT,
     "aliases": ALIASES,
 }
 

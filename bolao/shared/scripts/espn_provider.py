@@ -100,6 +100,37 @@ def scoreboard_window_urls(base_url: str, *, days_back: int, days_ahead: int,
             for offset in range(-days_back, days_ahead + 1)]
 
 
+def overdue_scoreboard_urls(base_url: str, output_path: str, *, max_days: int = 10,
+                            now: Optional[datetime] = None) -> list[str]:
+    """One single-date URL per day holding a match the snapshot on disk still has unfinished more
+    than 4h after kickoff, most recent days first and capped at `max_days` per run.
+
+    The rolling window never looks back again: when the snapshot stopped reaching main from
+    2026-10-18 to 2026-11-02, 24 matches stayed frozen outside it until a manual backfill, and two
+    of them kept counting as live in the BR2026 table. Sources' terminal states are never inferred
+    here; this only asks ESPN again. A kickoff is queried on its UTC day and the day before, since
+    ESPN files a 00:30Z match under the previous date."""
+    current = now or datetime.now(timezone.utc)
+    previous = read_snapshot(output_path)
+    if not is_schema_compatible(previous):
+        return []
+    days = set()
+    for match in (previous or {}).get("matches") or []:
+        if match.get("state") == "post" or match.get("completed"):
+            continue
+        if match.get("statusName") in ("STATUS_POSTPONED", "STATUS_CANCELED", "STATUS_SUSPENDED"):
+            continue
+        try:
+            kickoff = datetime.fromisoformat(str(match.get("date")).replace("Z", "+00:00"))
+        except ValueError:
+            continue
+        if current - kickoff > timedelta(hours=4):
+            days.update({kickoff.date(), (kickoff - timedelta(days=1)).date()})
+    sep = "&" if "?" in base_url else "?"
+    return [f"{base_url}{sep}dates={day.strftime('%Y%m%d')}"
+            for day in sorted(days, reverse=True)[:max_days]]
+
+
 def fetch_json_many(
     urls: list[str],
     *,
