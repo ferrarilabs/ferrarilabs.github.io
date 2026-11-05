@@ -127,6 +127,55 @@ process.stdout.write(JSON.stringify({ n: r.length, total: r.reduce((s, t) => s +
         self.assertEqual(json.loads(saida.stdout), {"n": 42, "total": ESPERADO})
 
 
+class Bilhetes(unittest.TestCase):
+    """Bilhetes publicados: lista, manifesto, CSV, correcao e e-mail, com o multiplicador junto."""
+
+    def test_publicacao_mantem_os_bilhetes_e_o_multiplicador(self):
+        script = """
+import { ticketsFromDraw } from %s;
+import { manifestToCsv } from %s;
+import { computeTicketDiff } from %s;
+import { renderDrawResultText } from %s;
+const draw = { sharedTickets: { series: [{ serial: "S", numeros: ["01-02-03-04-70 — MB 24 — 3X", "05-06-07-08-09 — MB 01 — 10X"] }] } };
+const t = ticketsFromDraw(draw);
+const csv = manifestToCsv({ poolId: "megamillions", drawId: "d", publicationVersion: 1, sha256: "h", tickets: t });
+const outro = [{ ...t[0], multiplier: 10 }, t[1]];
+const texto = renderDrawResultText({ poolId: "megamillions", official: { numbers: [1, 2, 3, 4, 70], special: 24, multiplier: 1 },
+  financialSummary: {}, individualParticipation: { shares: 1, percentage: 100, individualEstimatedPrize: 10 }, tickets: [{ ...t[0], prizeAmount: 10, prizeLabel: "x", mainMatches: 5, specialMatch: true }], ticketCount: 1,
+  drawDateLabel: "x", drawDateIso: "2026-11-06T23:00:00-05:00", siteUrl: "x" }, false);
+process.stdout.write(JSON.stringify({ t, linhas: csv.trim().split("\\n").map((l) => l.split(",").length),
+  semMudanca: computeTicketDiff(t, t).hasDiff, comMudanca: computeTicketDiff(t, outro).hasDiff, texto }));
+""" % tuple(json.dumps(os.path.join(AQUI, "email", f)) for f in
+            ("publish_tickets.mjs", "payload.mjs", "diff.mjs", "render.mjs"))
+        saida = subprocess.run(["node", "--input-type=module", "-e", script], capture_output=True, text=True, timeout=30)
+        self.assertEqual(saida.returncode, 0, saida.stderr)
+        r = json.loads(saida.stdout)
+        self.assertEqual([(x["special"], x["multiplier"]) for x in r["t"]], [(24, 3), (1, 10)])
+        self.assertEqual(set(r["linhas"]), {8})
+        self.assertFalse(r["semMudanca"])
+        self.assertTrue(r["comMudanca"])
+        self.assertIn("Mega Ball: 24", r["texto"])
+        self.assertIn("Multiplicador: 3X", r["texto"])
+        self.assertNotIn("Power", r["texto"])
+        self.assertNotIn("+PB", r["texto"])
+
+
+class SorteioSemPremio(unittest.TestCase):
+    def test_sem_premio_nao_e_erro_de_conteudo(self):
+        fonte = open(os.path.join(AQUI, "send_result_email.py"), encoding="utf-8").read()
+        self.assertNotIn("Prêmios ganhos = $0", fonte)
+
+    def test_jackpot_passado_de_outro_jogo_nao_sai(self):
+        draw = {"id": "2026-11-06", "gameType": "megamillions", "finance": {}}
+        doc = {"funds": {}, "games": {
+            "powerball": {"label": "Powerball", "advertisedAnnuityCents": 83500000000, "nextDrawDate": "2026-11-04"},
+            "megamillions": {"label": "Mega Millions", "advertisedAnnuityCents": 52000000000, "nextDrawDate": "2026-11-10"}},
+            "nextPool": {"game": "powerball", "label": "Powerball", "jackpotCents": 83500000000, "drawDate": "2026-11-04"}}
+        html = M._bloco_proximo_bolao(draw, doc, [], [])
+        self.assertNotIn("2026-11-04", html)
+        self.assertIn("2026-11-10", html)
+
+
 class Validacao(unittest.TestCase):
     def test_mega_ball_vai_ate_24(self):
         base = {"numbers": [1, 2, 3, 4, 5], "multiplier": 1}

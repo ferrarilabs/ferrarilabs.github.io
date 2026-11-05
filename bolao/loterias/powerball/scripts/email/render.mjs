@@ -526,7 +526,7 @@ export function renderDrawResultHtml(payload, testMode) {
     return `<div style="background:#e8f9ee;border:1px solid #2a7;border-radius:10px;padding:12px 14px;margin-bottom:10px;">
       <div style="font-size:12px;color:#666;margin-bottom:6px;">Jogo ${String(idx).padStart(2, "0")}</div>
       ${ballsRowHtml(t, powerPlay, game)}
-      <div style="font-size:12px;color:#444;margin-top:8px;">Acertos: ${t.mainMatches} número${t.mainMatches === 1 ? "" : "s"}${t.specialMatch ? " + Powerball" : ""}</div>
+      <div style="font-size:12px;color:#444;margin-top:8px;">Acertos: ${t.mainMatches} número${t.mainMatches === 1 ? "" : "s"}${t.specialMatch ? ` + ${game.bola}` : ""}</div>
       <div style="font-size:14px;margin-top:4px;color:#1a7a3d;font-weight:bold;">
         ${t.jackpotHit ? "🎉 JACKPOT!" : `${esc(t.prizeLabel)} — ${usd(t.prizeAmount)}`}
       </div>
@@ -578,6 +578,7 @@ ${winnersSection}
 
 export function renderDrawResultText(payload, testMode) {
   const f = payload.financialSummary;
+  const game = gameOf(payload);
   const won = f.totalWon != null;
   const nums = payload.official.numbers.slice().sort((a, b) => a - b).join(" · ");
   const winners = payload.tickets.filter((t) => t.prizeAmount || t.jackpotHit);
@@ -604,7 +605,7 @@ export function renderDrawResultText(payload, testMode) {
     winners.length ? "Jogos premiados:" : `Nenhum dos nossos ${payload.ticketCount} jogos teve prêmio nesta rodada.`,
     ...winners.map((t) => {
       const idx = payload.tickets.indexOf(t) + 1;
-      return `  Jogo ${String(idx).padStart(2, "0")}: ${ticketPlainLine(t, payload.official.multiplier > 1, game)} -> Acertos: ${t.mainMatches}${t.specialMatch ? "+PB" : ""} -> ${t.jackpotHit ? "JACKPOT!" : `${t.prizeLabel} (${usd(t.prizeAmount)})`}`;
+      return `  Jogo ${String(idx).padStart(2, "0")}: ${ticketPlainLine(t, payload.official.multiplier > 1, game)} -> Acertos: ${t.mainMatches}${t.specialMatch ? (game.mega ? "+MB" : "+PB") : ""} -> ${t.jackpotHit ? "JACKPOT!" : `${t.prizeLabel} (${usd(t.prizeAmount)})`}`;
     }),
     "",
     "Ver todos os jogos e detalhes no site:",

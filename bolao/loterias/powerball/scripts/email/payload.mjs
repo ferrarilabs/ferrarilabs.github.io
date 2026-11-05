@@ -208,7 +208,7 @@ export function buildTicketPublicationPayload({ draw, participants, tickets, pub
 // directly from draw.finance/draw.result/draw.profit — never invented.
 // ---------------------------------------------------------------------------
 
-function parseTicketNumeros(str) {
+export function parseTicketNumeros(str) {
   // Mesmo formato de LOTTERY_TICKETS.parse (js/data.js). Mega Millions traz o multiplicador da aposta.
   const m = str.match(/^([\d\s-]+?)\s*—\s*(?:PB|MB)\s*(\d+)(?:\s*—\s*(\d+)X)?$/);
   if (!m) return null;
@@ -324,7 +324,7 @@ export function manifestToCsv(manifest) {
   manifest.tickets.forEach((t, i) => {
     rows.push([manifest.poolId, manifest.drawId, manifest.publicationVersion, i + 1, t.numbers.join("-"), t.special, ...(comMult ? [t.multiplier ? `${t.multiplier}X` : ""] : []), t.serial || ""]);
   });
-  rows.push(["sha256", manifest.sha256, "", "", "", "", ""]);
+  rows.push(["sha256", manifest.sha256, "", "", "", "", ...(comMult ? [""] : []), ""]);
   return rows.map((r) => r.map(csvCell).join(",")).join("\n") + "\n";
 }
 function csvCell(v) {

@@ -723,9 +723,8 @@ def validate_data(draw, participants=None):
     if missing_emails:
         errors.append(f"❌ MISSING EMAILS: {', '.join(missing_emails)}")
 
-    if draw.get("result", {}).get("premiosGanhos") == 0:
-        errors.append("⚠ Prêmios ganhos = $0 (verify calculation)")
-
+    # Sorteio sem premio e resultado legitimo: build_html tem o texto dele. Tratar como erro deixava
+    # os participantes sem o e-mail justamente quando nenhum dos jogos ganhou.
     return errors
 
 
@@ -945,13 +944,14 @@ def _bloco_proximo_bolao(draw, doc=None, lancamentos=None, reservas_cfg=None):
         if g.get("error"):
             jogos.append((g["label"], "não foi possível ler agora", ""))
             continue
-        if chave == draw.get("gameType", "powerball") and velho(g.get("nextDrawDate")):
+        # Data que nao e posterior a este sorteio e passado, seja de que jogo for.
+        if velho(g.get("nextDrawDate")):
             continue
         jogos.append((g["label"], usd(g.get("advertisedAnnuityCents")),
                       f"sorteio {g.get('nextDrawDate') or '—'}"))
 
     np = doc.get("nextPool")
-    if np and np.get("game") == draw.get("gameType", "powerball") and velho(np.get("drawDate")):
+    if np and velho(np.get("drawDate")):
         veredito = ("O organizador avisa quando abrir o próximo bolão.")
     elif np:
         veredito = (f"<strong>{esc(np['label'])}</strong> — {usd(np.get('jackpotCents'))}, "
