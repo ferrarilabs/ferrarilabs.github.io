@@ -213,26 +213,27 @@ test("bilhetes do sorteio anterior não vazam para o seguinte (serial compartilh
 test("o resultado oficial de um sorteio realizado tem forma sã e é rastreável", () => {
   for (const d of draws.filter(isResolved)) {
     const r = d.result;
+    const [maxBranca, maxEspecial] = d.gameType === "megamillions" ? [70, 24] : [69, 26];
     assert.equal(r.numbers.length, 5, `${d.id}: resultado sem 5 bolas brancas`);
     assert.equal(new Set(r.numbers).size, 5, `${d.id}: bola branca repetida`);
     for (const n of r.numbers) {
-      assert.ok(Number.isInteger(n) && n >= 1 && n <= 69, `${d.id}: bola branca fora de 1–69: ${n}`);
+      assert.ok(Number.isInteger(n) && n >= 1 && n <= maxBranca, `${d.id}: bola branca fora de 1–${maxBranca}: ${n}`);
     }
-    assert.ok(Number.isInteger(r.special) && r.special >= 1 && r.special <= 26,
-      `${d.id}: Powerball fora de 1–26: ${r.special}`);
+    assert.ok(Number.isInteger(r.special) && r.special >= 1 && r.special <= maxEspecial,
+      `${d.id}: bola especial fora de 1–${maxEspecial}: ${r.special}`);
     assert.ok(r.checkedAt, `${d.id}: resultado sem carimbo de conferência`);
   }
 });
 
-test("toda data de sorteio cai num dia real do Powerball (seg/qua/sáb, ET)", () => {
+test("toda data de sorteio cai num dia real do jogo (Powerball seg/qua/sáb, Mega Millions ter/sex, ET)", () => {
   // Substitui a antiga verificação que afirmava "2026-08-05 é quarta, logo o próximo é sábado
   // 08/08" — verdadeira e inútil: valia para um par específico de datas.
-  const DIAS = { 1: "segunda", 3: "quarta", 6: "sábado" };
+  const DIAS = { powerball: { 1: "segunda", 3: "quarta", 6: "sábado" }, megamillions: { 2: "terça", 5: "sexta" } };
   for (const d of draws) {
     const [y, m, day] = d.drawing.drawDateIso.slice(0, 10).split("-").map(Number);
     const wd = new Date(Date.UTC(y, m - 1, day)).getUTCDay();
-    assert.ok(DIAS[wd],
-      `${d.id} cai em dia sem sorteio do Powerball (weekday ${wd}) — sorteios são seg/qua/sáb`);
+    assert.ok(DIAS[d.gameType][wd],
+      `${d.id} cai em dia sem sorteio de ${d.gameType} (weekday ${wd})`);
   }
 });
 

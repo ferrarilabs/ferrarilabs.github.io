@@ -34,6 +34,10 @@ sys.path.insert(0, str(AQUI))
 
 import fetch_and_send_results as F  # noqa: E402
 
+# Sem isto run_lifecycle consulta a fonte AO VIVO e grava no data.js real. Entre a publicacao de um
+# resultado e o PR dele entrar no main, a suite sujava a arvore e reprovava TODO PR (2026-11-05).
+F.check_and_update_results = lambda *a, **k: False
+
 ok, fail = 0, 0
 
 

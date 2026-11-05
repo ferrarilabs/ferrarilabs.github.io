@@ -174,6 +174,7 @@ def monta(cfg=None, draws=None, fetcher=None, agora=None, ledger=None):
         },
         "currentDraw": {
             "id": (ultimo or {}).get("id"),
+            "game": (ultimo or {}).get("gameType"),
             "lifecycleState": ciclo,
             "reason": porque,
             "result": (ultimo or {}).get("result"),

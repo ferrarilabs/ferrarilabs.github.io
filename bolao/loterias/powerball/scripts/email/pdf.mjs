@@ -133,7 +133,7 @@ export function buildTextPdf(blocks, { title } = {}) {
  * place both the real-send script and the fixture/test path build this content,
  * so the two never drift into two different layouts.
  */
-export function ticketPublicationPdfBlocks({ drawId, publicationVersion, isCorrection, drawDateLabel, manifestHash, financialSummary, tickets, generatedAtUtc }) {
+export function ticketPublicationPdfBlocks({ gameType, drawId, publicationVersion, isCorrection, drawDateLabel, manifestHash, financialSummary, tickets, generatedAtUtc }) {
   const usd = (n) => (n == null ? String.fromCharCode(0x97) : `US$ ${Number(n).toFixed(2)}`);
   const FIN_LABELS = {
     participantCount: "Participantes",
@@ -156,8 +156,9 @@ export function ticketPublicationPdfBlocks({ drawId, publicationVersion, isCorre
   // (Eduardo, reviewing the HTML email as a participant — same simplification applied there).
   const SKIP_IF_ZERO = new Set(["diferencaNaoConciliada"]);
 
+  const mega = gameType === "megamillions";
   const blocks = [
-    { text: `Bolão Powerball ${EM_DASH} ${isCorrection ? "Correção de bilhetes" : "Bilhetes publicados"}`, style: "title" },
+    { text: `Bolão ${mega ? "Mega Millions" : "Powerball"} ${EM_DASH} ${isCorrection ? "Correção de bilhetes" : "Bilhetes publicados"}`, style: "title" },
     { text: `Sorteio: ${drawDateLabel || drawId}   ${EM_DASH}   Publicação v${publicationVersion}`, style: "meta" },
     { text: "", style: "rule" },
     { text: "Resumo financeiro", style: "h2" },
@@ -182,12 +183,13 @@ export function ticketPublicationPdfBlocks({ drawId, publicationVersion, isCorre
     if (t.serial !== currentSerial) {
       currentSerial = t.serial;
       blocks.push({ text: `Série ${currentSerial || "(sem serial)"}`, style: "h3" });
-      blocks.push({ text: "  #    Números                 PB", style: "monoHeader" });
+      blocks.push({ text: `  #    Números                 ${mega ? "MB  Mult" : "PB"}`, style: "monoHeader" });
     }
     n += 1;
     const numbers = t.numbers.map((v) => String(v).padStart(2, "0")).join("-");
     const pb = String(t.special).padStart(2, "0");
-    blocks.push({ text: `  ${String(n).padStart(3, "0")}  ${numbers.padEnd(24, " ")} ${pb}`, style: "mono" });
+    const mult = mega && t.multiplier ? `  ${t.multiplier}X` : "";
+    blocks.push({ text: `  ${String(n).padStart(3, "0")}  ${numbers.padEnd(24, " ")} ${pb}${mult}`, style: "mono" });
   });
   blocks.push({ text: "", style: "rule" });
   blocks.push({ text: `Código de verificação (SHA-256): ${manifestHash}`, style: "small" });

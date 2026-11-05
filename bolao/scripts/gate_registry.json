@@ -338,6 +338,14 @@
       "classification": "REGISTERED_AND_EXECUTED",
       "coverage": "O e-mail de 2026-11-02 mostrou o caixa de 31/10 ($36/$38) com US$432 ganhos. Caixa vem do livro deste sorteio; jackpot passado nao sai; liquidacao antes do e-mail."
     },
+    "bolao/loterias/powerball/scripts/test_megamillions_game.py": {
+      "classification": "REGISTERED_AND_EXECUTED",
+      "coverage": "Mega Millions: prizeTable do data.js centavo a centavo com a matriz da politica, multiplicador por aposta, toda aposta gravada valida para o jogo, abertura com calendario/hora/preco do jogo, jackpot pela fonte do jogo."
+    },
+    "bolao/loterias/powerball/scripts/test_megamillions_pipeline.py": {
+      "classification": "REGISTERED_AND_EXECUTED",
+      "coverage": "Mega Millions do bilhete ao livro: todas as faixas e multiplicadores dao o mesmo total no Node do resultado, no motor do livro e no calculo do e-mail; aposta sem multiplicador recusa; e-mail sem Power Play."
+    },
     "bolao/loterias/powerball/scripts/test_result_email_visual.py": {
       "classification": "REGISTERED_AND_EXECUTED",
       "coverage": "PB-R1. Achou o link do e-mail apontando para origem que responde 301."

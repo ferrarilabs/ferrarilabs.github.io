@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Abre o PROXIMO sorteio do bolao do Powerball.
+"""Abre o PROXIMO sorteio do bolao (Powerball ou Mega Millions).
 
 POR QUE EXISTE
 --------------
@@ -26,6 +26,7 @@ Uso:
     python3 open_next_draw.py --dry-run     # mostra o diff, nao grava
     python3 open_next_draw.py --apply       # grava
     python3 open_next_draw.py --apply --jackpot 950000000 --cash 410000000
+    python3 open_next_draw.py --apply --game megamillions --jackpot 505000000 --cash 213300000
 """
 import argparse
 import json
@@ -34,16 +35,20 @@ import re
 import subprocess
 import sys
 from datetime import date, datetime, timedelta
+from zoneinfo import ZoneInfo
 
 AQUI = os.path.dirname(os.path.abspath(__file__))
 DATA_JS = os.path.join(AQUI, "..", "js", "data.js")
 
-# Powerball sorteia segunda (0), quarta (2) e sabado (5), 22:59 ET.
-DIAS_DE_SORTEIO = (0, 2, 5)
-HORA_SORTEIO = "22:59:00-04:00"
+# Calendario, hora e preco de cada jogo. Powerball: segunda (0), quarta (2) e sabado (5), 22:59 ET,
+# US$3 com Power Play. Mega Millions: terca (1) e sexta (4), 23:00 ET, US$5.
+JOGOS = {
+    "powerball": {"dias": (0, 2, 5), "hora": (22, 59), "preco": 3, "nome": "Powerball Jackpot"},
+    "megamillions": {"dias": (1, 4), "hora": (23, 0), "preco": 5, "nome": "Mega Millions Jackpot"},
+}
 
 
-def proximo_dia_de_sorteio(depois_de):
+def proximo_dia_de_sorteio(depois_de, jogo="powerball"):
     """Primeira data de sorteio ESTRITAMENTE depois de `depois_de`.
 
     Derivada do calendario real do jogo, nunca de "hoje + 2". Entre um sabado e a segunda ha 2
@@ -51,7 +56,7 @@ def proximo_dia_de_sorteio(depois_de):
     um terco dos casos.
     """
     d = depois_de + timedelta(days=1)
-    while d.weekday() not in DIAS_DE_SORTEIO:
+    while d.weekday() not in JOGOS[jogo]["dias"]:
         d += timedelta(days=1)
     return d
 
@@ -68,26 +73,29 @@ def carrega_draws():
     return json.loads(out.stdout)
 
 
-def bloco_do_sorteio(draw_id, anterior_id, credito, jackpot, cash):
+def bloco_do_sorteio(draw_id, anterior_id, credito, jackpot, cash, jogo="powerball"):
     """Texto do novo sorteio, no MESMO estilo do arquivo (JS, chaves sem aspas)."""
     dt = date.fromisoformat(draw_id)
-    label = f"{dt.strftime('%d/%m/%Y')} 22:59 ET"
+    g = JOGOS[jogo]
+    # Fuso DO DIA do sorteio: um -04:00 fixo adianta o sorteio em 1h depois que o horario de verao acaba.
+    instante = datetime(dt.year, dt.month, dt.day, *g["hora"], tzinfo=ZoneInfo("America/New_York"))
+    label = f"{dt.strftime('%d/%m/%Y')} {instante.strftime('%H:%M')} ET"
     agora = datetime.now().astimezone().replace(microsecond=0).isoformat()
     jackpot_txt = str(jackpot) if jackpot is not None else "null"
     cash_txt = str(cash) if cash is not None else "null"
     return f"""  {{
     id: "{draw_id}",
-    gameType: "powerball",
+    gameType: "{jogo}",
     status: "planejamento",
     createdAt: "{agora}",
     previousDrawId: "{anterior_id}",
 
     drawing: {{
-      name: "Powerball Jackpot",
+      name: "{g['nome']}",
       // jackpot/cashValue sao publicados pela loteria; ficam null ate serem informados.
       jackpot: {jackpot_txt},
       cashValue: {cash_txt},
-      drawDateIso: "{draw_id}T{HORA_SORTEIO}",
+      drawDateIso: "{instante.isoformat()}",
       drawDateLabel: "{label}"
     }},
 
@@ -99,7 +107,7 @@ def bloco_do_sorteio(draw_id, anterior_id, credito, jackpot, cash):
     sharedTickets: {{
       compradoPor: null,
       dataComprovante: null,
-      valorPorTicket: 3,
+      valorPorTicket: {g['preco']},
       series: []
     }},
 
@@ -125,6 +133,7 @@ def main():
     p.add_argument("--jackpot", type=int, default=None)
     p.add_argument("--cash", type=int, default=None)
     p.add_argument("--draw", default=None, help="forca uma data (YYYY-MM-DD); por padrao e derivada")
+    p.add_argument("--game", default="powerball", choices=sorted(JOGOS))
     a = p.parse_args()
     if not (a.dry_run or a.apply):
         p.error("escolha --dry-run ou --apply")
@@ -135,10 +144,10 @@ def main():
         return 2
 
     ultimo = draws[-1]
-    alvo = a.draw or proximo_dia_de_sorteio(date.fromisoformat(ultimo["id"])).isoformat()
+    alvo = a.draw or proximo_dia_de_sorteio(date.fromisoformat(ultimo["id"]), a.game).isoformat()
 
     print("=" * 68)
-    print("  POWERBALL — ABERTURA DO PROXIMO SORTEIO")
+    print(f"  {a.game.upper()} — ABERTURA DO PROXIMO SORTEIO")
     print("=" * 68)
     print(f"  ultimo sorteio no data.js   {ultimo['id']}  "
           f"(resultado: {'sim' if (ultimo.get('result') or {}).get('numbers') else 'nao'})")
@@ -183,7 +192,7 @@ def main():
     print(f"  resultado                   null")
     print(f"  jackpot                     {a.jackpot if a.jackpot is not None else 'null (a informar)'}")
 
-    bloco = bloco_do_sorteio(alvo, ultimo["id"], credito, a.jackpot, a.cash)
+    bloco = bloco_do_sorteio(alvo, ultimo["id"], credito, a.jackpot, a.cash, a.game)
 
     fonte = open(DATA_JS, encoding="utf-8").read()
     # Fecha o array de sorteios. Ancora no fim do ARRAY, nao no fim do arquivo: depois dele ainda

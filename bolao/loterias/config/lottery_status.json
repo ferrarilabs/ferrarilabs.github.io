@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-05T10:46:16Z",
+  "generatedAt": "2026-11-05T15:32:00Z",
   "threshold": {
     "minJackpotCents": 50000000000,
     "comparison": "strictly_greater",
@@ -10,12 +10,17 @@
     "powerball": {
       "game": "powerball",
       "label": "Powerball",
-      "advertisedAnnuityCents": null,
-      "cashValueCents": null,
-      "nextDrawDate": null,
+      "advertisedAnnuityCents": 2000000000,
+      "cashValueCents": 860000000,
+      "nextDrawDate": "2026-11-07",
+      "nextDrawAt": "2026-11-08T03:59:00Z",
+      "source": "https://www.powerball.com/",
+      "verificationState": "PRIMARY_CONFIRMED",
+      "fetchedAt": "2026-11-05T15:32:00Z",
+      "sourceHash": "466537adb2c47f0d",
       "eligible": false,
-      "state": "UNKNOWN",
-      "error": "ResultadoInvalido: oficial: ResultadoInvalido: CASCA_SEM_CONTEUDO: 10 de 10 respostas de https://www.powerball.com/ vieram sem 'Estimated Jackpot'; nc_education_lottery: ResultadoInvalido: JACKPOT_NAO"
+      "state": "BELOW_THRESHOLD",
+      "error": null
     },
     "megamillions": {
       "game": "megamillions",
@@ -26,7 +31,7 @@
       "nextDrawAt": "2026-11-07T04:00:00Z",
       "source": "https://www.megamillions.com/cmspages/utilservice.asmx/GetLatestDrawData",
       "verificationState": "PRIMARY_CONFIRMED",
-      "fetchedAt": "2026-11-05T10:46:16Z",
+      "fetchedAt": "2026-11-05T15:32:00Z",
       "sourceHash": "a90d0115d604bd38",
       "eligible": true,
       "state": "ELIGIBLE",
@@ -40,24 +45,25 @@
     "drawDate": "2026-11-06"
   },
   "funds": {
-    "lastDrawWinningsCents": 43200,
-    "lastDrawId": "2026-11-02",
-    "carryoverAvailableCents": 0,
+    "lastDrawWinningsCents": 1600,
+    "lastDrawId": "2026-11-04",
+    "carryoverAvailableCents": 1600,
     "reserves": [
       {
         "id": "ganhadores-2026-11-02",
         "label": "Reserva dos ganhadores de 02/11",
         "sourcePoolId": "2026-11-02",
         "beneficiaryCount": 14,
-        "cents": 29300
+        "cents": 16300
       }
     ],
-    "ledgerEntries": 20
+    "ledgerEntries": 24
   },
   "currentDraw": {
-    "id": "2026-11-04",
-    "lifecycleState": "AWAITING_RESULT",
-    "reason": "o sorteio já ocorreu; aguardando publicação oficial",
+    "id": "2026-11-06",
+    "game": "megamillions",
+    "lifecycleState": "OPEN",
+    "reason": "recolhendo contribuições",
     "result": null
   },
   "autoPurchase": false,

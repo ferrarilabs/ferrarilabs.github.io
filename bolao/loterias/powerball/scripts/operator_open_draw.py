@@ -53,13 +53,13 @@ RESERVA_0211 = "Reserva dos ganhadores de 02/11"
 METODOS = ("Zelle", "Venmo", "Cash App", "Pix", "Fundo próprio (organizador)", RESERVA_0211)
 
 
-def _beneficiarios_da_reserva(metodo: str) -> set:
-    """Nomes normalizados que podem ter cota paga por esta reserva (lottery_reserves.json)."""
+def _reserva(metodo: str) -> dict:
+    """A reserva com este rotulo em lottery_reserves.json."""
     sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "scripts"))
     import lottery_core as L  # noqa: E402
     for r in L.le_reservas():
         if r["label"] == metodo:
-            return {_norm(n) for n in r.get("beneficiaries") or []}
+            return r
     raise OperatorError(f"reserva {metodo!r} nao existe em lottery_reserves.json")
 
 
@@ -100,14 +100,15 @@ def valida_manifesto(m: dict) -> dict:
         op._require(e.get("method") in METODOS, f"contribuicao {i}: metodo desconhecido {e.get('method')!r}")
         if e.get("method") == RESERVA_0211:
             # A reserva tem dono: so os ganhadores de 02/11, uma cota de US$10 cada.
-            op._require(_norm(nome) in _beneficiarios_da_reserva(RESERVA_0211),
+            reserva = _reserva(RESERVA_0211)
+            op._require(_norm(nome) in {_norm(n) for n in reserva.get("beneficiaries") or []},
                         f"contribuicao {i}: {nome} nao e ganhador de 02/11 -- a reserva nao paga a cota dele")
             op._require(float(e["amount"]) == 10,
                         f"contribuicao {i}: a reserva paga exatamente uma cota de US$10")
-            # A decisao de 2026-11-03 cobre so o sorteio de 04/11 (lancamento
-            # reserva:ganhadores-2026-11-02->2026-11-04 no livro). Outro uso e outra decisao.
-            op._require(m["draw_date"] == "2026-11-04",
-                        f"contribuicao {i}: a reserva de 02/11 so paga cotas do sorteio de 04/11")
+            # Cada sorteio pago pela reserva e uma decisao do organizador, listada em paysDraws, com
+            # o lancamento reserva:<id>-><sorteio> no livro. Outro uso e outra decisao.
+            op._require(m["draw_date"] in (reserva.get("paysDraws") or []),
+                        f"contribuicao {i}: a reserva de 02/11 nao paga cotas do sorteio de {m['draw_date']}")
         try:
             pago = datetime.fromisoformat(e.get("paid_at") or "")
         except ValueError as ex:

@@ -126,6 +126,7 @@ async function main() {
   const ticketsManifestUrl = `${SITE_BASE}/tickets/${drawId}-v${publicationVersion}/manifest.json`;
 
   const pdfBytes = buildTextPdf(ticketPublicationPdfBlocks({
+    gameType: draw.gameType,
     drawId: draw.id,
     publicationVersion,
     isCorrection: false,
@@ -134,7 +135,7 @@ async function main() {
     financialSummary: shared.financialSummary,
     tickets: shared.tickets,
     generatedAtUtc: shared.generatedAtUtc,
-  }), { title: "Powerball tickets" });
+  }), { title: `${draw.gameType === "megamillions" ? "Mega Millions" : "Powerball"} tickets` });
   fs.writeFileSync(pdfPath, pdfBytes);
   fs.writeFileSync(publicPdfPath, pdfBytes);
 

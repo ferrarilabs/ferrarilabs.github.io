@@ -138,7 +138,7 @@ const EXPECTED = [
   },
   {
     file: "powerball-results-email.yml",
-    why: "Powerball draws Mon/Wed/Sat 22:59 ET; results land after the draw",
+    why: "Powerball draws Mon/Wed/Sat 22:59 ET, Mega Millions Tue/Fri 23:00 ET; results land after the draw",
     // ET draw day -> (UTC weekday of the late-evening window, UTC weekday of the after-midnight window)
     // Each event pins the UTC weekday to the SPECIFIC window that must cover it. The draw itself
     // happens at 22:59 ET, i.e. 02:59 UTC on the FOLLOWING UTC day, so the mandatory coverage is the
@@ -149,6 +149,9 @@ const EXPECTED = [
       { label: "Monday draw",    afterUtcDow: 2, drawDayUtcDow: 1 },
       { label: "Wednesday draw", afterUtcDow: 4, drawDayUtcDow: 3 },
       { label: "Saturday draw",  afterUtcDow: 0, drawDayUtcDow: 6 },
+      // Mega Millions, terca e sexta 23:00 ET: mesma aritmetica de fuso.
+      { label: "Mega Millions Tuesday draw", afterUtcDow: 3, drawDayUtcDow: 2 },
+      { label: "Mega Millions Friday draw",  afterUtcDow: 6, drawDayUtcDow: 5 },
     ],
     hourWindows: { evening: [22, 23], overnight: [0, 6] },
   },

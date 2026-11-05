@@ -10,7 +10,7 @@
 import fs from "node:fs";
 import { loadDrawSnapshot } from "./snapshot.mjs";
 import { validateTicketPublication, eligibleRecipients, validateAttachmentsAndLinks } from "./validate.mjs";
-import { buildTicketPublicationPayload, manifestToCsv } from "./payload.mjs";
+import { buildTicketPublicationPayload, manifestToCsv, parseTicketNumeros } from "./payload.mjs";
 import { renderTicketPublicationSubject, renderTicketPublicationHtml, renderTicketPublicationText } from "./render.mjs";
 import { enqueueEmailJob, recordEmailResult, idempotencyKeyForPublication } from "./outbox.mjs";
 import { sendEmailJob } from "./send.mjs";
@@ -26,8 +26,8 @@ export function ticketsFromDraw(draw) {
   const out = [];
   (draw.sharedTickets ? draw.sharedTickets.series : []).forEach((s) => {
     (s.numeros || []).forEach((str) => {
-      const m = str.match(/^([\d\s-]+?)\s*—\s*PB\s*(\d+)$/);
-      if (m) out.push({ numbers: m[1].split("-").map(Number), special: Number(m[2]), serial: s.serial });
+      const t = parseTicketNumeros(str);
+      if (t) out.push({ ...t, serial: s.serial });
     });
   });
   return out;
@@ -131,6 +131,7 @@ export async function runPublishTickets({ drawId, publicationVersion, testMode, 
 
   const csv = manifestToCsv(shared.manifest);
   const pdf = buildTextPdf(ticketPublicationPdfBlocks({
+    gameType: draw.gameType,
     drawId: draw.id,
     publicationVersion,
     isCorrection: shared.templateId === "tickets-corrected",
@@ -139,7 +140,7 @@ export async function runPublishTickets({ drawId, publicationVersion, testMode, 
     financialSummary: shared.financialSummary,
     tickets: shared.tickets,
     generatedAtUtc: shared.generatedAtUtc,
-  }), { title: "Powerball tickets" });
+  }), { title: `${draw.gameType === "megamillions" ? "Mega Millions" : "Powerball"} tickets` });
 
   return { ok: true, shared, results, csv, pdf, manifest: shared.manifest };
 }
