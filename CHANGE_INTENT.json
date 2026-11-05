@@ -1,0 +1,14 @@
+{
+  "declarations": [
+    {
+      "surface_id": "NOTIFICATION_WORKFLOWS",
+      "reason": "O cron de 10 min do bolao_provider_snapshot.yml rodou 3 a 7 vezes por dia (medido 2026-10-27 a 2026-11-05), e a Tabela e os resultados do BR2026 e do CDB2026 ficavam horas atrasados. Pedido do Eduardo em 2026-11-05.",
+      "expected_behavior_change": "live_cache_producer.yml ganha o job aciona-snapshot: a cada execucao gravando de verdade, se nao houver snapshot ativo, dispara bolao_provider_snapshot.yml com dry_run=false para um app, alternando br2026 e cdb2026. Nenhum cron muda e nenhum e-mail passa a sair: o snapshot nao envia nada e o e-mail de rodada le a ESPN direto.",
+      "tests_required": [
+        "cron-coverage",
+        "email-send-safety",
+        "powerball-workflow-arming"
+      ]
+    }
+  ]
+}
