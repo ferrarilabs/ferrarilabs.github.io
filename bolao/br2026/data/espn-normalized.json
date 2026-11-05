@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-11-05T22:31:14Z",
-  "sourceUpdatedAt": "2026-11-05T22:31:14Z",
+  "generatedAt": "2026-11-05T22:51:07Z",
+  "sourceUpdatedAt": "2026-11-05T22:51:07Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "c9f016eb11fc1e178951751aae21d75af23e19551417ebc6fede389d225bf28b",
+  "payloadHash": "5d022d3c20f3954d3467fcb6d104120b633e82eae329c4a3e19ef910ff7c123c",
   "matches": [
     {
       "id": "401840808",
@@ -56894,23 +56894,62 @@
       "state": "in",
       "statusName": "STATUS_FIRST_HALF",
       "statusDescription": "First Half",
-      "statusShortDetail": "1'",
-      "statusDetail": "1'",
+      "statusShortDetail": "20'",
+      "statusDetail": "20'",
       "completed": false,
       "homeTeam": "Palmeiras",
       "awayTeam": "Remo",
       "homeTeamId": "2029",
       "awayTeamId": "4936",
-      "homeScore": 0,
+      "homeScore": 2,
       "awayScore": 0,
       "homeWinner": false,
       "awayWinner": false,
       "venue": "Allianz Parque",
       "city": "Sao Paulo",
-      "clockSec": 60.0,
-      "clockStr": "1'",
+      "clockSec": 1200.0,
+      "clockStr": "20'",
       "period": 1,
-      "details": []
+      "details": [
+        {
+          "type": {
+            "text": "Goal"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "2029"
+          },
+          "clock": {
+            "value": 186.0,
+            "displayValue": "4'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Jhon Arias",
+              "shortName": "J. Arias"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Goal"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "2029"
+          },
+          "clock": {
+            "value": 794.0,
+            "displayValue": "14'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Jhon Arias",
+              "shortName": "J. Arias"
+            }
+          ]
+        }
+      ]
     },
     {
       "id": "401841303",
