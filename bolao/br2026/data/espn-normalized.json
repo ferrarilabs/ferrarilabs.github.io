@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-11-04T03:19:02Z",
-  "sourceUpdatedAt": "2026-11-04T03:19:02Z",
+  "generatedAt": "2026-11-04T23:57:01Z",
+  "sourceUpdatedAt": "2026-11-04T23:57:01Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "0b21dde18310990e9b970e95a9b796f5dae4f737ec10a8a079fe8a091f02abbb",
+  "payloadHash": "cba1e340de92facb9067e94c2d3e8735cf35cfd0c9c5a6e9227bc6ec29a18188",
   "matches": [
     {
       "id": "401840808",
@@ -53399,50 +53399,223 @@
     {
       "id": "401841306",
       "date": "2026-11-04T22:30Z",
-      "state": "pre",
-      "statusName": "STATUS_SCHEDULED",
-      "statusDescription": "Scheduled",
-      "statusShortDetail": "Scheduled",
-      "statusDetail": "Wed, November 4th at 5:30 PM EST",
+      "state": "in",
+      "statusName": "STATUS_SECOND_HALF",
+      "statusDescription": "Second Half",
+      "statusShortDetail": "65'",
+      "statusDetail": "65'",
       "completed": false,
       "homeTeam": "Athletico Paranaense",
       "awayTeam": "Vasco da Gama",
       "homeTeamId": "3458",
       "awayTeamId": "3454",
-      "homeScore": 0,
-      "awayScore": 0,
+      "homeScore": 1,
+      "awayScore": 2,
       "homeWinner": false,
       "awayWinner": false,
       "venue": "Arena da Baixada",
       "city": "Curitiba",
-      "clockSec": 0.0,
-      "clockStr": "0'",
-      "period": null,
-      "details": []
+      "clockSec": 3900.0,
+      "clockStr": "65'",
+      "period": 2,
+      "details": [
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "3458"
+          },
+          "clock": {
+            "value": 54.0,
+            "displayValue": "1'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Jádson",
+              "shortName": "Jádson"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Goal"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "3458"
+          },
+          "clock": {
+            "value": 1270.0,
+            "displayValue": "22'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Stiven Mendoza",
+              "shortName": "S. Mendoza"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "3454"
+          },
+          "clock": {
+            "value": 3246.0,
+            "displayValue": "55'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Alan Lescano",
+              "shortName": "A. Lescano"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Own Goal"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "3454"
+          },
+          "clock": {
+            "value": 3659.0,
+            "displayValue": "61'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Juan Felipe Aguirre",
+              "shortName": "J. Felipe Aguirre"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Goal - Header"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "3454"
+          },
+          "clock": {
+            "value": 3763.0,
+            "displayValue": "63'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Bruno Duarte",
+              "shortName": "B. Duarte"
+            }
+          ]
+        }
+      ]
     },
     {
       "id": "401841307",
       "date": "2026-11-04T22:30Z",
-      "state": "pre",
-      "statusName": "STATUS_SCHEDULED",
-      "statusDescription": "Scheduled",
-      "statusShortDetail": "Scheduled",
-      "statusDetail": "Wed, November 4th at 5:30 PM EST",
+      "state": "in",
+      "statusName": "STATUS_SECOND_HALF",
+      "statusDescription": "Second Half",
+      "statusShortDetail": "60'",
+      "statusDetail": "60'",
       "completed": false,
       "homeTeam": "Flamengo",
       "awayTeam": "Grêmio",
       "homeTeamId": "819",
       "awayTeamId": "6273",
-      "homeScore": 0,
+      "homeScore": 3,
       "awayScore": 0,
       "homeWinner": false,
       "awayWinner": false,
       "venue": "Estadio do Maracana",
       "city": "Rio de Janeiro",
-      "clockSec": 0.0,
-      "clockStr": "0'",
-      "period": null,
-      "details": []
+      "clockSec": 3600.0,
+      "clockStr": "60'",
+      "period": 2,
+      "details": [
+        {
+          "type": {
+            "text": "Goal"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "819"
+          },
+          "clock": {
+            "value": 1187.0,
+            "displayValue": "20'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Samuel Lino",
+              "shortName": "S. Lino"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Goal"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "819"
+          },
+          "clock": {
+            "value": 1660.0,
+            "displayValue": "28'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Pedro",
+              "shortName": "Pedro"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Goal"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "819"
+          },
+          "clock": {
+            "value": 2700.0,
+            "displayValue": "45'+2'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Pedro",
+              "shortName": "Pedro"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "6273"
+          },
+          "clock": {
+            "value": 3485.0,
+            "displayValue": "59'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Wálter Kannemann",
+              "shortName": "W. Kannemann"
+            }
+          ]
+        }
+      ]
     },
     {
       "id": "401841305",
