@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-11-06T00:51:42Z",
-  "sourceUpdatedAt": "2026-11-06T00:51:42Z",
+  "generatedAt": "2026-11-06T01:11:33Z",
+  "sourceUpdatedAt": "2026-11-06T01:11:33Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "368e957a0d1f67c094fd2a1a4a74601735d78b2d6bb118465a895c3e6b900d72",
+  "payloadHash": "4e295535da6391a7ac78f5c7d8c2b7702ffef46fe412b25a764a086b7e8a77a8",
   "matches": [
     {
       "id": "401840808",
@@ -57128,21 +57128,21 @@
       "state": "in",
       "statusName": "STATUS_FIRST_HALF",
       "statusDescription": "First Half",
-      "statusShortDetail": "21'",
-      "statusDetail": "21'",
+      "statusShortDetail": "41'",
+      "statusDetail": "41'",
       "completed": false,
       "homeTeam": "Cruzeiro",
       "awayTeam": "Bahia",
       "homeTeamId": "2022",
       "awayTeamId": "9967",
       "homeScore": 0,
-      "awayScore": 0,
+      "awayScore": 1,
       "homeWinner": false,
       "awayWinner": false,
       "venue": "Estadio Mineirão",
       "city": "Belo Horizonte",
-      "clockSec": 1260.0,
-      "clockStr": "21'",
+      "clockSec": 2460.0,
+      "clockStr": "41'",
       "period": 1,
       "details": [
         {
@@ -57154,13 +57154,32 @@
             "id": "9967"
           },
           "clock": {
-            "value": 1139.0,
+            "value": 1135.0,
             "displayValue": "19'"
           },
           "athletesInvolved": [
             {
               "displayName": "Nicolás Acevedo",
               "shortName": "N. Acevedo"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Goal"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "9967"
+          },
+          "clock": {
+            "value": 1884.0,
+            "displayValue": "32'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Cristian Olivera",
+              "shortName": "C. Olivera"
             }
           ]
         }
