@@ -155,3 +155,35 @@ jobs:
           fi
           gh workflow run cdb2026_result_emails.yml -R "$GITHUB_REPOSITORY" --ref main
           echo "cdb2026_result_emails.yml acionado."
+
+  # 2026-11-05: o cron de 10 min do `bolao_provider_snapshot.yml` foi acordado pelo GitHub 3 a 7
+  # vezes por dia. A Tabela e os resultados encerrados do BR2026 e do CDB2026 ficavam horas atrasados,
+  # e nada no site dizia isso. Mesma saida do e-mail de resultado acima: este workflow e acordado de
+  # 5 em 5 minutos pela Cloudflare e vira o relogio do snapshot. Um app por vez, alternando pelo
+  # bloco de 5 minutos, entao cada app volta a ser coletado a cada ~10 min, a cadencia que o cron
+  # prometia. Nunca dispara com outra execucao do snapshot ativa: os dois apps publicam por PR na
+  # mesma `main`, e a matriz do proprio snapshot ja e serial pelo mesmo motivo.
+  aciona-snapshot:
+    name: Aciona o snapshot da ESPN (br2026 e cdb2026, alternados)
+    if: github.event_name != 'workflow_dispatch' || inputs.dry_run != true
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    permissions:
+      contents: read
+      actions: write
+    steps:
+      - name: Decide e aciona
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          ATIVAS=$(gh run list -R "$GITHUB_REPOSITORY" --workflow bolao_provider_snapshot.yml -L 20 \
+            --json status -q '[.[] | select(.status != "completed")] | length')
+          if [ "$ATIVAS" != "0" ]; then
+            echo "Ja ha $ATIVAS execucao(oes) do snapshot ativa(s); nao aciono outra."
+            exit 0
+          fi
+          if [ $(( $(date +%s) / 300 % 2 )) -eq 0 ]; then APP=br2026; else APP=cdb2026; fi
+          gh workflow run bolao_provider_snapshot.yml -R "$GITHUB_REPOSITORY" --ref main \
+            -f app="$APP" -f dry_run=false
+          echo "bolao_provider_snapshot.yml acionado para $APP."

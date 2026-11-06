@@ -27,15 +27,18 @@ import espn_provider as ep  # noqa: E402
 _DAYS_BACK = int(os.environ.get("ESPN_WINDOW_DAYS_BACK", "2"))
 _DAYS_AHEAD = int(os.environ.get("ESPN_WINDOW_DAYS_AHEAD", "10"))
 
+_SCOREBOARD_URL = "https://site.api.espn.com/apis/site/v2/sports/soccer/bra.copa_do_brazil/scoreboard"
+_OUTPUT = str(HERE.parent / "data" / "espn-normalized.json")
+
 CONFIG = {
     "competition_id": "bra.copa_do_brazil",
     "provider": "espn",
     "kind": "scoreboard",
-    "source_urls": ep.scoreboard_window_urls(
-        "https://site.api.espn.com/apis/site/v2/sports/soccer/bra.copa_do_brazil/scoreboard",
-        days_back=_DAYS_BACK, days_ahead=_DAYS_AHEAD,
-    ),
-    "output_path": str(HERE.parent / "data" / "espn-normalized.json"),
+    "source_urls": list(dict.fromkeys(
+        ep.scoreboard_window_urls(_SCOREBOARD_URL, days_back=_DAYS_BACK, days_ahead=_DAYS_AHEAD)
+        + ep.overdue_scoreboard_urls(_SCOREBOARD_URL, _OUTPUT)
+    )),
+    "output_path": _OUTPUT,
     # App-specific alias found in production 2026-08-01 (see checkpoint A audit) — kept here,
     # not duplicated client-side anymore.
     "aliases": {"Vasco da Gama": "Vasco"},

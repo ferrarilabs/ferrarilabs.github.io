@@ -87,6 +87,12 @@
       "amount": 10,
       "method": "Reserva dos ganhadores de 02/11",
       "paid_at": "2026-11-05T10:00:33-05:00"
+    },
+    {
+      "name": "Marcelo Barsotti",
+      "amount": 10,
+      "method": "Pix",
+      "paid_at": "2026-11-05T12:55:02-05:00"
     }
   ]
 }

@@ -1,5 +1,13 @@
 # Bolão Brasileirão 2026 — CHANGELOG
 
+## Jogos congelados no snapshot (sem bump de siteVersion) — 2026-11-05
+
+24 jogos de 18 a 30/10 ficaram parados no snapshot, porque a janela de 2 dias do sync não volta a
+dias já passados; 2 deles, presos em `in`, eram somados à Tabela. Dados reparados no #557.
+`overdue_scoreboard_urls()` faz o sync consultar de novo os dias com jogo não encerrado 4 h após o
+início (até 10 dias por execução, também no cdb2026), e `isLiveMatch()` deixa de tratar como ao vivo
+um `in` passado desse horizonte, sem concluir que o jogo acabou. Sem mudança de scoring.
+
 ## Backend/pipeline fix (sem bump de siteVersion) — 2026-10-18, #465
 
 Jogos ao vivo pararam de aparecer inteiramente (não só o countdown pós-jogo do #436). Causa raiz:

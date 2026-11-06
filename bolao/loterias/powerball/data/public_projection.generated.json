@@ -869,6 +869,12 @@
         "metodo": "Reserva dos ganhadores de 02/11"
       },
       {
+        "name": "Marcelo Barsotti",
+        "cotas": 1,
+        "valor": 10,
+        "metodo": "Pix"
+      },
+      {
         "name": "Marcelo G de Jesus",
         "cotas": 1,
         "valor": 10,
