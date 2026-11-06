@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-11-06T02:11:48Z",
-  "sourceUpdatedAt": "2026-11-06T02:11:48Z",
+  "generatedAt": "2026-11-06T02:42:14Z",
+  "sourceUpdatedAt": "2026-11-06T02:42:14Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "7bfdd4bb10591003c1dc75bb85c2146b8d9903c9f59c5f8459eff46ea150db2c",
+  "payloadHash": "39dba1b8a8e288b7630b139246de44c7acf1188dee81a4ee5376a7cdc4fb44f7",
   "matches": [
     {
       "id": "401840808",
@@ -57125,24 +57125,24 @@
     {
       "id": "401841303",
       "date": "2026-11-06T00:30Z",
-      "state": "in",
-      "statusName": "STATUS_IN_PROGRESS",
-      "statusDescription": "In Progress",
-      "statusShortDetail": "80'",
-      "statusDetail": "80'",
-      "completed": false,
+      "state": "post",
+      "statusName": "STATUS_FULL_TIME",
+      "statusDescription": "Full Time",
+      "statusShortDetail": "FT",
+      "statusDetail": "FT",
+      "completed": true,
       "homeTeam": "Cruzeiro",
       "awayTeam": "Bahia",
       "homeTeamId": "2022",
       "awayTeamId": "9967",
-      "homeScore": 2,
-      "awayScore": 1,
-      "homeWinner": false,
+      "homeScore": 3,
+      "awayScore": 2,
+      "homeWinner": true,
       "awayWinner": false,
       "venue": "Estadio Mineirão",
       "city": "Belo Horizonte",
-      "clockSec": 4800.0,
-      "clockStr": "80'",
+      "clockSec": 5400.0,
+      "clockStr": "90'+8'",
       "period": 2,
       "details": [
         {
@@ -57227,6 +57227,25 @@
           },
           "scoringPlay": false,
           "team": {
+            "id": "9967"
+          },
+          "clock": {
+            "value": 4140.0,
+            "displayValue": "69'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Caio Alexandre",
+              "shortName": "Caio Alexandre"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
             "id": "2022"
           },
           "clock": {
@@ -57256,6 +57275,63 @@
             {
               "displayName": "Jonathan Jesus",
               "shortName": "J. Jesus"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Goal"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "2022"
+          },
+          "clock": {
+            "value": 5125.0,
+            "displayValue": "86'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Kaio Jorge",
+              "shortName": "Kaio Jorge"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Goal - Header"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "9967"
+          },
+          "clock": {
+            "value": 5400.0,
+            "displayValue": "90'+5'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Alejo Veliz",
+              "shortName": "A. Veliz"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "2022"
+          },
+          "clock": {
+            "value": 5400.0,
+            "displayValue": "90'+8'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Kauã Moraes Silva",
+              "shortName": "K. Moraes Silva"
             }
           ]
         }
