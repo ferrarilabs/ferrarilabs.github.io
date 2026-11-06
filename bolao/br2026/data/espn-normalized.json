@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-11-06T01:37:57Z",
-  "sourceUpdatedAt": "2026-11-06T01:37:57Z",
+  "generatedAt": "2026-11-06T02:11:48Z",
+  "sourceUpdatedAt": "2026-11-06T02:11:48Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "3eb958aa98a17a2a7f06236009a2b5e4cf4bc438cf101705307d6804158fe308",
+  "payloadHash": "7bfdd4bb10591003c1dc75bb85c2146b8d9903c9f59c5f8459eff46ea150db2c",
   "matches": [
     {
       "id": "401840808",
@@ -57126,23 +57126,23 @@
       "id": "401841303",
       "date": "2026-11-06T00:30Z",
       "state": "in",
-      "statusName": "STATUS_SECOND_HALF",
-      "statusDescription": "Second Half",
-      "statusShortDetail": "46'",
-      "statusDetail": "46'",
+      "statusName": "STATUS_IN_PROGRESS",
+      "statusDescription": "In Progress",
+      "statusShortDetail": "80'",
+      "statusDetail": "80'",
       "completed": false,
       "homeTeam": "Cruzeiro",
       "awayTeam": "Bahia",
       "homeTeamId": "2022",
       "awayTeamId": "9967",
-      "homeScore": 1,
+      "homeScore": 2,
       "awayScore": 1,
       "homeWinner": false,
       "awayWinner": false,
       "venue": "Estadio Mineirão",
       "city": "Belo Horizonte",
-      "clockSec": 2760.0,
-      "clockStr": "46'",
+      "clockSec": 4800.0,
+      "clockStr": "80'",
       "period": 2,
       "details": [
         {
@@ -57199,6 +57199,63 @@
             {
               "displayName": "Kaio Jorge",
               "shortName": "Kaio Jorge"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Goal - Header"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "2022"
+          },
+          "clock": {
+            "value": 4084.0,
+            "displayValue": "69'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Bruno Rodrigues",
+              "shortName": "B. Rodrigues"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "2022"
+          },
+          "clock": {
+            "value": 4170.0,
+            "displayValue": "70'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Bruno Rodrigues",
+              "shortName": "B. Rodrigues"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "2022"
+          },
+          "clock": {
+            "value": 4509.0,
+            "displayValue": "76'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Jonathan Jesus",
+              "shortName": "J. Jesus"
             }
           ]
         }
