@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-11-05T23:12:15Z",
-  "sourceUpdatedAt": "2026-11-05T23:12:15Z",
+  "generatedAt": "2026-11-06T00:01:15Z",
+  "sourceUpdatedAt": "2026-11-06T00:01:15Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "59565ebf43c96b5d7ab359f1111fbafc53e1a696dfd723176e9f941620f7d9f3",
+  "payloadHash": "da7ae5acc5a4615a7f8a5dd9d6bf3b912cdcab18253543ac7246c9c48e9e6e6e",
   "matches": [
     {
       "id": "401840808",
@@ -56892,24 +56892,24 @@
       "id": "401841300",
       "date": "2026-11-05T22:30Z",
       "state": "in",
-      "statusName": "STATUS_FIRST_HALF",
-      "statusDescription": "First Half",
-      "statusShortDetail": "41'",
-      "statusDetail": "41'",
+      "statusName": "STATUS_SECOND_HALF",
+      "statusDescription": "Second Half",
+      "statusShortDetail": "68'",
+      "statusDetail": "68'",
       "completed": false,
       "homeTeam": "Palmeiras",
       "awayTeam": "Remo",
       "homeTeamId": "2029",
       "awayTeamId": "4936",
-      "homeScore": 4,
-      "awayScore": 0,
+      "homeScore": 5,
+      "awayScore": 1,
       "homeWinner": false,
       "awayWinner": false,
       "venue": "Allianz Parque",
       "city": "Sao Paulo",
-      "clockSec": 2460.0,
-      "clockStr": "41'",
-      "period": 1,
+      "clockSec": 4080.0,
+      "clockStr": "68'",
+      "period": 2,
       "details": [
         {
           "type": {
@@ -56977,8 +56977,103 @@
             "id": "2029"
           },
           "clock": {
-            "value": 2259.0,
-            "displayValue": "38'"
+            "value": 2120.0,
+            "displayValue": "36'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Marcelinho",
+              "shortName": "Marcelinho"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Goal"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "4936"
+          },
+          "clock": {
+            "value": 2700.0,
+            "displayValue": "45'+2'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "José Welison",
+              "shortName": "J. Welison"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "4936"
+          },
+          "clock": {
+            "value": 3141.0,
+            "displayValue": "53'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Marllon",
+              "shortName": "Marllon"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Goal"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "2029"
+          },
+          "clock": {
+            "value": 3257.0,
+            "displayValue": "55'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "José Manuel López",
+              "shortName": "J. López"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "4936"
+          },
+          "clock": {
+            "value": 3575.0,
+            "displayValue": "60'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Zé Ivaldo",
+              "shortName": "Z. Ivaldo"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "4936"
+          },
+          "clock": {
+            "value": 3956.0,
+            "displayValue": "66'"
           },
           "athletesInvolved": [
             {
