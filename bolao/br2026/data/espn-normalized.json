@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-11-06T00:31:51Z",
-  "sourceUpdatedAt": "2026-11-06T00:31:51Z",
+  "generatedAt": "2026-11-06T00:51:42Z",
+  "sourceUpdatedAt": "2026-11-06T00:51:42Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "92fd2a4aa5e2ecfe705bd7e49390b3bc73e996cc7d3e37deae17b19154bc14ed",
+  "payloadHash": "368e957a0d1f67c094fd2a1a4a74601735d78b2d6bb118465a895c3e6b900d72",
   "matches": [
     {
       "id": "401840808",
@@ -57126,10 +57126,10 @@
       "id": "401841303",
       "date": "2026-11-06T00:30Z",
       "state": "in",
-      "statusName": "STATUS_IN_PROGRESS",
-      "statusDescription": "In Progress",
-      "statusShortDetail": "2'",
-      "statusDetail": "2'",
+      "statusName": "STATUS_FIRST_HALF",
+      "statusDescription": "First Half",
+      "statusShortDetail": "21'",
+      "statusDetail": "21'",
       "completed": false,
       "homeTeam": "Cruzeiro",
       "awayTeam": "Bahia",
@@ -57141,10 +57141,30 @@
       "awayWinner": false,
       "venue": "Estadio Mineirão",
       "city": "Belo Horizonte",
-      "clockSec": 120.0,
-      "clockStr": "2'",
+      "clockSec": 1260.0,
+      "clockStr": "21'",
       "period": 1,
-      "details": []
+      "details": [
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "9967"
+          },
+          "clock": {
+            "value": 1139.0,
+            "displayValue": "19'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Nicolás Acevedo",
+              "shortName": "N. Acevedo"
+            }
+          ]
+        }
+      ]
     },
     {
       "id": "401841302",
