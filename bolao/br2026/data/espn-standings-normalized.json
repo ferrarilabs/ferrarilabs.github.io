@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-11-05T06:15:29Z",
-  "sourceUpdatedAt": "2026-11-05T06:15:29Z",
+  "generatedAt": "2026-11-06T00:31:44Z",
+  "sourceUpdatedAt": "2026-11-06T00:31:44Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "70ba361adc7bacc9b4fe93c9d882d36c42310b1152a7b217f9d77a453a263446",
+  "payloadHash": "91c39c10793cad0f61fb4ee76b84812dbadfbe896379ec51c75c9f95bab37a77",
   "matches": [
     {
       "name": "Flamengo",
@@ -27,14 +27,14 @@
       "abbr": "PAL",
       "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/2029.png",
       "rank": 2.0,
-      "points": 70.0,
-      "played": 33.0,
-      "wins": 20.0,
+      "points": 73.0,
+      "played": 34.0,
+      "wins": 21.0,
       "draws": 10.0,
       "losses": 3.0,
-      "gf": 56.0,
-      "ga": 22.0,
-      "gd": 34.0
+      "gf": 62.0,
+      "ga": 23.0,
+      "gd": 39.0
     },
     {
       "name": "Cruzeiro",
@@ -266,13 +266,13 @@
       "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/4936.png",
       "rank": 19.0,
       "points": 29.0,
-      "played": 33.0,
+      "played": 34.0,
       "wins": 6.0,
       "draws": 11.0,
-      "losses": 16.0,
-      "gf": 36.0,
-      "ga": 51.0,
-      "gd": -15.0
+      "losses": 17.0,
+      "gf": 37.0,
+      "ga": 57.0,
+      "gd": -20.0
     },
     {
       "name": "Chapecoense",
