@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.copa_do_brazil",
   "provider": "espn",
-  "generatedAt": "2026-11-07T23:15:58Z",
-  "sourceUpdatedAt": "2026-11-07T23:15:58Z",
+  "generatedAt": "2026-11-07T23:55:56Z",
+  "sourceUpdatedAt": "2026-11-07T23:55:56Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "5903c6a0122a8595d7767e88d6a1d5afa4f28dd213a8b1bad2fd1c80e767c256",
+  "payloadHash": "2e0fa7e1e243973bdbd75944a76cecef23fe638063efaa5c613bd3c555080263",
   "matches": [
     {
       "id": "401858546",
@@ -14044,7 +14044,7 @@
       "homeScore": 1,
       "awayScore": 1,
       "homeWinner": false,
-      "awayWinner": false,
+      "awayWinner": true,
       "venue": "Arena MRV",
       "city": "Belo Horizonte",
       "clockSec": 5400.0,
