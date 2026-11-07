@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-06T20:07:50Z",
+  "generatedAt": "2026-11-07T01:09:52Z",
   "threshold": {
     "minJackpotCents": 50000000000,
     "comparison": "strictly_greater",
@@ -10,14 +10,9 @@
     "powerball": {
       "game": "powerball",
       "label": "Powerball",
-      "advertisedAnnuityCents": 2000000000,
-      "cashValueCents": 860000000,
-      "nextDrawDate": "2026-11-07",
-      "nextDrawAt": "2026-11-08T03:59:00Z",
-      "source": "https://www.powerball.com/",
-      "verificationState": "PRIMARY_CONFIRMED",
-      "fetchedAt": "2026-11-06T20:07:49Z",
-      "sourceHash": "466537adb2c47f0d",
+      "advertisedAnnuityCents": null,
+      "cashValueCents": null,
+      "nextDrawDate": null,
       "eligible": false,
       "state": "UNKNOWN",
       "error": "ResultadoInvalido: oficial: ResultadoInvalido: CASCA_SEM_CONTEUDO: 10 de 10 respostas de https://www.powerball.com/ vieram sem 'Estimated Jackpot'; nc_education_lottery: ResultadoInvalido: JACKPOT_NAO"
@@ -31,7 +26,7 @@
       "nextDrawAt": "2026-11-07T04:00:00Z",
       "source": "https://www.megamillions.com/cmspages/utilservice.asmx/GetLatestDrawData",
       "verificationState": "PRIMARY_CONFIRMED",
-      "fetchedAt": "2026-11-06T20:07:49Z",
+      "fetchedAt": "2026-11-07T01:09:52Z",
       "sourceHash": "a90d0115d604bd38",
       "eligible": true,
       "state": "ELIGIBLE",
