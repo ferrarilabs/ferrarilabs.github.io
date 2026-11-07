@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-11-06T02:42:12Z",
-  "sourceUpdatedAt": "2026-11-06T02:42:12Z",
+  "generatedAt": "2026-11-07T01:11:45Z",
+  "sourceUpdatedAt": "2026-11-07T01:11:45Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "bce71be25902e846864b2b58859f29523df9c2c3252603882cce5686932e8d0c",
+  "payloadHash": "51584c219c4e7c5973b8e35383a3625dc612cc9255251f650b731d6cd48fde25",
   "matches": [
     {
       "name": "Flamengo",
@@ -55,14 +55,14 @@
       "abbr": "FLU",
       "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/3445.png",
       "rank": 4.0,
-      "points": 54.0,
-      "played": 33.0,
-      "wins": 15.0,
+      "points": 57.0,
+      "played": 34.0,
+      "wins": 16.0,
       "draws": 9.0,
       "losses": 9.0,
-      "gf": 52.0,
+      "gf": 55.0,
       "ga": 42.0,
-      "gd": 10.0
+      "gd": 13.0
     },
     {
       "name": "Athletico Paranaense",
@@ -210,13 +210,13 @@
       "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/3457.png",
       "rank": 15.0,
       "points": 38.0,
-      "played": 33.0,
+      "played": 34.0,
       "wins": 10.0,
       "draws": 8.0,
-      "losses": 15.0,
+      "losses": 16.0,
       "gf": 35.0,
-      "ga": 48.0,
-      "gd": -13.0
+      "ga": 51.0,
+      "gd": -16.0
     },
     {
       "name": "Internacional",
