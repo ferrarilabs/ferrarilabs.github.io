@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.copa_do_brazil",
   "provider": "espn",
-  "generatedAt": "2026-11-07T21:55:57Z",
-  "sourceUpdatedAt": "2026-11-07T21:55:57Z",
+  "generatedAt": "2026-11-07T22:15:58Z",
+  "sourceUpdatedAt": "2026-11-07T22:15:58Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "a880a4e6981550d5414427e60e6b56e20b9c7b0fffd92779ebd9491501f432ff",
+  "payloadHash": "89652f628e3a10878538e992e20ac26a422a1e99db82f4163086b4e178b8d91f",
   "matches": [
     {
       "id": "401858546",
@@ -14032,10 +14032,10 @@
       "id": "401913108",
       "date": "2026-11-07T21:00Z",
       "state": "in",
-      "statusName": "STATUS_FIRST_HALF",
-      "statusDescription": "First Half",
-      "statusShortDetail": "45'+2'",
-      "statusDetail": "45'+2'",
+      "statusName": "STATUS_HALFTIME",
+      "statusDescription": "Halftime",
+      "statusShortDetail": "HT",
+      "statusDetail": "HT",
       "completed": false,
       "homeTeam": "Atlético-MG",
       "awayTeam": "Grêmio",
@@ -14048,7 +14048,7 @@
       "venue": "Arena MRV",
       "city": "Belo Horizonte",
       "clockSec": 2700.0,
-      "clockStr": "45'+2'",
+      "clockStr": "45'+6'",
       "period": 1,
       "details": [
         {
