@@ -166,7 +166,8 @@ class LiquidacaoComReserva(unittest.TestCase):
         with open(self.livro, "w", encoding="utf-8") as g:
             for e in L.le_ledger():
                 # Cotas de sorteios seguintes tambem saem do pool de 02/11: nao contam neste retrato.
-                if e["poolId"] < "2026-11-04" and "->2026-11-06" not in e["idempotencyKey"]:
+                k = e["idempotencyKey"]
+                if e["poolId"] < "2026-11-04" and not (k.startswith("reserva:") and k.split("->")[-1] > "2026-11-04"):
                     g.write(json.dumps(e, ensure_ascii=False) + "\n")
         self.anterior = {"id": "2026-11-02"}
         nomes = L.le_reservas()[0]["beneficiaries"]

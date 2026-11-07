@@ -1,0 +1,98 @@
+{
+  "_o_que_e": "Manifesto de abertura do sorteio Mega Millions de 2026-11-10, aplicado por operator_open_draw.py. Mesmos 15 participantes de 06/11: o organizador paga a propria cota; por decisao dele (2026-11-07) a reserva dos ganhadores de 02/11 paga uma cota de US$10 para os outros 13; Marcelo Barsotti paga por Pix. Sem referencia de pagamento: o repositorio e publico.",
+  "draw_date": "2026-11-10",
+  "jackpot": 529000000,
+  "cash_value": 224200000,
+  "contributions": [
+    {
+      "name": "Eduardo Ferrari",
+      "amount": 10,
+      "method": "Fundo próprio (organizador)",
+      "paid_at": "2026-11-07T08:43:46-05:00"
+    },
+    {
+      "name": "Alan Rech",
+      "amount": 10,
+      "method": "Reserva dos ganhadores de 02/11",
+      "paid_at": "2026-11-07T08:43:46-05:00"
+    },
+    {
+      "name": "Marcelo Moreira",
+      "amount": 10,
+      "method": "Reserva dos ganhadores de 02/11",
+      "paid_at": "2026-11-07T08:43:46-05:00"
+    },
+    {
+      "name": "Leandro Augustineli",
+      "amount": 10,
+      "method": "Reserva dos ganhadores de 02/11",
+      "paid_at": "2026-11-07T08:43:46-05:00"
+    },
+    {
+      "name": "Gustavo Bossle",
+      "amount": 10,
+      "method": "Reserva dos ganhadores de 02/11",
+      "paid_at": "2026-11-07T08:43:46-05:00"
+    },
+    {
+      "name": "Camila Ribeiro",
+      "amount": 10,
+      "method": "Reserva dos ganhadores de 02/11",
+      "paid_at": "2026-11-07T08:43:46-05:00"
+    },
+    {
+      "name": "Marcus Steffenon",
+      "amount": 10,
+      "method": "Reserva dos ganhadores de 02/11",
+      "paid_at": "2026-11-07T08:43:46-05:00"
+    },
+    {
+      "name": "Marcelo Minghetti Pereira",
+      "amount": 10,
+      "method": "Reserva dos ganhadores de 02/11",
+      "paid_at": "2026-11-07T08:43:46-05:00"
+    },
+    {
+      "name": "Ewerton Gruba Silva",
+      "amount": 10,
+      "method": "Reserva dos ganhadores de 02/11",
+      "paid_at": "2026-11-07T08:43:46-05:00"
+    },
+    {
+      "name": "Thiago Locatelli",
+      "amount": 10,
+      "method": "Reserva dos ganhadores de 02/11",
+      "paid_at": "2026-11-07T08:43:46-05:00"
+    },
+    {
+      "name": "Simone Hirle da Costa",
+      "amount": 10,
+      "method": "Reserva dos ganhadores de 02/11",
+      "paid_at": "2026-11-07T08:43:46-05:00"
+    },
+    {
+      "name": "Marcelo G de Jesus",
+      "amount": 10,
+      "method": "Reserva dos ganhadores de 02/11",
+      "paid_at": "2026-11-07T08:43:46-05:00"
+    },
+    {
+      "name": "Samuel Huller",
+      "amount": 10,
+      "method": "Reserva dos ganhadores de 02/11",
+      "paid_at": "2026-11-07T08:43:46-05:00"
+    },
+    {
+      "name": "Rodrigo Hajj",
+      "amount": 10,
+      "method": "Reserva dos ganhadores de 02/11",
+      "paid_at": "2026-11-07T08:43:46-05:00"
+    },
+    {
+      "name": "Marcelo Barsotti",
+      "amount": 10,
+      "method": "Pix",
+      "paid_at": "2026-11-07T08:43:46-05:00"
+    }
+  ]
+}

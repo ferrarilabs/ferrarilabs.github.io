@@ -7,8 +7,8 @@
       "label": "Reserva dos ganhadores de 02/11",
       "decidedBy": "Eduardo Ferrari (organizador)",
       "decidedAt": "2026-11-03",
-      "rule": "O premio de 02/11 (US$432) e o US$1 guardado pertencem so aos 14 participantes daquele sorteio. Pagam uma cota de US$10 de cada um nos sorteios listados em paysDraws (decisoes de 2026-11-03 e 2026-11-05); o restante fica guardado para eles e so sai por decisao do organizador. Quem entra depois paga a propria cota de US$10.",
-      "paysDraws": ["2026-11-04", "2026-11-06"],
+      "rule": "O premio de 02/11 (US$432) e o US$1 guardado pertencem so aos 14 participantes daquele sorteio. Pagam uma cota de US$10 de cada um nos sorteios listados em paysDraws (decisoes de 2026-11-03, 2026-11-05 e 2026-11-07); o restante fica guardado para eles e so sai por decisao do organizador. Quem entra depois paga a propria cota de US$10.",
+      "paysDraws": ["2026-11-04", "2026-11-06", "2026-11-10"],
       "beneficiaries": [
         "Eduardo Ferrari",
         "Alan Rech",
