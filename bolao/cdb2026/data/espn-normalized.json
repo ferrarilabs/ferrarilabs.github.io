@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.copa_do_brazil",
   "provider": "espn",
-  "generatedAt": "2026-11-07T21:15:57Z",
-  "sourceUpdatedAt": "2026-11-07T21:15:57Z",
+  "generatedAt": "2026-11-07T21:35:56Z",
+  "sourceUpdatedAt": "2026-11-07T21:35:56Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "3f5edbf18ed6cbbe8a7791e7545da44bfdccb79343edbac9fd666c688c892ef7",
+  "payloadHash": "4c1eb2444877d520e532bd5003530c4120e234e4122c7a1bf8d6046124c450e4",
   "matches": [
     {
       "id": "401858546",
@@ -14034,23 +14034,62 @@
       "state": "in",
       "statusName": "STATUS_FIRST_HALF",
       "statusDescription": "First Half",
-      "statusShortDetail": "7'",
-      "statusDetail": "7'",
+      "statusShortDetail": "27'",
+      "statusDetail": "27'",
       "completed": false,
       "homeTeam": "Atlético-MG",
       "awayTeam": "Grêmio",
       "homeTeamId": "7632",
       "awayTeamId": "6273",
-      "homeScore": 0,
+      "homeScore": 1,
       "awayScore": 0,
       "homeWinner": false,
       "awayWinner": false,
       "venue": "Arena MRV",
       "city": "Belo Horizonte",
-      "clockSec": 420.0,
-      "clockStr": "7'",
+      "clockSec": 1620.0,
+      "clockStr": "27'",
       "period": 1,
-      "details": []
+      "details": [
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "7632"
+          },
+          "clock": {
+            "value": 1225.0,
+            "displayValue": "21'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Bernard",
+              "shortName": "Bernard"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Goal"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "7632"
+          },
+          "clock": {
+            "value": 1531.0,
+            "displayValue": "26'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Renan Lodi",
+              "shortName": "R. Lodi"
+            }
+          ]
+        }
+      ]
     },
     {
       "id": "401913107",
