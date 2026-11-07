@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-06T16:55:22Z",
+  "generatedAt": "2026-11-06T20:07:50Z",
   "threshold": {
     "minJackpotCents": 50000000000,
     "comparison": "strictly_greater",
@@ -10,9 +10,14 @@
     "powerball": {
       "game": "powerball",
       "label": "Powerball",
-      "advertisedAnnuityCents": null,
-      "cashValueCents": null,
-      "nextDrawDate": null,
+      "advertisedAnnuityCents": 2000000000,
+      "cashValueCents": 860000000,
+      "nextDrawDate": "2026-11-07",
+      "nextDrawAt": "2026-11-08T03:59:00Z",
+      "source": "https://www.powerball.com/",
+      "verificationState": "PRIMARY_CONFIRMED",
+      "fetchedAt": "2026-11-06T20:07:49Z",
+      "sourceHash": "466537adb2c47f0d",
       "eligible": false,
       "state": "UNKNOWN",
       "error": "ResultadoInvalido: oficial: ResultadoInvalido: CASCA_SEM_CONTEUDO: 10 de 10 respostas de https://www.powerball.com/ vieram sem 'Estimated Jackpot'; nc_education_lottery: ResultadoInvalido: JACKPOT_NAO"
@@ -26,7 +31,7 @@
       "nextDrawAt": "2026-11-07T04:00:00Z",
       "source": "https://www.megamillions.com/cmspages/utilservice.asmx/GetLatestDrawData",
       "verificationState": "PRIMARY_CONFIRMED",
-      "fetchedAt": "2026-11-06T16:55:22Z",
+      "fetchedAt": "2026-11-06T20:07:49Z",
       "sourceHash": "a90d0115d604bd38",
       "eligible": true,
       "state": "ELIGIBLE",
@@ -57,8 +62,8 @@
   "currentDraw": {
     "id": "2026-11-06",
     "game": "megamillions",
-    "lifecycleState": "OPEN",
-    "reason": "recolhendo contribuições",
+    "lifecycleState": "LOCKED",
+    "reason": "bilhetes comprados; entradas encerradas",
     "result": null
   },
   "autoPurchase": false,

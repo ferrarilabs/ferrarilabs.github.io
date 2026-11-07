@@ -1143,13 +1143,28 @@ window.POWERBALL_DRAWS = [
       { name: "Marcelo Barsotti", cotas: 1, valor: 10, metodo: "Pix", data: "05/11/2026", hora: "12:55:02 PM", status: "verificado", state: "ON" }
     ],
 
-    // Sem bilhetes ainda. Os numeros entram depois da compra -- abrir o bolao nunca dependeu
-    // de ja existirem jogos.
     sharedTickets: {
-      compradoPor: null,
-      dataComprovante: null,
-      valorPorTicket: 5,
-      series: []
+      compradoPor: "Eduardo Ferrari (organizador)",
+      dataComprovante: "06/11/2026",
+      valorPorTicket: 5, // multiplicador embutido em cada aposta
+      series: [
+        {
+          serial: "218E12E79107B982B", qtd: 33, jogos: "1–33",
+          numeros: [
+            "01-08-14-40-45 — MB 02 — 5X", "01-21-28-47-58 — MB 13 — 3X", "02-05-44-45-47 — MB 18 — 3X",
+            "02-18-52-57-65 — MB 02 — 2X", "03-05-46-53-66 — MB 11 — 2X", "03-12-31-42-55 — MB 01 — 3X",
+            "04-13-49-58-70 — MB 19 — 3X", "04-14-15-41-66 — MB 24 — 3X", "05-07-31-34-38 — MB 04 — 4X",
+            "06-16-19-33-67 — MB 16 — 2X", "06-36-41-60-63 — MB 10 — 2X", "07-42-43-51-64 — MB 03 — 2X",
+            "07-44-54-61-70 — MB 15 — 2X", "08-10-23-48-67 — MB 09 — 4X", "09-12-29-48-59 — MB 08 — 3X",
+            "09-23-47-50-68 — MB 21 — 3X", "10-20-32-43-45 — MB 17 — 4X", "10-21-37-44-55 — MB 11 — 5X",
+            "11-17-19-34-36 — MB 09 — 4X", "11-22-25-38-57 — MB 14 — 2X", "13-24-34-51-53 — MB 22 — 3X",
+            "15-24-29-50-63 — MB 13 — 10X", "16-20-27-35-60 — MB 07 — 3X", "16-37-39-62-65 — MB 06 — 2X",
+            "17-25-26-33-52 — MB 12 — 4X", "18-26-41-59-68 — MB 20 — 5X", "21-40-54-62-69 — MB 14 — 10X",
+            "22-26-32-49-53 — MB 23 — 4X", "27-39-54-56-64 — MB 21 — 3X", "28-30-33-56-61 — MB 05 — 2X",
+            "30-35-46-50-69 — MB 20 — 2X", "29-42-46-60-61 — MB 22 — 2X", "18-19-25-66-69 — MB 05 — 2X"
+          ]
+        }
+      ]
     },
 
     finance: {
@@ -1157,8 +1172,8 @@ window.POWERBALL_DRAWS = [
       // Premio do sorteio anterior + o que ficou guardado. Derivado do que esta gravado, nao
       // arbitrado aqui.
       creditoSorteioAnterior: 16,
-      valorUtilizado: 0,
-      valorGuardadoProximoSorteio: 0,
+      valorUtilizado: 165, // 33 x US$5
+      valorGuardadoProximoSorteio: 1, // 150 + 16 - 165
       ajustesPendentes: 0
     },
 
