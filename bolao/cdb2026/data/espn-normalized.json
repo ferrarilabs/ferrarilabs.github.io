@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.copa_do_brazil",
   "provider": "espn",
-  "generatedAt": "2026-11-07T22:55:56Z",
-  "sourceUpdatedAt": "2026-11-07T22:55:56Z",
+  "generatedAt": "2026-11-07T23:15:58Z",
+  "sourceUpdatedAt": "2026-11-07T23:15:58Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "0fd814c4ffa3e06589e7adcfd6162d2e042af8b089417f28c0298936c18219e3",
+  "payloadHash": "5903c6a0122a8595d7767e88d6a1d5afa4f28dd213a8b1bad2fd1c80e767c256",
   "matches": [
     {
       "id": "401858546",
@@ -14031,12 +14031,12 @@
     {
       "id": "401913108",
       "date": "2026-11-07T21:00Z",
-      "state": "in",
-      "statusName": "STATUS_SECOND_HALF",
-      "statusDescription": "Second Half",
-      "statusShortDetail": "82'",
-      "statusDetail": "82'",
-      "completed": false,
+      "state": "post",
+      "statusName": "STATUS_FULL_TIME",
+      "statusDescription": "Full Time",
+      "statusShortDetail": "FT",
+      "statusDetail": "FT",
+      "completed": true,
       "homeTeam": "Atlético-MG",
       "awayTeam": "Grêmio",
       "homeTeamId": "7632",
@@ -14047,8 +14047,8 @@
       "awayWinner": false,
       "venue": "Arena MRV",
       "city": "Belo Horizonte",
-      "clockSec": 4920.0,
-      "clockStr": "82'",
+      "clockSec": 5400.0,
+      "clockStr": "90'+8'",
       "period": 2,
       "details": [
         {
@@ -14181,6 +14181,25 @@
             {
               "displayName": "Gabriel Grando",
               "shortName": "G. Grando"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Red Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "7632"
+          },
+          "clock": {
+            "value": 5213.0,
+            "displayValue": "87'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Vitão",
+              "shortName": "Vitão"
             }
           ]
         }
