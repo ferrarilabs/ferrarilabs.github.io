@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-11-07T00:31:02Z",
-  "sourceUpdatedAt": "2026-11-07T00:31:02Z",
+  "generatedAt": "2026-11-07T00:51:00Z",
+  "sourceUpdatedAt": "2026-11-07T00:51:00Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "345cf1a34623f40faf74ff78c2542999ddc74c2a0cb969462cf8819d7d22aeee",
+  "payloadHash": "7a1f426ed4c6be65579ef4abd71f0a6eac5f9c2ee66ad44bea575be5c75d4992",
   "matches": [
     {
       "id": "401840808",
@@ -57343,8 +57343,8 @@
       "state": "in",
       "statusName": "STATUS_SECOND_HALF",
       "statusDescription": "Second Half",
-      "statusShortDetail": "71'",
-      "statusDetail": "71'",
+      "statusShortDetail": "90'",
+      "statusDetail": "90'",
       "completed": false,
       "homeTeam": "Vitória",
       "awayTeam": "Fluminense",
@@ -57356,8 +57356,8 @@
       "awayWinner": false,
       "venue": "Estadio Manoel Barradas",
       "city": "Salvador",
-      "clockSec": 4260.0,
-      "clockStr": "71'",
+      "clockSec": 5400.0,
+      "clockStr": "90'",
       "period": 2,
       "details": [
         {
@@ -57414,6 +57414,44 @@
             {
               "displayName": "Matheusinho",
               "shortName": "Matheusinho"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "3457"
+          },
+          "clock": {
+            "value": 5235.0,
+            "displayValue": "88'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Lucas",
+              "shortName": "Lucas"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Goal"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "3445"
+          },
+          "clock": {
+            "value": 5368.0,
+            "displayValue": "90'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Rodrigo Castillo",
+              "shortName": "R. Castillo"
             }
           ]
         }
