@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.copa_do_brazil",
   "provider": "espn",
-  "generatedAt": "2026-11-07T22:31:29Z",
-  "sourceUpdatedAt": "2026-11-07T22:31:29Z",
+  "generatedAt": "2026-11-07T22:55:56Z",
+  "sourceUpdatedAt": "2026-11-07T22:55:56Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "e7a51bb7469b744c2f0a6a895a6b4d45d5c3789e5b44e8550f6017f60e438173",
+  "payloadHash": "0fd814c4ffa3e06589e7adcfd6162d2e042af8b089417f28c0298936c18219e3",
   "matches": [
     {
       "id": "401858546",
@@ -14034,8 +14034,8 @@
       "state": "in",
       "statusName": "STATUS_SECOND_HALF",
       "statusDescription": "Second Half",
-      "statusShortDetail": "58'",
-      "statusDetail": "58'",
+      "statusShortDetail": "82'",
+      "statusDetail": "82'",
       "completed": false,
       "homeTeam": "Atlético-MG",
       "awayTeam": "Grêmio",
@@ -14047,8 +14047,8 @@
       "awayWinner": false,
       "venue": "Arena MRV",
       "city": "Belo Horizonte",
-      "clockSec": 3480.0,
-      "clockStr": "58'",
+      "clockSec": 4920.0,
+      "clockStr": "82'",
       "period": 2,
       "details": [
         {
@@ -14143,6 +14143,44 @@
             {
               "displayName": "Carlos Vinícius",
               "shortName": "C. Vinícius"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "7632"
+          },
+          "clock": {
+            "value": 4063.0,
+            "displayValue": "68'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Alan Franco",
+              "shortName": "A. Franco"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "6273"
+          },
+          "clock": {
+            "value": 4321.0,
+            "displayValue": "73'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Gabriel Grando",
+              "shortName": "G. Grando"
             }
           ]
         }
