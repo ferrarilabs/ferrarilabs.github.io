@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.copa_do_brazil",
   "provider": "espn",
-  "generatedAt": "2026-11-07T21:35:56Z",
-  "sourceUpdatedAt": "2026-11-07T21:35:56Z",
+  "generatedAt": "2026-11-07T21:55:57Z",
+  "sourceUpdatedAt": "2026-11-07T21:55:57Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "4c1eb2444877d520e532bd5003530c4120e234e4122c7a1bf8d6046124c450e4",
+  "payloadHash": "a880a4e6981550d5414427e60e6b56e20b9c7b0fffd92779ebd9491501f432ff",
   "matches": [
     {
       "id": "401858546",
@@ -14034,21 +14034,21 @@
       "state": "in",
       "statusName": "STATUS_FIRST_HALF",
       "statusDescription": "First Half",
-      "statusShortDetail": "27'",
-      "statusDetail": "27'",
+      "statusShortDetail": "45'+2'",
+      "statusDetail": "45'+2'",
       "completed": false,
       "homeTeam": "Atlético-MG",
       "awayTeam": "Grêmio",
       "homeTeamId": "7632",
       "awayTeamId": "6273",
       "homeScore": 1,
-      "awayScore": 0,
+      "awayScore": 1,
       "homeWinner": false,
       "awayWinner": false,
       "venue": "Arena MRV",
       "city": "Belo Horizonte",
-      "clockSec": 1620.0,
-      "clockStr": "27'",
+      "clockSec": 2700.0,
+      "clockStr": "45'+2'",
       "period": 1,
       "details": [
         {
@@ -14086,6 +14086,63 @@
             {
               "displayName": "Renan Lodi",
               "shortName": "R. Lodi"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "6273"
+          },
+          "clock": {
+            "value": 2084.0,
+            "displayValue": "35'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "José Enamorado",
+              "shortName": "J. Enamorado"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "7632"
+          },
+          "clock": {
+            "value": 2125.0,
+            "displayValue": "36'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Kevin Castaño",
+              "shortName": "K. Castaño"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Goal"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "6273"
+          },
+          "clock": {
+            "value": 2275.0,
+            "displayValue": "38'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Carlos Vinícius",
+              "shortName": "C. Vinícius"
             }
           ]
         }
