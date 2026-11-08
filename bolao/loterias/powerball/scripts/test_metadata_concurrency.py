@@ -158,5 +158,50 @@ class AtualizadorDeMetadadosEIsolado(unittest.TestCase):
                         "pelo tempo inteiro da requisicao de rede")
 
 
+class ProcedenciaDoJackpot(unittest.TestCase):
+    """#578: valor igual sem `jackpotSource` nao e NO_CHANGE — a procedencia tem de ser gravada."""
+
+    BLOCO = ('\n    id: "2026-11-10",\n    drawing: {\n      name: "Mega Millions Jackpot",\n'
+             '      jackpot: 529000000,\n      cashValue: 224200000,\n'
+             '      drawDateIso: "2026-11-10T23:00:00-05:00",\n    },\n')
+
+    @classmethod
+    def setUpClass(cls):
+        sys.path.insert(0, AQUI)
+        import refresh_jackpot
+        cls.R = refresh_jackpot
+
+    def test_valor_igual_sem_procedencia_precisa_gravar(self):
+        self.assertTrue(self.R.precisa_gravar(
+            {"jackpot": 529000000, "cashValue": 224200000}, 529000000, 224200000))
+
+    def test_valor_igual_com_procedencia_e_no_change(self):
+        self.assertFalse(self.R.precisa_gravar(
+            {"jackpot": 529000000, "cashValue": 224200000, "jackpotSource": "megamillions_official"},
+            529000000, 224200000))
+
+    def test_valor_diferente_precisa_gravar(self):
+        self.assertTrue(self.R.precisa_gravar(
+            {"jackpot": 505000000, "cashValue": 213300000, "jackpotSource": "megamillions_official"},
+            529000000, 224200000))
+
+    def test_valor_igual_sem_procedencia_grava_so_a_procedencia(self):
+        novo = self.R.reescreve_bloco(self.BLOCO, 529000000, 224200000, "megamillions_official",
+                                      "2026-11-10", "2026-11-08T12:00:00Z")
+        self.assertIsNotNone(novo, "valor igual nao pode parecer ancora que nao casou")
+        self.assertEqual(novo.replace(
+            '\n      jackpotSource: "megamillions_official",'
+            '\n      jackpotFetchedAt: "2026-11-08T12:00:00Z",'
+            '\n      jackpotDrawId: "2026-11-10",', ""), self.BLOCO)
+
+    def test_ancora_ausente_continua_recusando(self):
+        self.assertIsNone(self.R.reescreve_bloco(self.BLOCO.replace("cashValue", "cash"), 1, 1,
+                                                 "megamillions_official", "2026-11-10", "x"))
+
+    def test_o_script_confere_a_procedencia_depois_de_gravar(self):
+        src = open(os.path.join(AQUI, "refresh_jackpot.py"), encoding="utf-8").read()
+        self.assertIn("procedencia nao gravou", src)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
