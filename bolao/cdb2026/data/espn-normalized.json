@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.copa_do_brazil",
   "provider": "espn",
-  "generatedAt": "2026-11-08T20:06:05Z",
-  "sourceUpdatedAt": "2026-11-08T20:06:05Z",
+  "generatedAt": "2026-11-08T20:26:07Z",
+  "sourceUpdatedAt": "2026-11-08T20:26:07Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "0432c8272b91bbe10a6540d8ce0eb3e9c9229ca340bfa9bb94204b23e21aacad",
+  "payloadHash": "8a1b347067d44379a888773f9af2a52c93417c259a992da6b80d6ca4014e2034",
   "matches": [
     {
       "id": "401858546",
@@ -14211,23 +14211,62 @@
       "state": "in",
       "statusName": "STATUS_FIRST_HALF",
       "statusDescription": "First Half",
-      "statusShortDetail": "5'",
-      "statusDetail": "5'",
+      "statusShortDetail": "24'",
+      "statusDetail": "24'",
       "completed": false,
       "homeTeam": "Vasco",
       "awayTeam": "Palmeiras",
       "homeTeamId": "3454",
       "awayTeamId": "2029",
-      "homeScore": 0,
+      "homeScore": 1,
       "awayScore": 0,
       "homeWinner": false,
       "awayWinner": false,
       "venue": "Estádio São Januário",
       "city": "Rio de Janeiro",
-      "clockSec": 300.0,
-      "clockStr": "5'",
+      "clockSec": 1440.0,
+      "clockStr": "24'",
       "period": 1,
-      "details": []
+      "details": [
+        {
+          "type": {
+            "text": "Goal"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "3454"
+          },
+          "clock": {
+            "value": 924.0,
+            "displayValue": "16'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Facundo Colidio",
+              "shortName": "F. Colidio"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "3454"
+          },
+          "clock": {
+            "value": 1153.0,
+            "displayValue": "20'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Gabriel Pereira",
+              "shortName": "G. Pereira"
+            }
+          ]
+        }
+      ]
     },
     {
       "id": "401913106",
