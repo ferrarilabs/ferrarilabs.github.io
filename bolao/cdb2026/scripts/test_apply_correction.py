@@ -68,6 +68,11 @@ class Banco:
             return 200, {"applied": False, "reason": "idempotente"}
         self.refs.add(ref)
         tie = self.st["phases"][p["phaseId"]]["ties"][p["tieId"]]
+        if tipo == "lock-tie":
+            if tie.get("qualifiedTeamId") and tie["qualifiedTeamId"] != p["qualifiedTeamId"]:
+                raise AssertionError("lock-tie: ja travado com outro lado; use unlock antes")
+            tie.update({"locked": True, "qualifiedTeamId": p["qualifiedTeamId"], "lockedBy": "operator"})
+            return 200, {"applied": True}
         m = tie["matches"][p["leg"]]
         if tipo == "save-leg":
             m.update({"homeTeam": tie["teamB"] if p["leg"] == "second" else tie["teamA"],
@@ -76,6 +81,8 @@ class Banco:
                       })  # a releitura do servidor nao devolve resultSource (visto em 2026-11-01)
         elif tipo == "clear-leg":
             m.update({"goalsHome": None, "goalsAway": None, "status": "SCHEDULED"})
+            if tie.get("qualifiedTeamId"):  # retratacao destrava o classificado junto (SQL 20260906161933)
+                tie.update({"qualifiedTeamId": None, "lockedAt": None, "lockedBy": None})
         elif tipo == "backfill-kickoff":
             # O servidor guarda timestamptz: devolve "+00:00", nao "Z" (visto em 2026-11-01).
             m["kickoff"] = p["kickoff"].replace("Z", "+00:00")
@@ -84,11 +91,11 @@ class Banco:
         return 200, {"applied": True}
 
 
-def rodar(banco, *args):
+def rodar(banco, *args, plano=None):
     S.sb_fetch = banco.fetch
     S._sb_rpc = banco.mutate
     S.send_email = lambda *a, **k: (_ for _ in ()).throw(AssertionError("apply_correction tentou enviar e-mail"))
-    sys.argv = ["apply_correction.py", str(PLANO), *args]
+    sys.argv = ["apply_correction.py", str(plano or PLANO), *args]
     buf = io.StringIO()
     with redirect_stdout(buf):
         AC.main()
@@ -169,6 +176,72 @@ def _sem_envio_no_fonte():
         _assert(proibido not in codigo, f"{proibido} aparece no codigo do aplicador")
 
 test("o aplicador nao referencia nenhum caminho de envio", _sem_envio_no_fonte)
+
+
+# ── 2026-11-08: volta Vasco 2 x 1 Palmeiras, Palmeiras nos penaltis; o --auto travou Vasco ──────
+PLANO_VOLTA = AQUI.parent / "data" / "corrections" / "2026-11-08-semifinal-volta.json"
+print("\nCDB2026 — requalify (semifinal 2026-11-08)\n")
+
+
+def estado_de_8_11():
+    """Vasco x Palmeiras exatamente como lido em producao em 2026-11-08 ~23:15Z."""
+    return {"phases": {"semifinal": {"ties": {
+        "espn-palmeiras_vasco": {"teamA": "Vasco", "teamB": "Palmeiras", "locked": True,
+                                 "lockedAt": "2026-11-08T22:26:32Z", "lockedBy": "send_result_email",
+                                 "qualifiedTeamId": "A", "matches": {
+            "first": {"venue": None, "status": "FINAL", "kickoff": "2026-11-01T19:00:00+00:00",
+                      "awayTeam": "Palmeiras", "homeTeam": "Vasco", "goalsAway": 1, "goalsHome": 0},
+            "second": {"city": None, "venue": None, "status": "FINAL", "kickoff": "2026-11-08T20:00:00+00:00",
+                       "awayTeam": "Vasco", "homeTeam": "Palmeiras", "goalsAway": 2, "goalsHome": 1,
+                       "resultSource": "espn-auto"}}},
+    }}}}
+
+
+def _requalify_leva_ao_palmeiras():
+    b = Banco(estado_de_8_11())
+    antes_ida = copy.deepcopy(b.st["phases"]["semifinal"]["ties"]["espn-palmeiras_vasco"]["matches"]["first"])
+    rodar(b, "--apply", plano=PLANO_VOLTA)
+    tie = b.st["phases"]["semifinal"]["ties"]["espn-palmeiras_vasco"]
+    _assert(tie["qualifiedTeamId"] == "B" and tie["teamB"] == "Palmeiras", f"classificado: {tie['qualifiedTeamId']}")
+    v = tie["matches"]["second"]
+    _assert((v["homeTeam"], v["goalsHome"], v["awayTeam"], v["goalsAway"], v["status"]) == ("Palmeiras", 1, "Vasco", 2, "FINAL"), v)
+    _assert(tie["matches"]["first"] == antes_ida, "a ida mudou")
+    _assert([t for t, _, _ in b.rpc] == ["clear-leg", "save-leg", "lock-tie"], b.rpc)
+
+test("plano de 8/11 + estado real -> Palmeiras (B) avanca, placar 1x2 preservado, ida intacta", _requalify_leva_ao_palmeiras)
+
+
+def _requalify_idempotente():
+    b = Banco(estado_de_8_11())
+    rodar(b, "--apply", plano=PLANO_VOLTA)
+    n = len(b.rpc)
+    out = rodar(b, "--apply", plano=PLANO_VOLTA)
+    _assert(len(b.rpc) == n and "ja aplicada" in out, "a segunda execucao gravou de novo")
+
+test("requalify duas vezes nao grava nada na segunda", _requalify_idempotente)
+
+
+def _requalify_placar_diferente_aborta():
+    st = estado_de_8_11()
+    st["phases"]["semifinal"]["ties"]["espn-palmeiras_vasco"]["matches"]["second"]["goalsAway"] = 3
+    b = Banco(st)
+    try:
+        rodar(b, "--apply", plano=PLANO_VOLTA)
+    except SystemExit:
+        pass
+    else:
+        raise AssertionError("aplicou com o placar fora do esperado")
+    _assert(b.rpc == [], f"gravou antes de abortar: {b.rpc}")
+
+test("requalify com placar fora de expectBefore -> aborta e NADA e gravado", _requalify_placar_diferente_aborta)
+
+
+def _requalify_dry_run():
+    b = Banco(estado_de_8_11())
+    out = rodar(b, plano=PLANO_VOLTA)
+    _assert(b.rpc == [] and "1 operacao(oes) seriam aplicadas" in out, out)
+
+test("requalify sem --apply nao grava", _requalify_dry_run)
 
 print(f"\n{'✗' if fail else '✓'} {ok} ok, {fail} falha(s)")
 sys.exit(1 if fail else 0)
