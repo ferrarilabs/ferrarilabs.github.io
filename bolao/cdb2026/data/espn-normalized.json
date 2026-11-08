@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.copa_do_brazil",
   "provider": "espn",
-  "generatedAt": "2026-11-08T20:26:07Z",
-  "sourceUpdatedAt": "2026-11-08T20:26:07Z",
+  "generatedAt": "2026-11-08T20:46:08Z",
+  "sourceUpdatedAt": "2026-11-08T20:46:08Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "8a1b347067d44379a888773f9af2a52c93417c259a992da6b80d6ca4014e2034",
+  "payloadHash": "53669dee2166768908dd1d1d203b0bc4c16cea69444f9a8139e06d93ff670fc5",
   "matches": [
     {
       "id": "401858546",
@@ -14211,8 +14211,8 @@
       "state": "in",
       "statusName": "STATUS_FIRST_HALF",
       "statusDescription": "First Half",
-      "statusShortDetail": "24'",
-      "statusDetail": "24'",
+      "statusShortDetail": "44'",
+      "statusDetail": "44'",
       "completed": false,
       "homeTeam": "Vasco",
       "awayTeam": "Palmeiras",
@@ -14224,8 +14224,8 @@
       "awayWinner": false,
       "venue": "Estádio São Januário",
       "city": "Rio de Janeiro",
-      "clockSec": 1440.0,
-      "clockStr": "24'",
+      "clockSec": 2640.0,
+      "clockStr": "44'",
       "period": 1,
       "details": [
         {
@@ -14263,6 +14263,25 @@
             {
               "displayName": "Gabriel Pereira",
               "shortName": "G. Pereira"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "3454"
+          },
+          "clock": {
+            "value": 1452.0,
+            "displayValue": "25'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Thiago Mendes",
+              "shortName": "T. Mendes"
             }
           ]
         }
