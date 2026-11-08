@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.copa_do_brazil",
   "provider": "espn",
-  "generatedAt": "2026-11-08T21:06:02Z",
-  "sourceUpdatedAt": "2026-11-08T21:06:02Z",
+  "generatedAt": "2026-11-08T21:26:04Z",
+  "sourceUpdatedAt": "2026-11-08T21:26:04Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "e5e3d0ebd7cf063079d14ebfdc958d23687a8773ad2a6c773aab8a73861d4cf0",
+  "payloadHash": "3683354eee5ef39ad365acd8977054fe6f4ce86fcf10f8ae82b6027ec8bce91f",
   "matches": [
     {
       "id": "401858546",
@@ -14209,24 +14209,24 @@
       "id": "401913107",
       "date": "2026-11-08T20:00Z",
       "state": "in",
-      "statusName": "STATUS_HALFTIME",
-      "statusDescription": "Halftime",
-      "statusShortDetail": "HT",
-      "statusDetail": "HT",
+      "statusName": "STATUS_SECOND_HALF",
+      "statusDescription": "Second Half",
+      "statusShortDetail": "60'",
+      "statusDetail": "60'",
       "completed": false,
       "homeTeam": "Vasco",
       "awayTeam": "Palmeiras",
       "homeTeamId": "3454",
       "awayTeamId": "2029",
       "homeScore": 1,
-      "awayScore": 0,
+      "awayScore": 1,
       "homeWinner": false,
       "awayWinner": false,
       "venue": "Estádio São Januário",
       "city": "Rio de Janeiro",
-      "clockSec": 2700.0,
-      "clockStr": "45'+5'",
-      "period": 1,
+      "clockSec": 3600.0,
+      "clockStr": "60'",
+      "period": 2,
       "details": [
         {
           "type": {
@@ -14339,6 +14339,25 @@
             {
               "displayName": "Jhon Arias",
               "shortName": "J. Arias"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Goal"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "2029"
+          },
+          "clock": {
+            "value": 3291.0,
+            "displayValue": "55'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Joaquín Piquerez",
+              "shortName": "J. Piquerez"
             }
           ]
         }
