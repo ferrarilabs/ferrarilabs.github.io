@@ -14,6 +14,13 @@ PR antes de rodar. Cada operacao:
   3. e conferida RELENDO o servidor contra `expectAfter`.
 Uma operacao ja aplicada (perna ja em `expectAfter`) e pulada, entao rodar duas vezes e seguro.
 
+`requalify` (2026-11-08) troca QUEM AVANCA de um confronto ja travado. O servidor nao tem atalho
+para isso de proposito: lock-tie recusa lado diferente e unlock-tie nao limpa qualifiedTeamId. O
+unico caminho e a retratacao da perna decisiva (clear-leg, que tambem limpa a classificacao),
+regravar o MESMO placar (save-leg) e travar o lado correto (lock-tie). As tres mutacoes sao uma
+operacao so do plano: `expectBefore`/`expectAfter` valem para a perna MAIS `qualifiedTeamId` do
+confronto, entao uma segunda execucao ve o lado certo e pula.
+
 Uso: apply_correction.py <plano.json> [--apply]   (sem --apply: so mostra o antes/depois)
 """
 import json
@@ -25,14 +32,18 @@ sys.path.insert(0, str(Path(__file__).parent))
 os.environ.pop("BOLAO_ALLOW_REAL_SEND", None)  # fail-closed: nada aqui pode enviar e-mail
 import send_result_email as S  # noqa: E402
 
-OPS = {"clear-leg", "save-leg", "kickoff"}
+OPS = {"clear-leg", "save-leg", "kickoff", "requalify"}
 
 
 def _perna(state, op):
     tie = (state.get("phases", {}).get(op["phaseId"], {}).get("ties", {}) or {}).get(op["tieId"])
     if tie is None:
         raise SystemExit(f"🛑 confronto {op['phaseId']}/{op['tieId']} nao existe")
-    return (tie.get("matches", {}) or {}).get(op["leg"]) or {}
+    perna = (tie.get("matches", {}) or {}).get(op["leg"]) or {}
+    if op["op"] == "requalify":
+        # A classificacao mora no confronto, nao na perna: a vista compara as duas coisas juntas.
+        return {**perna, "qualifiedTeamId": tie.get("qualifiedTeamId")}
+    return perna
 
 
 def _bate(perna, esperado):
@@ -54,6 +65,8 @@ def main():
     for op in plano["operations"]:
         if op["op"] not in OPS or op["leg"] not in ("first", "second", "single"):
             raise SystemExit(f"🛑 operacao invalida: {op}")
+        if op["op"] == "requalify" and op.get("qualifiedTeamId") not in ("A", "B"):
+            raise SystemExit(f"🛑 requalify sem qualifiedTeamId A/B: {op}")
 
     estado = S.sb_fetch()
     pendentes = []
@@ -77,6 +90,20 @@ def main():
         return
     for i, op in pendentes:
         ref = _ref(plano, i, op)
+        if op["op"] == "requalify":
+            alvo = {"phaseId": op["phaseId"], "tieId": op["tieId"]}
+            passos = [
+                ("clear-leg", {**alvo, "leg": op["leg"]}),
+                ("save-leg", {**alvo, "leg": op["leg"], "goalsHome": int(op["goalsHome"]),
+                              "goalsAway": int(op["goalsAway"]), "resultSource": "admin"}),
+                ("lock-tie", {**alvo, "qualifiedTeamId": op["qualifiedTeamId"], "lockedBy": "admin"}),
+            ]
+            for tipo, payload in passos:
+                status, resp = S._sb_rpc(tipo, payload, f"{ref}:{tipo}")
+                print(f"[{i}] {tipo}: HTTP {status} {json.dumps(resp, ensure_ascii=False) if resp is not None else ''}")
+                if isinstance(resp, dict) and resp.get("applied") is False:
+                    raise SystemExit(f"🛑 [{i}] {tipo}: o servidor recusou como repetida ({resp.get('reason')}); confira o auditLog")
+            continue
         if op["op"] == "clear-leg":
             payload = {"phaseId": op["phaseId"], "tieId": op["tieId"], "leg": op["leg"]}
         elif op["op"] == "save-leg":
