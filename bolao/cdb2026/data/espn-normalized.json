@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.copa_do_brazil",
   "provider": "espn",
-  "generatedAt": "2026-11-08T20:46:08Z",
-  "sourceUpdatedAt": "2026-11-08T20:46:08Z",
+  "generatedAt": "2026-11-08T21:06:02Z",
+  "sourceUpdatedAt": "2026-11-08T21:06:02Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "53669dee2166768908dd1d1d203b0bc4c16cea69444f9a8139e06d93ff670fc5",
+  "payloadHash": "e5e3d0ebd7cf063079d14ebfdc958d23687a8773ad2a6c773aab8a73861d4cf0",
   "matches": [
     {
       "id": "401858546",
@@ -14209,10 +14209,10 @@
       "id": "401913107",
       "date": "2026-11-08T20:00Z",
       "state": "in",
-      "statusName": "STATUS_FIRST_HALF",
-      "statusDescription": "First Half",
-      "statusShortDetail": "44'",
-      "statusDetail": "44'",
+      "statusName": "STATUS_HALFTIME",
+      "statusDescription": "Halftime",
+      "statusShortDetail": "HT",
+      "statusDetail": "HT",
       "completed": false,
       "homeTeam": "Vasco",
       "awayTeam": "Palmeiras",
@@ -14224,8 +14224,8 @@
       "awayWinner": false,
       "venue": "Estádio São Januário",
       "city": "Rio de Janeiro",
-      "clockSec": 2640.0,
-      "clockStr": "44'",
+      "clockSec": 2700.0,
+      "clockStr": "45'+5'",
       "period": 1,
       "details": [
         {
@@ -14282,6 +14282,63 @@
             {
               "displayName": "Thiago Mendes",
               "shortName": "T. Mendes"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "2029"
+          },
+          "clock": {
+            "value": 2700.0,
+            "displayValue": "45'+1'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Maurício",
+              "shortName": "Maurício"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "3454"
+          },
+          "clock": {
+            "value": 2700.0,
+            "displayValue": "45'+5'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Daniel Fuzato",
+              "shortName": "D. Fuzato"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "2029"
+          },
+          "clock": {
+            "value": 2700.0,
+            "displayValue": "45'+6'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Jhon Arias",
+              "shortName": "J. Arias"
             }
           ]
         }
