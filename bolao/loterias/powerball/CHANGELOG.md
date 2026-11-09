@@ -6,6 +6,16 @@ outros três bolões.
 
 ---
 
+## 2026-11-08 — Issue #578: o refresh do jackpot grava a procedência que faltava
+
+Um sorteio aberto com `open_next_draw.py --jackpot` entra com o valor certo e sem `jackpotSource`.
+`refresh_jackpot.py` saía em `NO_CHANGE` só por o valor bater, então a procedência nunca chegava
+e o gate `powerball-open-draw` reprovava (aconteceu na abertura de 2026-11-10, PR #577). Agora
+valor igual sem procedência grava só a procedência (`precisa_gravar`); valor igual com
+procedência continua `NO_CHANGE`. A âncora passa a ser conferida por busca, e não por "o bloco
+mudou?", e o script confere depois de gravar que a procedência entrou. Sem efeito em
+participantes, pagamentos, razão ou e-mails.
+
 ## 2026-11-03 — Imposto estimado para participante do Canadá (ON)
 
 Marcelo Barsotti (Ottawa, Ontário) entrou no sorteio de 04/11 e a linha dele aparecia sem

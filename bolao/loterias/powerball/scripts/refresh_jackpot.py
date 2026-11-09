@@ -165,6 +165,41 @@ def bloco_do_sorteio(fonte, draw_id):
     return (ini, fim)
 
 
+def precisa_gravar(drawing, jackpot, cash):
+    """Valor igual so e NO_CHANGE quando ja tem procedencia (#578).
+
+    Um sorteio aberto com `open_next_draw.py --jackpot` entra com o valor certo e sem
+    `jackpotSource`. Sair em NO_CHANGE so por o valor bater deixava esse sorteio sem procedencia
+    para sempre, e o gate `powerball-open-draw` reprovando.
+    """
+    return not (drawing.get("jackpot") == jackpot and drawing.get("cashValue") == cash
+                and drawing.get("jackpotSource"))
+
+
+def reescreve_bloco(bloco, jackpot, cash, fonte_id, draw_id, agora):
+    """O bloco do sorteio com jackpot, cashValue e procedencia; None se as ancoras nao casarem."""
+    padrao_jackpot = r"(\n      jackpot: )[^,\n]+(,)"
+    padrao_cash = r"(\n      cashValue: )[^,\n]+(,)"
+    # Ancora conferida com search, nao com "mudou?": valor igual e sem procedencia reescreve so a
+    # procedencia, e o bloco com o mesmo jackpot nao pode parecer ancora que nao casou.
+    if not (re.search(padrao_jackpot, bloco) and re.search(padrao_cash, bloco)):
+        return None
+    novo_bloco = re.sub(padrao_jackpot, rf"\g<1>{jackpot}\g<2>", bloco, count=1)
+    novo_bloco = re.sub(padrao_cash, rf"\g<1>{cash if cash is not None else 'null'}\g<2>",
+                        novo_bloco, count=1)
+
+    # Proveniencia: sem ela, "de onde veio esse numero?" so tem resposta na memoria de alguem.
+    prov = (f'\n      jackpotSource: "{fonte_id}",'
+            f'\n      jackpotFetchedAt: "{agora}",'
+            f'\n      jackpotDrawId: "{draw_id}",')
+    if "jackpotSource:" in novo_bloco:
+        novo_bloco = re.sub(r'\n      jackpotSource: "[^"]*",', f'\n      jackpotSource: "{fonte_id}",', novo_bloco)
+        novo_bloco = re.sub(r'\n      jackpotFetchedAt: "[^"]*",', f'\n      jackpotFetchedAt: "{agora}",', novo_bloco)
+    else:
+        novo_bloco = re.sub(r"(\n      cashValue: [^,\n]+,)", r"\1" + prov, novo_bloco, count=1)
+    return novo_bloco
+
+
 def main():
     p = argparse.ArgumentParser()
     p.add_argument("--dry-run", action="store_true")
@@ -217,7 +252,7 @@ def main():
     print(f"  cash value oficial          {cash:,}" if cash else "  cash value oficial          (nao publicado)")
     print(f"  jackpot no data.js          {atual if atual is not None else 'null'}")
 
-    if atual == jackpot and atual_cash == cash:
+    if not precisa_gravar(aberto.get("drawing") or {}, jackpot, cash):
         print("\n  NO_CHANGE — o data.js ja tem exatamente estes valores.")
         print("  DATA_MUTATIONS = 0")
         print("=" * 68)
@@ -232,22 +267,10 @@ def main():
     bloco = fonte_txt[ini:fim]
 
     agora = datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
-    novo_bloco = re.sub(r"(\n      jackpot: )[^,\n]+(,)", rf"\g<1>{jackpot}\g<2>", bloco, count=1)
-    novo_bloco = re.sub(r"(\n      cashValue: )[^,\n]+(,)",
-                        rf"\g<1>{cash if cash is not None else 'null'}\g<2>", novo_bloco, count=1)
-    if novo_bloco == bloco:
+    novo_bloco = reescreve_bloco(bloco, jackpot, cash, fonte_id, aberto["id"], agora)
+    if novo_bloco is None:
         print("\n  🛑 as ancoras de jackpot/cashValue nao casaram — recusando editar as cegas.")
         return 2
-
-    # Proveniencia: sem ela, "de onde veio esse numero?" so tem resposta na memoria de alguem.
-    prov = (f'\n      jackpotSource: "{fonte_id}",'
-            f'\n      jackpotFetchedAt: "{agora}",'
-            f'\n      jackpotDrawId: "{aberto["id"]}",')
-    if "jackpotSource:" in novo_bloco:
-        novo_bloco = re.sub(r'\n      jackpotSource: "[^"]*",', f'\n      jackpotSource: "{fonte_id}",', novo_bloco)
-        novo_bloco = re.sub(r'\n      jackpotFetchedAt: "[^"]*",', f'\n      jackpotFetchedAt: "{agora}",', novo_bloco)
-    else:
-        novo_bloco = re.sub(r"(\n      cashValue: [^,\n]+,)", r"\1" + prov, novo_bloco, count=1)
 
     if a.dry_run:
         print("\n  DRY RUN — nada gravado. Mudaria para:")
@@ -265,6 +288,8 @@ def main():
     else:
         if (d2.get("drawing") or {}).get("jackpot") != jackpot:
             problemas.append("jackpot nao gravou")
+        if (d2.get("drawing") or {}).get("jackpotSource") != fonte_id:
+            problemas.append("procedencia nao gravou")
         if len(d2.get("participants") or []) != len(aberto.get("participants") or []):
             problemas.append("mexeu nos participantes")
         if json.dumps(d2.get("sharedTickets"), sort_keys=True) != json.dumps(aberto.get("sharedTickets"), sort_keys=True):
