@@ -30,6 +30,11 @@ on:
         description: "Aviso de correcao (HTML) em bolao/cdb2026/data/corrections/"
         required: true
         type: string
+      correction_id:
+        description: "Opcional: id da correcao (ex.: correcao-2026-11-08) quando a PERNA ja tem entrega no ledger"
+        required: false
+        default: ""
+        type: string
       only_entry:
         description: "TESTE: nome da entrada que recebe (ignorado se send_to_all)"
         required: false
@@ -73,6 +78,7 @@ jobs:
           SO: ${{ inputs.only_entry }}
           TODOS: ${{ inputs.send_to_all }}
           CONFIRMA: ${{ inputs.confirm }}
+          CORRECAO: ${{ inputs.correction_id }}
         run: |
           set -euo pipefail
           if [ -f ../EMAIL_KILL_SWITCH ]; then
@@ -83,9 +89,11 @@ jobs:
             *) echo "::error::aviso fora de bolao/cdb2026/data/corrections/"; exit 1 ;;
           esac
           case "$NOTA" in *..*) echo "::error::caminho com '..'"; exit 1 ;; esac
+          EXTRA=()
+          if [ -n "$CORRECAO" ]; then EXTRA=(--correction-id "$CORRECAO"); fi
           if [ "$TODOS" = "true" ]; then
             [ "$CONFIRMA" = "ENVIAR PARA TODOS" ] || { echo "::error::send_to_all exige confirm = ENVIAR PARA TODOS"; exit 1; }
-            python3 send_result_email.py --send-leg "$FASE" "$TIE" "$LEG" --note-file "../../../$NOTA" --all
+            python3 send_result_email.py --send-leg "$FASE" "$TIE" "$LEG" --note-file "../../../$NOTA" --all "${EXTRA[@]}"
           else
-            python3 send_result_email.py --send-leg "$FASE" "$TIE" "$LEG" --note-file "../../../$NOTA" --only-entry "$SO"
+            python3 send_result_email.py --send-leg "$FASE" "$TIE" "$LEG" --note-file "../../../$NOTA" --only-entry "$SO" "${EXTRA[@]}"
           fi

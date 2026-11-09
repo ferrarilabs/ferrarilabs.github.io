@@ -6,7 +6,8 @@ Prova, com provedor, Supabase e ledger simulados (2026-11-01, semifinal Palmeira
   2. --all envia para todos e registra no ledger na identidade (fase, confronto, perna);
   3. --all RECUSA se o ledger ja tiver entrega da perna (nada enviado);
   4. sem modo, com os dois modos, ou perna sem placar -> recusa, nada enviado;
-  5. o corpo traz o aviso de correcao, o placar na orientacao do bolao e o palpite de vaga.
+  5. o corpo traz o aviso de correcao, o placar na orientacao do bolao e o palpite de vaga;
+  6. --correction-id registra a correcao como `<perna>~<id>`, recusa a mesma correcao duas vezes.
 Hermetico. Destinatarios em dominio reservado (.test).
 """
 import copy
@@ -158,6 +159,44 @@ def _corpo():
             f"'sem palpite' {corpo.count('sem palpite')}x para {sem} entrada(s) sem palpite da ida: o palpite de vaga sumiu")
 
 test("corpo: aviso no topo, Vasco 0–1 Palmeiras, palpites de vaga", _corpo)
+
+
+def _correcao_de_perna_ja_entregue():
+    # 2026-11-08: o e-mail errado saiu para a MESMA perna. Sem id a correcao seria recusada para sempre.
+    lg = Ledger(entregues={entity_id("semifinal", "espn-palmeiras_vasco", "first")})
+    env, erro, _ = rodar(estado_corrigido(), lg, "--all", "--correction-id", "correcao-2026-11-08")
+    _assert(erro is None, f"saiu com erro: {erro}")
+    _assert(len(env) == len(FIX["entries"]), f"{len(env)} enviados")
+    _assert(lg.reservas[0][:3] == ("semifinal", "espn-palmeiras_vasco", "first~correcao-2026-11-08"), lg.reservas)
+    _assert(all(m[2] == "first~correcao-2026-11-08" for m in lg.marcados), lg.marcados)
+
+test("--all --correction-id: perna ja entregue, correcao registrada como first~<id>", _correcao_de_perna_ja_entregue)
+
+
+def _mesma_correcao_duas_vezes():
+    lg = Ledger(entregues={entity_id("semifinal", "espn-palmeiras_vasco", "first"),
+                           entity_id("semifinal", "espn-palmeiras_vasco", "first~correcao-2026-11-08")})
+    env, erro, _ = rodar(estado_corrigido(), lg, "--all", "--correction-id", "correcao-2026-11-08")
+    _assert(env == [] and erro is not None and "ja tem entrega" in str(erro), f"reenviou a mesma correcao: {erro}")
+
+test("--all --correction-id ja entregue -> recusa, nada enviado", _mesma_correcao_duas_vezes)
+
+
+def _id_invalido():
+    for ruim in ("A:b", "x", "com espaco", "../x", "Maiuscula-123"):
+        env, erro, _ = rodar(estado_corrigido(), Ledger(), "--all", "--correction-id", ruim)
+        _assert(env == [] and erro is not None, f"aceitou id {ruim!r}")
+
+test("--correction-id invalido (':' quebraria a chave do ledger) -> recusa", _id_invalido)
+
+
+def _teste_com_id_nao_toca_ledger():
+    lg = Ledger()
+    env, erro, _ = rodar(estado_corrigido(), lg, "--only-entry", UM, "--correction-id", "correcao-2026-11-08")
+    _assert(erro is None and len(env) == 1 and "[TESTE]" in env[0][1], f"{erro} {len(env)}")
+    _assert(lg.reservas == [] and lg.marcados == [], "o teste tocou o ledger")
+
+test("--only-entry com --correction-id continua sem ledger", _teste_com_id_nao_toca_ledger)
 
 print(f"\n{'✗' if fail else '✓'} {ok} ok, {fail} falha(s)")
 sys.exit(1 if fail else 0)

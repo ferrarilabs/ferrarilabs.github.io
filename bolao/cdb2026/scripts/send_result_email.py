@@ -1230,6 +1230,16 @@ def run_auto():
 #                        RECUSA se o ledger já tiver entrega dessa perna -- duas correções iguais na
 #                        caixa de 12 pessoas é o incidente #221 de novo.
 # Um dos dois é obrigatório: não existe padrão que mande para todos.
+#
+#   --correction-id <id> (2026-11-08) a correção de uma perna cuja entrega JÁ está no ledger. Na
+#                        volta da semifinal o e-mail errado saiu para a MESMA perna que precisa ser
+#                        corrigida (Vasco "avançava"), então a identidade (fase, confronto, perna)
+#                        já tem entrega e o --all recusaria para sempre. Com o id, a correção vai
+#                        para o ledger como `<perna>~<id>`: uma notificação própria, que continua
+#                        recusando se ESTA correção já tiver saído. A perna real não é tocada.
+_CORRECAO_ID = re.compile(r"^[a-z0-9][a-z0-9-]{2,63}$")
+
+
 def _send_leg(args):
     idx = args.index("--send-leg")
     try:
@@ -1245,6 +1255,10 @@ def _send_leg(args):
             raise SystemExit(f"{name} precisa de um valor")
         return args[j + 1]
     note_file, only = _opt("--note-file"), _opt("--only-entry")
+    correcao = _opt("--correction-id")
+    if correcao is not None and not _CORRECAO_ID.match(correcao):
+        raise SystemExit("--correction-id: so minusculas, digitos e '-', 3 a 64 caracteres")
+    leg_ledger = f"{leg}~{correcao}" if correcao else leg
     todos = "--all" in args
     if not note_file or (bool(only) == todos):
         raise SystemExit("--send-leg exige --note-file e exatamente um entre --only-entry <nome> e --all")
@@ -1276,10 +1290,10 @@ def _send_leg(args):
         if reg is None:
             raise SystemExit("ledger indisponivel: sem ele nao da para provar que esta correcao ainda nao saiu")
         from result_email_ledger import entity_id
-        if entity_id(phase_id, tie_id, leg) in reg.delivered_entity_ids("2026-01-01T00:00:00Z"):
-            raise SystemExit(f"o ledger ja tem entrega de {phase_id}/{tie_id}/{leg}: correcao NAO reenviada")
+        if entity_id(phase_id, tie_id, leg_ledger) in reg.delivered_entity_ids("2026-01-01T00:00:00Z"):
+            raise SystemExit(f"o ledger ja tem entrega de {phase_id}/{tie_id}/{leg_ledger}: correcao NAO reenviada")
         subject = _subject_policy.assunto("FUTEBOL_RESULTADO_PARCIAL", texto)
-        sent, errors = _send_to_all(state, html, subject, ledger_ref=(phase_id, tie_id, leg), ledger=reg)
+        sent, errors = _send_to_all(state, html, subject, ledger_ref=(phase_id, tie_id, leg_ledger), ledger=reg)
     print(f"\n{'✓' if not errors else '⚠'} {sent} sent, {len(errors)} errors  [{subject}]")
     for err in errors:
         print(f"  ERROR: {err}")
