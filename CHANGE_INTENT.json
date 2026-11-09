@@ -1,0 +1,14 @@
+{
+  "declarations": [
+    {
+      "surface_id": "NOTIFICATION_WORKFLOWS",
+      "reason": "Em 2026-11-08 o e-mail de resultado da volta Vasco x Palmeiras disse que o Vasco avancava; o Palmeiras avancou nos penaltis. O e-mail errado saiu para a MESMA perna a corrigir, e o --send-leg --all recusa porque o ledger ja tem entrega dela. Pedido do Eduardo em 2026-11-08.",
+      "expected_behavior_change": "cdb2026_result_correction.yml ganha o input opcional correction_id, repassado como --correction-id ao send_result_email.py --send-leg. Com ele, a correcao e registrada no ledger como <perna>~<id> e continua recusando a mesma correcao duas vezes. Sem ele o comportamento e identico. Continua so workflow_dispatch, nenhum cron muda, padrao continua TESTE.",
+      "tests_required": [
+        "cron-coverage",
+        "email-send-safety",
+        "powerball-workflow-arming"
+      ]
+    }
+  ]
+}
