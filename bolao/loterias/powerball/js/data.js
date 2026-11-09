@@ -1216,7 +1216,7 @@ window.POWERBALL_DRAWS = [
       { name: "Ewerton Gruba Silva", cotas: 1, valor: 10, metodo: "Reserva dos ganhadores de 02/11", data: "07/11/2026", hora: "8:43:46 AM", status: "verificado", state: "NC" },
       { name: "Gustavo Bossle", cotas: 1, valor: 10, metodo: "Reserva dos ganhadores de 02/11", data: "07/11/2026", hora: "8:43:46 AM", status: "verificado", state: "NC" },
       { name: "Leandro Augustineli", cotas: 1, valor: 10, metodo: "Reserva dos ganhadores de 02/11", data: "07/11/2026", hora: "8:43:46 AM", status: "verificado", state: "NC" },
-      { name: "Marcelo Barsotti", cotas: 1, valor: 10, metodo: "Pix", data: "07/11/2026", hora: "8:43:46 AM", status: "verificado", state: "ON" },
+      { name: "Marcelo Barsotti", cotas: 1, valor: 10, metodo: "Pix", data: "09/11/2026", hora: "9:41:07 AM", status: "verificado", state: "ON" },
       { name: "Marcelo G de Jesus", cotas: 1, valor: 10, metodo: "Reserva dos ganhadores de 02/11", data: "07/11/2026", hora: "8:43:46 AM", status: "verificado", state: "FL" },
       { name: "Marcelo Minghetti Pereira", cotas: 1, valor: 10, metodo: "Reserva dos ganhadores de 02/11", data: "07/11/2026", hora: "8:43:46 AM", status: "verificado", state: "NC" },
       { name: "Marcelo Moreira", cotas: 1, valor: 10, metodo: "Reserva dos ganhadores de 02/11", data: "07/11/2026", hora: "8:43:46 AM", status: "verificado", state: "NC" },
