@@ -195,6 +195,7 @@ def fetch_espn_candidates():
             "awayScore": _parse(m.get("awayScore")) if scored else None,
             "homeWinner": bool(scored and m.get("homeWinner") is True),
             "awayWinner": bool(scored and m.get("awayWinner") is True),
+            "statusName": (m.get("statusName") or "").upper(),
             "venue":     m.get("venue") or "",
             "city":      m.get("city") or "",
         })
@@ -976,6 +977,42 @@ def _find_new_legs(state, espn_candidates):
     return found
 
 
+def _penalty_winner(ev):
+    """O TIME que venceu nos penaltis, ou None se a ESPN ainda nao disse isso de forma inequivoca.
+
+    #598 (2026-11-08): a volta Vasco 2 x 1 Palmeiras empatou o agregado e o Palmeiras passou nos
+    penaltis, mas o --auto das 22:26Z travou o Vasco. `homeWinner`/`awayWinner` sozinhos nao bastam:
+    num jogo que acabou e ainda nao tem a disputa registrada, o flag pode estar marcando quem venceu
+    a PARTIDA, nao o confronto. So vale com o status FINAL de penaltis e exatamente um flag ligado.
+    `"PEN"` sozinho nao serve: casaria com STATUS_SUSPENDED.
+    """
+    if not ev or ev.get("state") != "post" or ev.get("postponed"):
+        return None
+    status = (ev.get("statusName") or "").upper()
+    if not ("FINAL_PEN" in status or "SHOOTOUT" in status or "PENALT" in status):
+        return None
+    if bool(ev.get("homeWinner")) == bool(ev.get("awayWinner")):
+        return None
+    return ev["homeTeam"] if ev.get("homeWinner") else ev["awayTeam"]
+
+
+def _leg_needs_penalty_winner(state, phase_id, tie_id, leg, gh, ga):
+    """True quando gravar ESTA perna completa um confronto ainda nao travado com agregado empatado:
+    ai quem avanca sai dos penaltis, e a perna so pode ser gravada quando eles forem conhecidos."""
+    tie = state["phases"][phase_id]["ties"][tie_id]
+    if tie.get("qualifiedTeamId"):
+        return False
+    fmt = PHASE_BY_ID[phase_id]["format"]
+    legs = legs_for_format(fmt)
+    m = {l: dict(tie["matches"].get(l) or {}) for l in legs}
+    m[leg].update({"goalsHome": gh, "goalsAway": ga})
+    if not all(m[l].get("goalsHome") is not None for l in legs):
+        return False
+    if fmt == "TWO_LEG":
+        return m["first"]["goalsHome"] + m["second"]["goalsAway"] == m["first"]["goalsAway"] + m["second"]["goalsHome"]
+    return m["single"]["goalsHome"] == m["single"]["goalsAway"]
+
+
 def _maybe_decide_tie(state, phase_id, tie_id, espn_candidates):
     """After a leg save, checks whether the tie is now fully resolved (both legs have scores) and
     not yet locked -- if so, determines the winner exactly like aggregateOrSingleTotals() +
@@ -1005,11 +1042,11 @@ def _maybe_decide_tie(state, phase_id, tie_id, espn_candidates):
     decisive_leg = "second" if fmt == "TWO_LEG" else "single"
     ev, _, _ = espn_event_for_leg(espn_candidates, tie, decisive_leg, legs)
     # O vencedor e o TIME que a ESPN marcou; o lado sai do nome, nao do mando nominal da perna.
-    if ev and ev.get("homeWinner"):
-        return "A" if ev["homeTeam"] == tie["teamA"] else "B"
-    if ev and ev.get("awayWinner"):
-        return "A" if ev["awayTeam"] == tie["teamA"] else "B"
-    return None  # no explicit penalty-winner signal yet — stays for the admin's manual flow
+    # So com o status final de penaltis (#598) -- ver _penalty_winner().
+    vencedor = _penalty_winner(ev)
+    if vencedor is None:
+        return None  # no explicit penalty-winner signal yet — stays for the admin's manual flow
+    return "A" if vencedor == tie["teamA"] else "B"
 
 
 def run_auto():
@@ -1132,6 +1169,15 @@ def run_auto():
         if not ev2 or ev2["homeScore"] != ev["homeScore"] or ev2["awayScore"] != ev["awayScore"]:
             print(f"  WARN {tie_id}:{leg}: result not stable across two checks — skipping for now, will retry next run.")
             continue
+        # #598: perna que fecha confronto empatado so entra quando as DUAS leituras trazem o mesmo
+        # vencedor nos penaltis com status final de penaltis. Senao, espera o proximo ciclo --
+        # gravar agora faria o e-mail sair sem quem avanca, ou com o time errado.
+        if _leg_needs_penalty_winner(state, phase_id, tie_id, leg, gh, ga):
+            v1, v2 = _penalty_winner(ev), _penalty_winner(ev2)
+            if v1 is None or v1 != v2:
+                print(f"  WARN {tie_id}:{leg}: agregado empatado e a ESPN ainda nao confirma o vencedor nos "
+                      f"penaltis ({ev.get('statusName')}/{ev2.get('statusName')}) — skipping for now, will retry next run.")
+                continue
         real_ok, real_detail = audit_scoring.check_match_is_real(ev2["dateISO"], home, away)
         shape_ok, shape_detail = audit_scoring.check_result_shape({"goalsHome": gh, "goalsAway": ga})
         if not (real_ok and shape_ok):

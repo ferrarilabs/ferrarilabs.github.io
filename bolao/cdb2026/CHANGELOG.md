@@ -1,5 +1,33 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.154 — confronto empatado só trava quando a ESPN confirma os pênaltis (#598)
+
+Causa raiz da semifinal de 2026-11-08: Vasco 2 × 1 Palmeiras na volta, agregado 2 × 2, Palmeiras
+5 × 4 nos pênaltis. O `--auto` das 22:26Z gravou a volta, travou o **Vasco** e mandou o e-mail.
+Com o agregado empatado, `_maybe_decide_tie()` confiava em `homeWinner`/`awayWinner` da PRIMEIRA
+leitura da ESPN sem olhar o status, e a reconfirmação de 20 s só comparava o placar. Num jogo
+encerrado cuja disputa de pênaltis ainda não está registrada, esse flag marca quem venceu a
+PARTIDA. O teste de controle negativo reproduz, com o código antigo, exatamente o log daquela
+execução ("Palmeiras 1–2 Vasco … Vasco avança").
+
+**`send_result_email.py --auto`:** a perna que fecha um confronto com agregado empatado só é
+gravada (e o e-mail só sai) quando AS DUAS leituras da ESPN trazem status final de pênaltis
+(`FINAL_PEN`/`SHOOTOUT`/`PENALT`, nunca `PEN` solto, que casaria com `STATUS_SUSPENDED`), exatamente
+um flag de vencedor ligado, e o MESMO vencedor. Senão a perna espera o próximo ciclo, como já
+acontece com placar instável. `_maybe_decide_tie()` usa a mesma regra.
+
+**`app.js` `autoSyncEspnResults()` (admin):** mesma regra via `espnPenaltyWinnerSide()`; o
+candidato da ESPN ganha `penaltiesFinal`. Sem confirmação o confronto fica sem travar e o próximo
+ciclo tenta de novo.
+
+Agregado decidido no tempo normal não muda. Pontuação, palpites e regras não mudam. A regra de
+quem avança é a mesma; muda apenas QUANDO o sistema aceita o sinal da ESPN. Autorizado pelo
+Eduardo em 2026-11-08. Testes: `test_penalty_winner_guard.py` (9, `run_auto()` real) e
+`test_penalty_winner_guard.mjs` (8), registrados no `verify.mjs`.
+
+Propagação: o BR2026 não tem confronto eliminatório (pontos corridos) e a Copa do Mundo está
+arquivada, então nenhum dos dois tem este caminho.
+
 ## Correção de dado (sem bump de siteVersion) — 2026-11-08, semifinal: Palmeiras avança
 
 Eduardo: "resultado do bolao saiu incorreto, Palmeiras avanca, corrija isso." A volta da semifinal
