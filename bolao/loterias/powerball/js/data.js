@@ -1216,7 +1216,7 @@ window.POWERBALL_DRAWS = [
       { name: "Ewerton Gruba Silva", cotas: 1, valor: 10, metodo: "Reserva dos ganhadores de 02/11", data: "07/11/2026", hora: "8:43:46 AM", status: "verificado", state: "NC" },
       { name: "Gustavo Bossle", cotas: 1, valor: 10, metodo: "Reserva dos ganhadores de 02/11", data: "07/11/2026", hora: "8:43:46 AM", status: "verificado", state: "NC" },
       { name: "Leandro Augustineli", cotas: 1, valor: 10, metodo: "Reserva dos ganhadores de 02/11", data: "07/11/2026", hora: "8:43:46 AM", status: "verificado", state: "NC" },
-      { name: "Marcelo Barsotti", cotas: 1, valor: 10, metodo: "Pix", data: "07/11/2026", hora: "8:43:46 AM", status: "verificado", state: "ON" },
+      { name: "Marcelo Barsotti", cotas: 1, valor: 10, metodo: "Pix", data: "09/11/2026", hora: "9:41:07 AM", status: "verificado", state: "ON" },
       { name: "Marcelo G de Jesus", cotas: 1, valor: 10, metodo: "Reserva dos ganhadores de 02/11", data: "07/11/2026", hora: "8:43:46 AM", status: "verificado", state: "FL" },
       { name: "Marcelo Minghetti Pereira", cotas: 1, valor: 10, metodo: "Reserva dos ganhadores de 02/11", data: "07/11/2026", hora: "8:43:46 AM", status: "verificado", state: "NC" },
       { name: "Marcelo Moreira", cotas: 1, valor: 10, metodo: "Reserva dos ganhadores de 02/11", data: "07/11/2026", hora: "8:43:46 AM", status: "verificado", state: "NC" },
@@ -1227,13 +1227,39 @@ window.POWERBALL_DRAWS = [
       { name: "Thiago Locatelli", cotas: 1, valor: 10, metodo: "Reserva dos ganhadores de 02/11", data: "07/11/2026", hora: "8:43:46 AM", status: "verificado", state: "TX" }
     ],
 
-    // Sem bilhetes ainda. Os numeros entram depois da compra -- abrir o bolao nunca dependeu
-    // de ja existirem jogos.
     sharedTickets: {
-      compradoPor: null,
-      dataComprovante: null,
-      valorPorTicket: 5,
-      series: []
+      compradoPor: "Eduardo Ferrari (organizador)",
+      dataComprovante: "09/11/2026",
+      valorPorTicket: 5, // multiplicador embutido em cada aposta
+      series: [
+        {
+          serial: "290C0E9F5E06FC8BE", qtd: 20, jogos: "1–20",
+          numeros: [
+            "01-19-32-36-56 — MB 12 — 5X", "01-44-45-51-54 — MB 19 — 3X", "02-05-28-36-49 — MB 17 — 2X",
+            "02-14-23-38-43 — MB 08 — 3X", "03-04-11-50-66 — MB 04 — 2X", "03-21-40-41-68 — MB 09 — 4X",
+            "04-09-24-55-63 — MB 13 — 2X", "04-21-30-45-69 — MB 14 — 2X", "05-16-37-61-66 — MB 19 — 5X",
+            "06-11-21-42-58 — MB 01 — 4X", "06-13-47-50-65 — MB 03 — 2X", "07-12-18-33-49 — MB 12 — 3X",
+            "07-31-34-37-64 — MB 11 — 2X", "08-13-20-59-70 — MB 17 — 3X", "08-25-28-32-39 — MB 24 — 2X",
+            "09-19-50-61-64 — MB 05 — 2X", "09-27-52-65-68 — MB 10 — 2X", "10-17-38-47-55 — MB 08 — 2X",
+            "10-27-48-58-59 — MB 06 — 2X", "11-12-26-35-65 — MB 15 — 3X"
+          ]
+        },
+        {
+          serial: "266FD95C74409EC75", qtd: 10, jogos: "21–30",
+          numeros: [
+            "12-19-28-44-53 — MB 01 — 4X", "13-39-43-54-56 — MB 23 — 3X", "14-17-40-53-58 — MB 07 — 2X",
+            "15-16-32-57-69 — MB 02 — 2X", "15-20-26-60-67 — MB 20 — 2X", "17-22-33-41-46 — MB 18 — 3X",
+            "18-25-42-61-63 — MB 21 — 2X", "20-22-29-35-54 — MB 22 — 5X", "23-25-30-56-70 — MB 02 — 3X",
+            "24-29-46-57-62 — MB 14 — 2X"
+          ]
+        },
+        {
+          serial: "2BDD462518D5D65C7", qtd: 3, jogos: "31–33",
+          numeros: [
+            "31-38-51-52-60 — MB 20 — 4X", "31-39-48-55-62 — MB 16 — 2X", "34-47-49-52-67 — MB 24 — 2X"
+          ]
+        }
+      ]
     },
 
     finance: {
@@ -1241,8 +1267,8 @@ window.POWERBALL_DRAWS = [
       // Premio do sorteio anterior + o que ficou guardado. Derivado do que esta gravado, nao
       // arbitrado aqui.
       creditoSorteioAnterior: 16,
-      valorUtilizado: 0,
-      valorGuardadoProximoSorteio: 0,
+      valorUtilizado: 165, // 33 x US$5
+      valorGuardadoProximoSorteio: 1, // 150 + 16 - 165
       ajustesPendentes: 0
     },
 
