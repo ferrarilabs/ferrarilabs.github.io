@@ -1,0 +1,20 @@
+{
+  "_o_que_e": "Correcao de quem avanca na semifinal Vasco x Palmeiras, aplicada por apply_correction.py (cdb2026_operator.yml, comando apply-correction). Cada operacao so roda se o banco estiver EXATAMENTE em expectBefore; depois de gravar, o estado e relido e comparado com expectAfter. Nunca envia e-mail.",
+  "id": "2026-11-08-semifinal-volta",
+  "approvedBy": "Eduardo, 2026-11-08: 'resultado do bolao saiu incorreto, Palmeiras avanca, corrija isso.'",
+  "reason": "Volta da semifinal (ESPN 401913107, 2026-11-08T20:00Z, Sao Januario): Vasco 2 x 1 Palmeiras, agregado 2 x 2, Palmeiras 5 x 4 nos penaltis (ESPN STATUS_FINAL_PEN, awayWinner=Palmeiras; Gazeta Esportiva e O Povo confirmam). O --auto de 22:26Z gravou o placar certo mas travou o confronto com qualifiedTeamId A (Vasco).",
+  "sources": [
+    "https://www.gazetaesportiva.com/times/palmeiras/palmeiras-vasco-semifinal-copa-do-brasil-08-11-2026/",
+    "https://www.opovo.com.br/esportes/futebol/times/palmeiras/2026/11/08/palmeiras-elimina-vasco-nos-penaltis-e-garante-vaga-na-final-da-copa-do-brasil.html"
+  ],
+  "operations": [
+    {
+      "op": "requalify", "phaseId": "semifinal", "tieId": "espn-palmeiras_vasco", "leg": "second",
+      "goalsHome": 1, "goalsAway": 2, "qualifiedTeamId": "B",
+      "_placar": "Na orientacao nominal do bolao a volta tem Palmeiras (teamB) como mandante: 1 x 2 = Vasco 2 x 1 Palmeiras da ESPN. O placar NAO muda; so o classificado.",
+      "expectBefore": { "homeTeam": "Palmeiras", "awayTeam": "Vasco", "goalsHome": 1, "goalsAway": 2, "status": "FINAL", "qualifiedTeamId": "A" },
+      "expectAfter": { "homeTeam": "Palmeiras", "awayTeam": "Vasco", "goalsHome": 1, "goalsAway": 2, "status": "FINAL", "qualifiedTeamId": "B" }
+    }
+  ],
+  "_nao_muda": "A ida (Vasco 0 x 1 Palmeiras), teamA/teamB, horarios e palpites. Os penaltis (5 x 4) nao sao gravados: lock-tie do servidor nao aceita campos de penaltis; o site mostra agregado 2 x 2 e 'Avanca: Palmeiras'."
+}

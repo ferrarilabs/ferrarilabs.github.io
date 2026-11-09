@@ -1,5 +1,40 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## E-mail de correção com identidade própria no ledger (sem bump de siteVersion) — 2026-11-08
+
+O e-mail de 2026-11-08 (22:27Z) da volta de Vasco × Palmeiras disse que o Vasco avançava; quem
+avançou foi o Palmeiras, nos pênaltis. Diferente de 01/11, o e-mail errado saiu para a MESMA perna
+que precisa ser corrigida, então o `--send-leg --all` recusaria para sempre ("o ledger ja tem
+entrega"), que é a guarda do incidente #221 funcionando como deve.
+
+`--send-leg` ganha `--correction-id <id>` (e o input `correction_id` no
+`cdb2026_result_correction.yml`): a correção é registrada no ledger como `<perna>~<id>`, uma
+notificação própria. A guarda continua valendo para ela: a MESMA correção não sai duas vezes. Sem o
+id, nada muda. O id só aceita minúsculas, dígitos e `-`, porque `:` quebraria a chave do ledger.
+Aviso de correção em `data/corrections/2026-11-08-semifinal-volta-email.html`.
+
+Nenhuma pontuação, nenhum placar e nenhum palpite mudam. Nada é enviado por este PR: o envio é um
+`workflow_dispatch` manual, primeiro em TESTE.
+## Correção de dado (sem bump de siteVersion) — 2026-11-08, semifinal: Palmeiras avança
+
+Eduardo: "resultado do bolao saiu incorreto, Palmeiras avanca, corrija isso." A volta da semifinal
+(ESPN 401913107, São Januário) terminou Vasco 2 x 1 Palmeiras, agregado 2 x 2, e o Palmeiras venceu
+nos pênaltis por 5 x 4 (ESPN `STATUS_FINAL_PEN` com `awayWinner`=Palmeiras; Gazeta Esportiva e
+O Povo confirmam). O `--auto` das 22:26Z gravou o placar certo, mas travou o confronto com
+`qualifiedTeamId: "A"` (Vasco) e mandou o e-mail de resultado com Vasco classificado.
+
+O servidor não troca o classificado de um confronto travado (lock-tie recusa lado diferente e
+unlock-tie não limpa `qualifiedTeamId`). `apply_correction.py` ganhou a operação `requalify`:
+retrata a perna decisiva (clear-leg, que limpa também a classificação), regrava o MESMO placar
+(save-leg) e trava o lado certo (lock-tie). O plano `data/corrections/2026-11-08-semifinal-volta.json`
+exige o banco exatamente como lido em produção e é idempotente. Os pênaltis (5 x 4) não são
+gravados, porque o lock-tie do servidor não aceita esses campos; o site mostra agregado 2 x 2 e
+"Avança: Palmeiras".
+
+Placar, ida, palpites, horários e topologia não mudam. O +5 de classificado passa a ir para quem
+apostou no Palmeiras, como manda a regra (nenhuma constante ou fórmula de pontuação mudou). Nenhum
+e-mail é enviado por esta correção.
+
 ## Backend/pipeline fix (sem bump de siteVersion) — 2026-10-18, #465
 
 Mesma correção aplicada em `bolao/br2026/CHANGELOG.md` (#465) — código compartilhado em
