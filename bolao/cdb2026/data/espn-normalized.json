@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.copa_do_brazil",
   "provider": "espn",
-  "generatedAt": "2026-11-07T23:55:56Z",
-  "sourceUpdatedAt": "2026-11-07T23:55:56Z",
+  "generatedAt": "2026-11-08T22:46:04Z",
+  "sourceUpdatedAt": "2026-11-08T22:46:04Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "2e0fa7e1e243973bdbd75944a76cecef23fe638063efaa5c613bd3c555080263",
+  "payloadHash": "5b1d40c49ad6d384a43597d7478dba863dad4fbd9958b21c4d70527a463e67b6",
   "matches": [
     {
       "id": "401858546",
@@ -14208,26 +14208,445 @@
     {
       "id": "401913107",
       "date": "2026-11-08T20:00Z",
-      "state": "pre",
-      "statusName": "STATUS_SCHEDULED",
-      "statusDescription": "Scheduled",
-      "statusShortDetail": "Scheduled",
-      "statusDetail": "Sun, November 8th at 3:00 PM EST",
-      "completed": false,
+      "state": "post",
+      "statusName": "STATUS_FINAL_PEN",
+      "statusDescription": "Final Score - After Penalties",
+      "statusShortDetail": "FT-Pens",
+      "statusDetail": "FT-Pens",
+      "completed": true,
       "homeTeam": "Vasco",
       "awayTeam": "Palmeiras",
       "homeTeamId": "3454",
       "awayTeamId": "2029",
-      "homeScore": 0,
-      "awayScore": 0,
+      "homeScore": 2,
+      "awayScore": 1,
       "homeWinner": false,
-      "awayWinner": false,
+      "awayWinner": true,
       "venue": "Estádio São Januário",
       "city": "Rio de Janeiro",
-      "clockSec": 0.0,
-      "clockStr": "0'",
-      "period": null,
-      "details": []
+      "clockSec": 5820.0,
+      "clockStr": "97'",
+      "period": 5,
+      "details": [
+        {
+          "type": {
+            "text": "Goal"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "3454"
+          },
+          "clock": {
+            "value": 924.0,
+            "displayValue": "16'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Facundo Colidio",
+              "shortName": "F. Colidio"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "3454"
+          },
+          "clock": {
+            "value": 1153.0,
+            "displayValue": "20'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Gabriel Pereira",
+              "shortName": "G. Pereira"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "3454"
+          },
+          "clock": {
+            "value": 1452.0,
+            "displayValue": "25'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Thiago Mendes",
+              "shortName": "T. Mendes"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "2029"
+          },
+          "clock": {
+            "value": 2700.0,
+            "displayValue": "45'+1'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Maurício",
+              "shortName": "Maurício"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "3454"
+          },
+          "clock": {
+            "value": 2700.0,
+            "displayValue": "45'+5'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Daniel Fuzato",
+              "shortName": "D. Fuzato"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "2029"
+          },
+          "clock": {
+            "value": 2700.0,
+            "displayValue": "45'+6'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Jhon Arias",
+              "shortName": "J. Arias"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Goal"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "2029"
+          },
+          "clock": {
+            "value": 3291.0,
+            "displayValue": "55'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Joaquín Piquerez",
+              "shortName": "J. Piquerez"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "2029"
+          },
+          "clock": {
+            "value": 3553.0,
+            "displayValue": "60'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Marcelo Lomba",
+              "shortName": "Marcelo Lomba"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Goal"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "3454"
+          },
+          "clock": {
+            "value": 4532.0,
+            "displayValue": "76'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "José Luis Rodríguez",
+              "shortName": "J. Rodríguez"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "3454"
+          },
+          "clock": {
+            "value": 4915.0,
+            "displayValue": "82'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Andrés Gómez",
+              "shortName": "A. Gómez"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "2029"
+          },
+          "clock": {
+            "value": 4995.0,
+            "displayValue": "84'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Alexander Barboza",
+              "shortName": "A. Barboza"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "2029"
+          },
+          "clock": {
+            "value": 5231.0,
+            "displayValue": "88'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Marlon Freitas",
+              "shortName": "M. Freitas"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "3454"
+          },
+          "clock": {
+            "value": 5400.0,
+            "displayValue": "90'+3'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Cuiabano",
+              "shortName": "Cuiabano"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Penalty - Scored"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "2029"
+          },
+          "clock": {
+            "value": 5418.0,
+            "displayValue": "91'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Vitor Roque",
+              "shortName": "V. Roque"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Penalty - Scored"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "2029"
+          },
+          "clock": {
+            "value": 5515.0,
+            "displayValue": "92'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Gustavo Gómez",
+              "shortName": "G. Gómez"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Penalty - Scored"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "3454"
+          },
+          "clock": {
+            "value": 5578.0,
+            "displayValue": "93'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Thiago Mendes",
+              "shortName": "T. Mendes"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Penalty - Scored"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "2029"
+          },
+          "clock": {
+            "value": 5638.0,
+            "displayValue": "94'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Ramón Sosa",
+              "shortName": "R. Sosa"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Penalty - Scored"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "3454"
+          },
+          "clock": {
+            "value": 5693.0,
+            "displayValue": "95'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Santiago Sosa",
+              "shortName": "S. Sosa"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Penalty - Scored"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "2029"
+          },
+          "clock": {
+            "value": 5748.0,
+            "displayValue": "96'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Andreas Pereira",
+              "shortName": "A. Pereira"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Penalty - Scored"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "3454"
+          },
+          "clock": {
+            "value": 5821.0,
+            "displayValue": "98'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Facundo Colidio",
+              "shortName": "F. Colidio"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Penalty - Scored"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "3454"
+          },
+          "clock": {
+            "value": 5929.0,
+            "displayValue": "99'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "José Luis Rodríguez",
+              "shortName": "J. Rodríguez"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Penalty - Scored"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "2029"
+          },
+          "clock": {
+            "value": 5985.0,
+            "displayValue": "100'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Marlon Freitas",
+              "shortName": "M. Freitas"
+            }
+          ]
+        }
+      ]
     },
     {
       "id": "401913106",

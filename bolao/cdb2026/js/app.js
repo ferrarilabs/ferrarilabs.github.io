@@ -5364,6 +5364,12 @@ async function fetchEspnCandidates() {
         // Mesma guarda `!postponed` (ver homeScore acima): um jogo adiado nunca tem vencedor.
         homeWinner: evState === "post" && !postponed ? home?.winner === true : null,
         awayWinner: evState === "post" && !postponed ? away?.winner === true : null,
+        // #598 (2026-11-08): o `winner` acima so diz quem passou nos penaltis quando a ESPN ja
+        // fechou o jogo COMO decidido nos penaltis. Antes disso ele pode marcar quem venceu a
+        // PARTIDA (Vasco 2x1, com o Palmeiras classificado nos penaltis). "PEN" sozinho nao serve:
+        // casaria com STATUS_SUSPENDED.
+        penaltiesFinal: evState === "post" && !postponed
+          && (statusName.includes("FINAL_PEN") || statusName.includes("SHOOTOUT") || statusName.includes("PENALT")),
         venue: comp.venue?.fullName || "",
         city: comp.venue?.address?.city || "",
         state: evState,
@@ -5721,6 +5727,16 @@ function withinResultMatchWindow(candidateDateISO, knownKickoffISO) {
 // a perna cuja data é a mais próxima do evento; os gols vão para cada TIME pelo nome. Sem todas as datas, vale a regra antiga
 // (mandante igual + janela), recusando jogo a menos de 48h do horário de OUTRA perna.
 // Devolve { ev, goalsHome, goalsAway, liveHome, liveAway } ou null.
+// Lado ("A"/"B") que a ESPN declarou vencedor NOS PÊNALTIS, ou null se ela ainda não disse isso
+// de forma inequívoca (#598): exige `penaltiesFinal` (status final de pênaltis) e exatamente um flag
+// de vencedor. O lado sai do NOME do time, nunca do mando nominal da perna.
+function espnPenaltyWinnerSide(ev, tie) {
+  if (ev?.penaltiesFinal !== true) return null;
+  if ((ev.homeWinner === true) === (ev.awayWinner === true)) return null;
+  const vencedor = ev.homeWinner === true ? ev.homeTeam : ev.awayTeam;
+  return vencedor === tie.teamA ? "A" : "B";
+}
+
 function espnEventForLeg(candidates, tie, leg, legs, accept = () => true) {
   const home = leg === "second" ? tie.teamB : tie.teamA;
   const away = leg === "second" ? tie.teamA : tie.teamB;
@@ -5798,9 +5814,10 @@ async function autoSyncEspnResults(s) {
       const decisiveLeg  = format === "TWO_LEG" ? "second" : "single";
       const ev = espnEventForLeg(candidates, tie, decisiveLeg, legs)?.ev;
       // O vencedor é o TIME que a ESPN marcou; o lado sai do nome, não do mando nominal da perna.
-      if (ev?.homeWinner === true) qualified = ev.homeTeam === tie.teamA ? "A" : "B";
-      else if (ev?.awayWinner === true) qualified = ev.awayTeam === tie.teamA ? "A" : "B";
-      // Sem sinal de vencedor da ESPN: fica sem travar, cai pro fluxo manual existente.
+      // Só com o status final de pênaltis e exatamente um flag ligado (#598).
+      qualified = espnPenaltyWinnerSide(ev, tie);
+      // Sem sinal confirmado da ESPN: fica sem travar, cai pro fluxo manual existente (e o
+      // próximo ciclo tenta de novo, porque o confronto continua sem qualifiedTeamId).
     }
 
     if (!qualified) return;
