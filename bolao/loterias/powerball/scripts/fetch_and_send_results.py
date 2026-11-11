@@ -73,6 +73,39 @@ def _draw_date_key(iso_or_date):
     return str(iso_or_date)[:10]
 
 
+# ─── 2026-11-11: MEGA MILLIONS LE PRIMEIRO A FONTE OFICIAL DO JOGO ──────────────────────────
+#
+# O data.ny.gov e um conjunto de AUDITORIA: publica o Mega Millions na manha SEGUINTE (o 11/10 entrou
+# as 08:34 UTC, 4h30 depois do sorteio), depois de todas as janelas noturnas. O 06/11 saiu 7h30
+# atrasado e o 10/11 so saiu por reenvio manual. megamillions.com publica minutos depois do sorteio e
+# ja e a PRIMARIA do coletor (lottery_sources.py, `megamillions_official`). Aqui ela vem primeiro e o
+# data.ny.gov fica de fallback. A validacao e a da propria lottery_sources.valida: a data da fonte tem
+# de ser a do sorteio ESPERADO (megamillions.com so mostra o ultimo; o anterior e recusado como
+# RESULTADO_DESATUALIZADO), 5 brancas distintas na faixa e Mega Ball 1..24.
+OFFICIAL_FIRST = {"megamillions": "megamillions_official"}
+
+
+def _fetch_official_primary(game_type, alvo):
+    """(resultado|None, motivo). Fonte oficial do jogo, validada para o sorteio `alvo`."""
+    fonte = OFFICIAL_FIRST.get(game_type)
+    if not fonte:
+        return None, "SEM_PRIMARIA"
+    try:
+        sys.path.insert(0, os.path.join(REPO_ROOT, "bolao", "loterias", "scripts"))
+        import lottery_sources as LS
+        # Menos tentativas que o coletor: o data.ny.gov ainda vem depois, e o job tem 10 min.
+        fetcher = (lambda _f, _j, _d: LS._megamillions_oficial(LS._mm_api(tentativas=2, timeout=20))) \
+            if fonte == "megamillions_official" else None
+        r = LS.busca(game_type, alvo, fonte, fetcher=fetcher)
+    except Exception as e:  # noqa: BLE001 — qualquer recusa cai no fallback, com motivo no log
+        return None, f"{type(e).__name__}: {e}"
+    # Mesmo formato do parse do data.ny.gov. No Mega Millions o multiplicador e da APOSTA
+    # (`multiplierOnTicket`); o do sorteio fica 1, igual ao que a linha do data.ny.gov produz.
+    return {"numbers": sorted(int(n) for n in r["numbers"]), "special": int(r["special"]),
+            "multiplier": int(r["multiplier"] or 1), "drawDate": r["drawDate"],
+            "source": fonte}, "OK"
+
+
 def fetch_official_result(game_type, expected_draw_date):
     """Resultado oficial DAQUELE sorteio, ou None.
 
@@ -85,6 +118,12 @@ def fetch_official_result(game_type, expected_draw_date):
 
     config = GAME_TYPES[game_type]
     alvo = _draw_date_key(expected_draw_date)
+    if game_type in OFFICIAL_FIRST:
+        primario, motivo = _fetch_official_primary(game_type, alvo)
+        if primario is not None:
+            print(f"   fonte: {primario['source']}")
+            return primario, "OK"
+        print(f"   {OFFICIAL_FIRST[game_type]} sem resultado de {alvo} ({motivo[:160]}); tentando data.ny.gov")
     try:
         # Filtro por data EXATA na propria fonte. Se a API mudar a ordenacao, ou passar a incluir
         # sorteios futuros, ou devolver a lista noutra ordem, nada disso muda o resultado aqui.
@@ -121,6 +160,7 @@ def fetch_official_result(game_type, expected_draw_date):
         print(f"❌ resultado malformado na fonte: {e}")
         return None, "RESULTADO_MALFORMADO"
     parsed["drawDate"] = _draw_date_key(row["draw_date"])
+    parsed["source"] = "ny_open_data"
     return parsed, "OK"
 
 
@@ -317,8 +357,60 @@ process.stdout.write(JSON.stringify({ total, jackpotHit, breakdown }));
         return None
 
 
+# ─── 2026-11-11: RESULTADO ATRASADO NAO E MAIS VERDE MUDO ────────────────────────────────────
+#
+# "Ainda nao publicado" sai 0 por desenho (ver ESTADOS_OK). Mas em 06/11 e 10/11 o resultado do Mega
+# Millions ficou horas sem sair e todas as execucoes ficaram verdes: ninguem soube. Passadas 2h do
+# sorteio sem resultado, isso deixa de ser normal.
+#
+#   >= 2h               `::warning::` + resumo do job, em QUALQUER execucao (visivel no Actions).
+#   >= ATRASO_VERMELHO  exit 1 (vermelho: o GitHub avisa o dono por e-mail), so em execucao
+#                       AGENDADA. Os disparos do live_cache_producer (workflow_dispatch) ficam no
+#                       aviso -- eles podem rodar de 15 em 15 min e virariam uma rajada de e-mails.
+#
+# O limiar vermelho depende de o jogo ter fonte rapida. Mega Millions tem a oficial (minutos), entao
+# 2h sem resultado significa as DUAS fontes falhando. Powerball ainda le so o data.ny.gov, que publica
+# na manha seguinte (~4h30-9h depois): 12h, para nao pintar de vermelho toda madrugada normal.
+ATRASO_AVISO = timedelta(hours=2)
+ATRASO_VERMELHO = {"megamillions": timedelta(hours=2), "powerball": timedelta(hours=12)}
+_ATRASO = {}
+
+
+def avisa_resultado_atrasado(draw, game_type, status, now=None, evento=None):
+    """Registra em `_ATRASO` e anuncia se o sorteio passou de 2h sem resultado. Devolve o registro."""
+    from datetime import timezone
+    _ATRASO.clear()
+    iso = (draw.get("drawing") or {}).get("drawDateIso") or draw.get("drawDateIso")
+    try:
+        quando = datetime.fromisoformat(iso)
+    except (TypeError, ValueError):
+        return {}
+    if quando.tzinfo is None:
+        quando = quando.replace(tzinfo=timezone.utc)
+    atraso = (now or datetime.now(timezone.utc)) - quando
+    if atraso < ATRASO_AVISO:
+        return {}
+    evento = evento if evento is not None else os.environ.get("GITHUB_EVENT_NAME", "")
+    vermelho = evento == "schedule" and atraso >= ATRASO_VERMELHO.get(game_type, ATRASO_AVISO)
+    horas = atraso.total_seconds() / 3600
+    msg = (f"Resultado de {game_type} {draw.get('id')} ainda sem fonte {horas:.1f}h depois do sorteio "
+           f"({status}). E-mail do resultado NAO saiu.")
+    print(f"::warning title=Resultado atrasado::{msg}")
+    resumo = os.environ.get("GITHUB_STEP_SUMMARY")
+    if resumo:
+        try:
+            with open(resumo, "a", encoding="utf-8") as f:
+                f.write(f"### ⚠️ Resultado atrasado\n\n{msg}\n")
+        except OSError:
+            pass
+    _ATRASO.update({"draw": draw.get("id"), "game": game_type, "status": status,
+                    "horas": round(horas, 1), "vermelho": vermelho})
+    return dict(_ATRASO)
+
+
 def check_and_update_results(game_type, dry_run=False, force_resend=False):
     """Check API for new results and update data.js if found."""
+    _ATRASO.clear()
     print(f"\n🔍 Checking {game_type.upper()} for new results...\n")
 
     # ─── ORDEM CORRIGIDA (P0, 2026-08-10) ────────────────────────────────────────────────────
@@ -360,6 +452,7 @@ def check_and_update_results(game_type, dry_run=False, force_resend=False):
     if official is None:
         print(f"⏳ RESULT_STATUS = {status}")
         print("   DATA_MUTATIONS = 0 | EMAILS_SENT = 0")
+        avisa_resultado_atrasado(target_draw, game_type, status)
         return False
 
     if _draw_date_key(official["drawDate"]) != _draw_date_key(target_draw["id"]):
@@ -908,6 +1001,8 @@ def run_lifecycle(game_type="powerball", dry_run=False, force_resend=False, deps
     # ── FATO 1: RESULTADO ──────────────────────────────────────────────────────────────────
     reconciliou = check_and_update_results(game_type, dry_run=dry_run, force_resend=force_resend)
     rel["resultReconciled"] = bool(reconciliou)
+    if _ATRASO:
+        rel["resultOverdue"] = dict(_ATRASO)
 
     # O sorteio alvo e seu resultado, LIDOS do estado canonico -- nao do retorno acima. Um
     # resultado reconciliado numa execucao ANTERIOR tem de continuar o ciclo de notificacao;
@@ -1243,6 +1338,12 @@ def main():
         print(f"  EXIT: 2 — estado NAO CLASSIFICADO: '{estado}'")
         print("=" * 60)
         return 2
+    atraso = rel.get("resultOverdue") or {}
+    if atraso.get("vermelho"):
+        print(f"  EXIT: 1 — resultado de {atraso['draw']} atrasado {atraso['horas']}h "
+              f"({atraso['status']}); o e-mail do resultado nao saiu")
+        print("=" * 60)
+        return 1
     print(f"  EXIT: 0 — '{estado}' e um estado normal, nada a fazer")
     print("=" * 60)
     return 0

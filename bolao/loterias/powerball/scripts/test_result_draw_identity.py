@@ -274,5 +274,178 @@ class EntregaParcialHistorica(unittest.TestCase):
                          "UNCERTAIN nunca e reenviado automaticamente")
 
 
+# ─── 2026-11-11: MEGA MILLIONS ATRASADO (06/11 e 10/11) ──────────────────────────────────────────
+#
+# O data.ny.gov publica o Mega Millions na manha seguinte (10/11: 08:34 UTC, sorteio 04:00 UTC) e o
+# GitHub acordou o workflow 3 vezes naquela noite. O e-mail do 06/11 saiu 7h30 atrasado e o do 10/11
+# so por reenvio manual, com todas as execucoes VERDES. Tres correcoes, tres conjuntos de testes.
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "scripts"))
+import lottery_sources as LS  # noqa: E402
+import should_kick_result_email as K  # noqa: E402
+from unittest import mock  # noqa: E402
+
+RAIZ = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", ".."))
+MM_ALVO = "2026-11-10"
+MM_ISO = "2026-11-10T23:00:00-05:00"
+LINHA_NY_MM = {"draw_date": "2026-11-10T00:00:00.000", "winning_numbers": "02 18 25 30 65", "mega_ball": "22"}
+
+
+def mm_api(play_date, n=(2, 18, 25, 30, 65), mball=22, megaplier=-1):
+    """Formato REAL de GetLatestDrawData (o `d` ja decodificado), lido em 2026-11-11."""
+    d = {"PlayDate": f"{play_date}T00:00:00", "MBall": mball, "Megaplier": megaplier}
+    d.update({f"N{i}": v for i, v in enumerate(n, 1)})
+    return {"Drawing": d}
+
+
+class MegaMillionsFonteOficialPrimeiro(unittest.TestCase):
+    def setUp(self):
+        self._orig = F.urllib.request.urlopen
+
+    def tearDown(self):
+        F.urllib.request.urlopen = self._orig
+
+    def test_oficial_do_sorteio_esperado_vence_sem_consultar_o_ny(self):
+        def ny_nao(*a, **k):
+            raise AssertionError("com a oficial respondendo, o data.ny.gov nao pode ser consultado")
+        F.urllib.request.urlopen = ny_nao
+        with mock.patch.object(LS, "_mm_api", return_value=mm_api(MM_ALVO)):
+            r, status = F.fetch_official_result("megamillions", MM_ALVO)
+        self.assertEqual(status, "OK")
+        self.assertEqual(r, {"numbers": [2, 18, 25, 30, 65], "special": 22, "multiplier": 1,
+                             "drawDate": MM_ALVO, "source": "megamillions_official"})
+        self.assertTrue(F.validate_result("megamillions", r)[0])
+
+    def test_oficial_mostrando_o_sorteio_anterior_cai_no_ny_e_nunca_e_aceito(self):
+        """megamillions.com so mostra o ULTIMO sorteio. Logo depois do sorteio ainda e o anterior."""
+        F.urllib.request.urlopen = fonte([LINHA_NY_MM])
+        with mock.patch.object(LS, "_mm_api", return_value=mm_api("2026-11-06", n=(27, 34, 44, 53, 64), mball=1)):
+            r, status = F.fetch_official_result("megamillions", MM_ALVO)
+        self.assertEqual(status, "OK")
+        self.assertEqual(r["source"], "ny_open_data")
+        self.assertEqual(r["numbers"], [2, 18, 25, 30, 65])
+
+    def test_oficial_anterior_e_ny_sem_linha_e_not_ready(self):
+        F.urllib.request.urlopen = fonte([])
+        with mock.patch.object(LS, "_mm_api", return_value=mm_api("2026-11-06")):
+            r, status = F.fetch_official_result("megamillions", MM_ALVO)
+        self.assertIsNone(r)
+        self.assertEqual(status, "NOT_READY")
+
+    def test_oficial_fora_do_ar_cai_no_ny(self):
+        F.urllib.request.urlopen = fonte([LINHA_NY_MM])
+        with mock.patch.object(LS, "_mm_api", side_effect=OSError("timeout")):
+            r, status = F.fetch_official_result("megamillions", MM_ALVO)
+        self.assertEqual((status, r["source"]), ("OK", "ny_open_data"))
+
+    def test_oficial_malformada_nao_inventa_bola(self):
+        F.urllib.request.urlopen = fonte([])
+        with mock.patch.object(LS, "_mm_api", return_value=mm_api(MM_ALVO, mball=None)):
+            r, status = F.fetch_official_result("megamillions", MM_ALVO)
+        self.assertIsNone(r, "Mega Ball ausente na oficial nunca vira resultado")
+        with mock.patch.object(LS, "_mm_api", return_value=mm_api(MM_ALVO, mball=25)):
+            r, _ = F.fetch_official_result("megamillions", MM_ALVO)
+        self.assertIsNone(r, "Mega Ball 25 esta fora da faixa 1..24")
+
+    def test_powerball_nao_consulta_a_oficial_do_mega_millions(self):
+        F.urllib.request.urlopen = fonte([
+            {"draw_date": "2026-08-10T00:00:00.000", "winning_numbers": "01 02 03 04 05 06", "multiplier": "2"}])
+        with mock.patch.object(LS, "_mm_api", side_effect=AssertionError("Powerball nao le megamillions.com")):
+            r, status = F.fetch_official_result("powerball", ALVO)
+        self.assertEqual((status, r["source"]), ("OK", "ny_open_data"))
+
+
+class ResultadoAtrasadoNaoEVerdeMudo(unittest.TestCase):
+    DRAW = {"id": MM_ALVO, "drawing": {"drawDateIso": MM_ISO}}
+
+    def em(self, horas, jogo="megamillions", evento="schedule"):
+        agora = datetime.fromisoformat(MM_ISO) + timedelta(hours=horas)
+        return F.avisa_resultado_atrasado(self.DRAW, jogo, "NOT_READY", now=agora, evento=evento)
+
+    def test_antes_de_2h_nada(self):
+        self.assertEqual(self.em(1.9), {})
+        self.assertEqual(F._ATRASO, {})
+
+    def test_mega_millions_2h_agendado_fica_vermelho(self):
+        r = self.em(2.5)
+        self.assertTrue(r["vermelho"])
+        self.assertEqual((r["draw"], r["status"]), (MM_ALVO, "NOT_READY"))
+
+    def test_disparo_do_produtor_so_avisa(self):
+        """O produtor pode acionar de 15 em 15 min; vermelho ali seria rajada de e-mail ao dono."""
+        r = self.em(5, evento="workflow_dispatch")
+        self.assertTrue(r and not r["vermelho"])
+
+    def test_powerball_so_fica_vermelho_depois_de_12h(self):
+        self.assertFalse(self.em(9, jogo="powerball")["vermelho"], "manha seguinte normal do data.ny.gov")
+        self.assertTrue(self.em(12.5, jogo="powerball")["vermelho"])
+
+    def test_aviso_vai_para_o_resumo_do_job(self):
+        import tempfile
+        with tempfile.NamedTemporaryFile("r", suffix=".md", delete=False) as t:
+            caminho = t.name
+        try:
+            with mock.patch.dict(os.environ, {"GITHUB_STEP_SUMMARY": caminho}):
+                self.em(3)
+            self.assertIn("Resultado atrasado", open(caminho, encoding="utf-8").read())
+        finally:
+            os.unlink(caminho)
+
+    def test_main_sai_1_quando_vermelho_e_0_quando_so_aviso(self):
+        base = {"notificationState": "ALREADY_COMPLETED", "resultReconciled": False, "providerCalls": 0}
+        for vermelho, esperado in ((True, 1), (False, 0)):
+            rel = dict(base, resultOverdue={"draw": MM_ALVO, "game": "megamillions", "status": "NOT_READY",
+                                            "horas": 4.5, "vermelho": vermelho})
+            with mock.patch.object(F, "run_lifecycle", return_value=rel), \
+                    mock.patch.object(F, "_imprime_obs"), mock.patch("builtins.print"):
+                self.assertEqual(F.main(), esperado)
+
+    def test_not_ready_atrasado_chega_ao_relatorio_do_ciclo(self):
+        draws = [{"id": MM_ALVO, "gameType": "megamillions", "participants": [{"nome": "P"}],
+                  "drawing": {"drawDateIso": MM_ISO, "drawDateLabel": "x"}}]
+        with mock.patch.object(F, "load_data_js", return_value=""), \
+                mock.patch.object(F, "parse_draws", return_value=draws), \
+                mock.patch.object(F, "fetch_official_result", return_value=(None, "NOT_READY")), \
+                mock.patch.object(F, "draw_has_occurred", return_value=(True, None)), \
+                mock.patch.dict(os.environ, {"GITHUB_EVENT_NAME": "schedule"}), mock.patch("builtins.print"):
+            F.check_and_update_results("powerball")
+        self.assertEqual(F._ATRASO.get("draw"), MM_ALVO)
+        self.assertEqual(F._ATRASO.get("game"), "megamillions", "o limiar e o do jogo DO SORTEIO")
+
+
+class ProdutorAcionaOEmailDoResultado(unittest.TestCase):
+    D = {"id": MM_ALVO, "gameType": "megamillions", "participants": [{"nome": "P"}],
+         "drawing": {"drawDateIso": MM_ISO}}
+
+    def agora(self, horas):
+        return datetime.fromisoformat(MM_ISO) + timedelta(hours=horas)
+
+    def test_janela_de_10_min_a_24h(self):
+        self.assertEqual(K.pending_draws([self.D], self.agora(0.1)), [], "antes da carencia de 10 min")
+        self.assertEqual(len(K.pending_draws([self.D], self.agora(0.5))), 1)
+        self.assertEqual(len(K.pending_draws([self.D], self.agora(23.9))), 1)
+        self.assertEqual(K.pending_draws([self.D], self.agora(24.5)), [])
+
+    def test_com_resultado_ou_sem_bilhete_nao_aciona(self):
+        com = dict(self.D, result={"numbers": [2, 18, 25, 30, 65]})
+        sem = {k: v for k, v in self.D.items() if k != "participants"}
+        self.assertEqual(K.pending_draws([com, sem], self.agora(1)), [])
+
+    def test_job_do_produtor_seguro(self):
+        wf = open(os.path.join(RAIZ, ".github/workflows/live_cache_producer.yml"), encoding="utf-8").read()
+        job = wf.split("\n  aciona-email-resultado-loterias:\n")[1].split("\n  # 2026-11-05")[0]
+        self.assertIn("inputs.dry_run != true", job, "dispatch de diagnostico nao pode acionar e-mail")
+        self.assertIn("should_kick_result_email.py", job)
+        self.assertIn('case "$DECISAO" in KICK*)', job)
+        self.assertIn('select(.status != \\"completed\\" or (.createdAt | fromdateiso8601) > (now - 900))', job,
+                      "sem a checagem de execucao ativa/recente o produtor empilharia execucoes")
+        self.assertRegex(job, r"gh workflow run powerball-results-email\.yml -R \"\$GITHUB_REPOSITORY\" --ref main\n")
+        self.assertNotIn("force_resend", job)
+        self.assertNotIn("dry_run=", job)
+
+    def test_revisitas_da_manha_seguinte_no_cron(self):
+        wf = open(os.path.join(RAIZ, ".github/workflows/powerball-results-email.yml"), encoding="utf-8").read()
+        self.assertIn("- cron: '45 8,9,10 * * 0,2,3,4,6'", wf)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
