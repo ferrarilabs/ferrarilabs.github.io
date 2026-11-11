@@ -100,6 +100,12 @@ class Manifesto(unittest.TestCase):
         with self.assertRaisesRegex(od.OperatorError, "metodo desconhecido"):
             od.valida_manifesto(m)
 
+    def test_paypal_e_meio_aceito(self):
+        # Meio informado pelo organizador para a cota de 13/11 (2026-11-11).
+        m = manifesto()
+        m["contributions"][0]["method"] = "PayPal"
+        od.valida_manifesto(m)
+
     def test_nome_repetido(self):
         m = manifesto()
         m["contributions"][1]["name"] = "rodrigo  HAJJ"

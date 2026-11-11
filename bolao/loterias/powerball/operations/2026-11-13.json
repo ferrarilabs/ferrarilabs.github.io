@@ -1,5 +1,5 @@
 {
-  "_o_que_e": "Manifesto de abertura do sorteio Mega Millions de 2026-11-13, aplicado por operator_open_draw.py. RASCUNHO PENDENTE DE DECISAO DO ORGANIZADOR: so entram as contribuicoes ja determinadas: organizador (fundo proprio); Marcelo Moreira, que pagou a propria cota (informado pelo organizador em 2026-11-11; meio Zelle por ser o que ele sempre usou, paid_at = horario do aviso); Marcelo Barsotti (Pix, paid_at provisorio da abertura, mesmo padrao do #576/#603). As cotas dos outros 12 ganhadores de 02/11 NAO estao aqui: a reserva de 02/11 tem US$33 e cada uso dela e uma decisao propria do organizador (paysDraws). Sem referencia de pagamento: o repositorio e publico.",
+  "_o_que_e": "Manifesto de abertura do sorteio Mega Millions de 2026-11-13, aplicado por operator_open_draw.py. RASCUNHO PENDENTE DE DECISAO DO ORGANIZADOR: so entram as contribuicoes ja determinadas: organizador (fundo proprio); Marcelo Moreira, que pagou a propria cota (informado pelo organizador em 2026-11-11; meio Zelle por ser o que ele sempre usou, paid_at = horario do aviso); Marcelo Barsotti (PayPal, ainda nao recebido segundo o organizador em 2026-11-11; paid_at provisorio da abertura, mesmo padrao do #576/#603). As cotas dos outros 12 ganhadores de 02/11 NAO estao aqui: a reserva de 02/11 tem US$33 e cada uso dela e uma decisao propria do organizador (paysDraws). Sem referencia de pagamento: o repositorio e publico.",
   "draw_date": "2026-11-13",
   "jackpot": 555000000,
   "cash_value": 235200000,
@@ -19,7 +19,7 @@
     {
       "name": "Marcelo Barsotti",
       "amount": 10,
-      "method": "Pix",
+      "method": "PayPal",
       "paid_at": "2026-11-11T07:36:56-05:00"
     }
   ]

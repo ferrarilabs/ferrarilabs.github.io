@@ -6,6 +6,12 @@ outros três bolões.
 
 ---
 
+## 2026-11-11 — PayPal como meio aceito no manifesto de abertura
+
+`operator_open_draw.py` passa a aceitar `PayPal` em `METODOS`: o organizador informou que Marcelo
+Barsotti vai pagar a cota do sorteio de 13/11 por PayPal. O meio nao tem restricao no banco nem
+em `operator_payments.py`; so a lista do manifesto barrava. Sem efeito em scoring, razao ou e-mails.
+
 ## 2026-11-08 — Issue #578: o refresh do jackpot grava a procedência que faltava
 
 Um sorteio aberto com `open_next_draw.py --jackpot` entra com o valor certo e sem `jackpotSource`.
