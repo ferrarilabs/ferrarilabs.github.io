@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-11T12:09:34Z",
+  "generatedAt": "2026-11-11T17:25:09Z",
   "threshold": {
     "minJackpotCents": 50000000000,
     "comparison": "strictly_greater",
@@ -14,13 +14,13 @@
       "cashValueCents": 1940000000,
       "nextDrawDate": "2026-11-11",
       "nextDrawAt": "2026-11-12T03:59:00Z",
-      "source": "https://nclottery.com/powerball",
-      "verificationState": "SECONDARY_ONLY",
-      "fetchedAt": "2026-11-11T12:09:34Z",
-      "sourceHash": "c28774a92e466a77",
+      "source": "https://www.powerball.com/",
+      "verificationState": "PRIMARY_CONFIRMED",
+      "fetchedAt": "2026-11-11T17:25:09Z",
+      "sourceHash": "f7f4e3a81d11e5ae",
       "eligible": false,
-      "state": "UNKNOWN",
-      "error": "ResultadoInvalido: oficial: ResultadoInvalido: CASCA_SEM_CONTEUDO: 10 de 10 respostas de https://www.powerball.com/ vieram sem 'Estimated Jackpot'; nc_education_lottery: ResultadoInvalido: JACKPOT_NAO"
+      "state": "BELOW_THRESHOLD",
+      "error": null
     },
     "megamillions": {
       "game": "megamillions",
@@ -31,7 +31,7 @@
       "nextDrawAt": "2026-11-14T04:00:00Z",
       "source": "https://www.megamillions.com/cmspages/utilservice.asmx/GetLatestDrawData",
       "verificationState": "PRIMARY_CONFIRMED",
-      "fetchedAt": "2026-11-11T12:09:34Z",
+      "fetchedAt": "2026-11-11T17:25:09Z",
       "sourceHash": "c4a6e1b779519d6d",
       "eligible": true,
       "state": "ELIGIBLE",
