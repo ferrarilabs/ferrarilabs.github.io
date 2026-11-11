@@ -6,6 +6,13 @@ outros três bolões.
 
 ---
 
+## 2026-11-11 — Reserva dos ganhadores de 02/11 fica só para jogos adicionais
+
+Decisão do organizador (2026-11-11): no sorteio de Mega Millions de 13/11 cada um dos ganhadores
+de 02/11 paga a própria cota, e a reserva (US$33) não paga cota nenhuma. O saldo fica guardado só
+para jogos adicionais. Registrado em `config/lottery_reserves.json` (`rule` e `decisions`);
+`paysDraws` não muda, e o livro-razão não ganha lançamento: nenhum dinheiro se moveu.
+
 ## 2026-11-11 — PayPal como meio aceito no manifesto de abertura
 
 `operator_open_draw.py` passa a aceitar `PayPal` em `METODOS`: o organizador informou que Marcelo
