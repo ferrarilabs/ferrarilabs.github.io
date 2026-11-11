@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-11T01:27:53Z",
+  "generatedAt": "2026-11-11T11:04:29Z",
   "threshold": {
     "minJackpotCents": 50000000000,
     "comparison": "strictly_greater",
@@ -10,29 +10,24 @@
     "powerball": {
       "game": "powerball",
       "label": "Powerball",
-      "advertisedAnnuityCents": 4500000000,
-      "cashValueCents": 1940000000,
-      "nextDrawDate": "2026-11-11",
-      "nextDrawAt": "2026-11-12T03:59:00Z",
-      "source": "https://www.powerball.com/",
-      "verificationState": "PRIMARY_CONFIRMED",
-      "fetchedAt": "2026-11-11T01:27:53Z",
-      "sourceHash": "f7f4e3a81d11e5ae",
+      "advertisedAnnuityCents": null,
+      "cashValueCents": null,
+      "nextDrawDate": null,
       "eligible": false,
-      "state": "BELOW_THRESHOLD",
-      "error": null
+      "state": "UNKNOWN",
+      "error": "ResultadoInvalido: oficial: ResultadoInvalido: CASCA_SEM_CONTEUDO: 10 de 10 respostas de https://www.powerball.com/ vieram sem 'Estimated Jackpot'; nc_education_lottery: ResultadoInvalido: JACKPOT_NAO"
     },
     "megamillions": {
       "game": "megamillions",
       "label": "Mega Millions",
-      "advertisedAnnuityCents": 52900000000,
-      "cashValueCents": 22420000000,
-      "nextDrawDate": "2026-11-10",
-      "nextDrawAt": "2026-11-11T04:00:00Z",
+      "advertisedAnnuityCents": 55500000000,
+      "cashValueCents": 23520000000,
+      "nextDrawDate": "2026-11-13",
+      "nextDrawAt": "2026-11-14T04:00:00Z",
       "source": "https://www.megamillions.com/cmspages/utilservice.asmx/GetLatestDrawData",
       "verificationState": "PRIMARY_CONFIRMED",
-      "fetchedAt": "2026-11-11T01:27:53Z",
-      "sourceHash": "a3a88f4e640b9b15",
+      "fetchedAt": "2026-11-11T11:04:29Z",
+      "sourceHash": "c4a6e1b779519d6d",
       "eligible": true,
       "state": "ELIGIBLE",
       "error": null
@@ -41,8 +36,8 @@
   "nextPool": {
     "game": "megamillions",
     "label": "Mega Millions",
-    "jackpotCents": 52900000000,
-    "drawDate": "2026-11-10"
+    "jackpotCents": 55500000000,
+    "drawDate": "2026-11-13"
   },
   "funds": {
     "lastDrawWinningsCents": 1500,
@@ -62,8 +57,8 @@
   "currentDraw": {
     "id": "2026-11-10",
     "game": "megamillions",
-    "lifecycleState": "LOCKED",
-    "reason": "bilhetes comprados; entradas encerradas",
+    "lifecycleState": "AWAITING_RESULT",
+    "reason": "o sorteio já ocorreu; aguardando publicação oficial",
     "result": null
   },
   "autoPurchase": false,
