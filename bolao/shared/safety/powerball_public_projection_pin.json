@@ -84,6 +84,13 @@
       "cotas": 15,
       "valor": 150,
       "totalArrecadado": 150
+    },
+    {
+      "id": "2026-11-13",
+      "participants": 12,
+      "cotas": 12,
+      "valor": 120,
+      "totalArrecadado": 120
     }
   ],
   "cutoverAt": "2026-08-22",
