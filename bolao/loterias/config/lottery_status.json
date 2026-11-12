@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-11T17:25:09Z",
+  "generatedAt": "2026-11-12T02:29:40Z",
   "threshold": {
     "minJackpotCents": 50000000000,
     "comparison": "strictly_greater",
@@ -16,7 +16,7 @@
       "nextDrawAt": "2026-11-12T03:59:00Z",
       "source": "https://www.powerball.com/",
       "verificationState": "PRIMARY_CONFIRMED",
-      "fetchedAt": "2026-11-11T17:25:09Z",
+      "fetchedAt": "2026-11-12T02:29:39Z",
       "sourceHash": "f7f4e3a81d11e5ae",
       "eligible": false,
       "state": "BELOW_THRESHOLD",
@@ -31,7 +31,7 @@
       "nextDrawAt": "2026-11-14T04:00:00Z",
       "source": "https://www.megamillions.com/cmspages/utilservice.asmx/GetLatestDrawData",
       "verificationState": "PRIMARY_CONFIRMED",
-      "fetchedAt": "2026-11-11T17:25:09Z",
+      "fetchedAt": "2026-11-12T02:29:40Z",
       "sourceHash": "c4a6e1b779519d6d",
       "eligible": true,
       "state": "ELIGIBLE",
@@ -60,27 +60,11 @@
     "ledgerEntries": 35
   },
   "currentDraw": {
-    "id": "2026-11-10",
+    "id": "2026-11-13",
     "game": "megamillions",
-    "lifecycleState": "SETTLED",
-    "reason": "resultado oficial gravado e prêmio creditado",
-    "result": {
-      "numbers": [
-        2,
-        18,
-        25,
-        30,
-        65
-      ],
-      "special": 22,
-      "multiplier": 1,
-      "checkedAt": "11/11/2026 12:09 ET",
-      "premiosGanhos": 25,
-      "jackpotHit": false,
-      "breakdown": [
-        "1x Mega Ball"
-      ]
-    }
+    "lifecycleState": "OPEN",
+    "reason": "recolhendo contribuições",
+    "result": null
   },
   "autoPurchase": false,
   "_doc": "Documento gerado; nao editar a mao. A UI e o e-mail leem daqui para que exista UMA resposta para 'ha bolao novo?'. Elegibilidade e ESTRITAMENTE > US$500M sobre a anuidade anunciada do PROXIMO sorteio."
