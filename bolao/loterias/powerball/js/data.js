@@ -1282,6 +1282,64 @@ window.POWERBALL_DRAWS = [
       breakdown: ["1x Mega Ball"]
     },
     profit: null
+  },
+
+  {
+    id: "2026-11-13",
+    gameType: "megamillions",
+    status: "planejamento",
+    createdAt: "2026-11-11T20:37:21-05:00",
+    previousDrawId: "2026-11-10",
+
+    drawing: {
+      name: "Mega Millions Jackpot",
+      // jackpot/cashValue sao publicados pela loteria; ficam null ate serem informados.
+      jackpot: 555000000,
+      cashValue: 235200000,
+      jackpotSource: "megamillions_official",
+      jackpotFetchedAt: "2026-11-12T01:54:42Z",
+      jackpotDrawId: "2026-11-13",
+      drawDateIso: "2026-11-13T23:00:00-05:00",
+      drawDateLabel: "13/11/2026 23:00 ET"
+    },
+
+    // BOLAO ABERTO, ainda sem ninguem. Estado valido: participantes entram progressivamente.
+    participants: [
+      { name: "Marcelo Moreira", cotas: 1, valor: 10, metodo: "Zelle", data: "11/11/2026", hora: "7:35:55 AM", status: "verificado", state: "NC" },
+      { name: "Eduardo Ferrari", cotas: 1, valor: 10, metodo: "Fundo próprio (organizador)", data: "11/11/2026", hora: "7:36:56 AM", status: "organizador", state: "NC" },
+      { name: "Marcelo Barsotti", cotas: 1, valor: 10, metodo: "PayPal", data: "11/11/2026", hora: "7:47:38 AM", status: "verificado", state: "ON" },
+      { name: "Gustavo Bossle", cotas: 1, valor: 10, metodo: "Zelle", data: "11/11/2026", hora: "8:51:31 AM", status: "verificado", state: "NC" },
+      { name: "Leandro Augustineli", cotas: 1, valor: 10, metodo: "Zelle", data: "11/11/2026", hora: "8:59:15 AM", status: "verificado", state: "NC" },
+      { name: "Thiago Locatelli", cotas: 1, valor: 10, metodo: "Zelle", data: "11/11/2026", hora: "9:59:09 AM", status: "verificado", state: "TX" },
+      { name: "Alan Rech", cotas: 1, valor: 10, metodo: "Cash App", data: "11/11/2026", hora: "10:07:30 AM", status: "verificado", state: "FL" },
+      { name: "Ewerton Gruba Silva", cotas: 1, valor: 10, metodo: "Zelle", data: "11/11/2026", hora: "11:59:35 AM", status: "verificado", state: "NC" },
+      { name: "Marcus Steffenon", cotas: 1, valor: 10, metodo: "Zelle", data: "11/11/2026", hora: "12:03:45 PM", status: "verificado", state: "NC" },
+      { name: "Marcelo Minghetti Pereira", cotas: 1, valor: 10, metodo: "Zelle", data: "11/11/2026", hora: "4:16:57 PM", status: "verificado", state: "NC" },
+      { name: "Marcelo G de Jesus", cotas: 1, valor: 10, metodo: "Zelle", data: "11/11/2026", hora: "4:19:28 PM", status: "verificado", state: "FL" },
+      { name: "Samuel Huller", cotas: 1, valor: 10, metodo: "Zelle", data: "11/11/2026", hora: "6:25:51 PM", status: "verificado", state: "NC" }
+    ],
+
+    // Sem bilhetes ainda. Os numeros entram depois da compra -- abrir o bolao nunca dependeu
+    // de ja existirem jogos.
+    sharedTickets: {
+      compradoPor: null,
+      dataComprovante: null,
+      valorPorTicket: 5,
+      series: []
+    },
+
+    finance: {
+      totalArrecadado: 120, // 12 participante(s), soma das contribuicoes no banco
+      // Premio do sorteio anterior + o que ficou guardado. Derivado do que esta gravado, nao
+      // arbitrado aqui.
+      creditoSorteioAnterior: 26,
+      valorUtilizado: 0,
+      valorGuardadoProximoSorteio: 0,
+      ajustesPendentes: 0
+    },
+
+    result: null,
+    profit: null
   }
 ];
 
