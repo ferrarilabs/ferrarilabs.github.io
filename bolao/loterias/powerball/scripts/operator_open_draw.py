@@ -50,7 +50,7 @@ import operator_payments as op  # noqa: E402
 
 OperatorError = op.OperatorError
 RESERVA_0211 = "Reserva dos ganhadores de 02/11"
-METODOS = ("Zelle", "Venmo", "Cash App", "Pix", "Fundo próprio (organizador)", RESERVA_0211)
+METODOS = ("Zelle", "Venmo", "Cash App", "Pix", "PayPal", "Fundo próprio (organizador)", RESERVA_0211)
 
 
 def _reserva(metodo: str) -> dict:
