@@ -1,5 +1,5 @@
 {
-  "_o_que_e": "Manifesto de abertura do sorteio Mega Millions de 2026-11-13, aplicado por operator_open_draw.py. Por decisao do organizador (2026-11-11) cada participante paga a propria cota; a reserva dos ganhadores de 02/11 nao paga cota deste sorteio (fica para jogos adicionais). So entra quem ja pagou: o organizador (fundo proprio), Marcelo Moreira (Zelle), Marcelo Barsotti (PayPal), Gustavo Bossle (Zelle), Leandro Augustineli (Zelle), Thiago Locatelli (Zelle), Ewerton Gruba Silva (Zelle), Marcus Steffenon (Zelle), Marcelo Minghetti Pereira (Zelle), Marcelo G de Jesus (Zelle) e Samuel Huller (Zelle), com horario do recebimento. Quem paga depois entra quando o pagamento chegar, com valor, meio e horario reais, acrescentado a este manifesto e reaplicado (a reaplicacao e idempotente), como Barsotti em 06/11. Sem referencia de pagamento: o repositorio e publico.",
+  "_o_que_e": "Manifesto de abertura do sorteio Mega Millions de 2026-11-13, aplicado por operator_open_draw.py. Por decisao do organizador (2026-11-11) cada participante paga a propria cota; a reserva dos ganhadores de 02/11 nao paga cota deste sorteio (fica para jogos adicionais). So entra quem ja pagou: o organizador (fundo proprio), Marcelo Moreira (Zelle), Marcelo Barsotti (PayPal), Gustavo Bossle (Zelle), Leandro Augustineli (Zelle), Thiago Locatelli (Zelle), Ewerton Gruba Silva (Zelle), Marcus Steffenon (Zelle), Marcelo Minghetti Pereira (Zelle), Marcelo G de Jesus (Zelle), Samuel Huller (Zelle) e Alan Rech (Cash App), com horario do recebimento. Quem paga depois entra quando o pagamento chegar, com valor, meio e horario reais, acrescentado a este manifesto e reaplicado (a reaplicacao e idempotente), como Barsotti em 06/11. Sem referencia de pagamento: o repositorio e publico.",
   "draw_date": "2026-11-13",
   "jackpot": 555000000,
   "cash_value": 235200000,
@@ -69,6 +69,12 @@
       "amount": 10,
       "method": "Zelle",
       "paid_at": "2026-11-11T18:25:51-05:00"
+    },
+    {
+      "name": "Alan Rech",
+      "amount": 10,
+      "method": "Cash App",
+      "paid_at": "2026-11-11T10:07:30-05:00"
     }
   ]
 }
