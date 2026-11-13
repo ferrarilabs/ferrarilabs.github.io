@@ -1322,13 +1322,29 @@ window.POWERBALL_DRAWS = [
       { name: "Rodrigo Hajj", cotas: 1, valor: 10, metodo: "Zelle", data: "12/11/2026", hora: "12:13:33 PM", status: "verificado", state: "NC" }
     ],
 
-    // Sem bilhetes ainda. Os numeros entram depois da compra -- abrir o bolao nunca dependeu
-    // de ja existirem jogos.
     sharedTickets: {
-      compradoPor: null,
-      dataComprovante: null,
-      valorPorTicket: 5,
-      series: []
+      compradoPor: "Eduardo Ferrari (organizador)",
+      dataComprovante: "13/11/2026",
+      valorPorTicket: 5, // multiplicador embutido em cada aposta
+      series: [
+        {
+          serial: "22ADC218466914B16", qtd: 35, jogos: "1–35",
+          numeros: [
+            "01-04-31-42-49 — MB 08 — 4X", "01-14-17-43-54 — MB 04 — 4X", "01-34-55-60-67 — MB 24 — 2X",
+            "02-06-26-47-63 — MB 24 — 3X", "02-23-32-39-56 — MB 23 — 3X", "02-25-31-64-65 — MB 19 — 2X",
+            "03-09-32-47-64 — MB 18 — 4X", "03-11-40-54-62 — MB 22 — 2X", "03-46-55-59-70 — MB 12 — 3X",
+            "04-28-40-43-67 — MB 11 — 3X", "05-20-32-51-66 — MB 14 — 4X", "05-22-33-37-68 — MB 02 — 2X",
+            "05-39-42-50-67 — MB 07 — 3X", "06-07-23-48-64 — MB 20 — 3X", "07-18-41-46-61 — MB 15 — 3X",
+            "08-17-36-50-61 — MB 12 — 2X", "08-22-30-49-69 — MB 14 — 4X", "09-15-45-58-66 — MB 06 — 2X",
+            "09-17-25-38-56 — MB 21 — 5X", "10-11-24-37-61 — MB 23 — 3X", "10-19-50-55-58 — MB 05 — 2X",
+            "12-21-26-43-44 — MB 17 — 3X", "12-49-52-56-57 — MB 16 — 4X", "13-26-31-38-60 — MB 09 — 2X",
+            "13-35-48-52-62 — MB 10 — 2X", "14-15-34-36-59 — MB 13 — 3X", "14-28-29-38-65 — MB 02 — 3X",
+            "15-16-42-46-63 — MB 03 — 3X", "16-19-27-44-51 — MB 08 — 4X", "16-20-57-59-62 — MB 17 — 2X",
+            "18-21-39-40-53 — MB 13 — 2X", "18-24-36-45-69 — MB 04 — 3X", "21-27-29-60-68 — MB 01 — 2X",
+            "25-30-33-41-70 — MB 10 — 3X", "34-35-44-53-58 — MB 07 — 2X"
+          ]
+        }
+      ]
     },
 
     finance: {
@@ -1336,8 +1352,8 @@ window.POWERBALL_DRAWS = [
       // Premio do sorteio anterior + o que ficou guardado. Derivado do que esta gravado, nao
       // arbitrado aqui.
       creditoSorteioAnterior: 26,
-      valorUtilizado: 0,
-      valorGuardadoProximoSorteio: 0,
+      valorUtilizado: 175, // 35 x US$5
+      valorGuardadoProximoSorteio: 1, // 150 + 26 - 175
       ajustesPendentes: 0
     },
 
