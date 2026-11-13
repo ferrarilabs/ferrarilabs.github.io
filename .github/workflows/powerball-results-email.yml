@@ -110,6 +110,7 @@ jobs:
           # seguro. O principal sempre vence em caso de conflito.
           POWERBALL_PRIVATE_CONTACTS_EXTRA: ${{ secrets.POWERBALL_PRIVATE_CONTACTS_EXTRA }}
           POWERBALL_PRIVATE_CONTACTS_EXTRA_2: ${{ secrets.POWERBALL_PRIVATE_CONTACTS_EXTRA_2 }}
+          POWERBALL_PRIVATE_CONTACTS_EXTRA_3: ${{ secrets.POWERBALL_PRIVATE_CONTACTS_EXTRA_3 }}
         run: python3 recipient_preflight.py
 
       # CANARIO DO LEDGER — prova, de dentro do runner, que a credencial privilegiada
@@ -142,6 +143,7 @@ jobs:
           # aprova o que o sender recusa (ou o contrario) e falso verde; ja aconteceu neste fluxo.
           POWERBALL_PRIVATE_CONTACTS_EXTRA: ${{ secrets.POWERBALL_PRIVATE_CONTACTS_EXTRA }}
           POWERBALL_PRIVATE_CONTACTS_EXTRA_2: ${{ secrets.POWERBALL_PRIVATE_CONTACTS_EXTRA_2 }}
+          POWERBALL_PRIVATE_CONTACTS_EXTRA_3: ${{ secrets.POWERBALL_PRIVATE_CONTACTS_EXTRA_3 }}
           # N24: o ledger exige credencial privilegiada. A anon key e publica (vai em todo
           # config.js servido ao navegador) e, apos a migracao 021, nao tem mais execute nas
           # RPCs de notificacao. Sem esta variavel o ciclo falha FECHADO em vez de silenciosamente
