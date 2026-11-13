@@ -1316,7 +1316,9 @@ window.POWERBALL_DRAWS = [
       { name: "Marcus Steffenon", cotas: 1, valor: 10, metodo: "Zelle", data: "11/11/2026", hora: "12:03:45 PM", status: "verificado", state: "NC" },
       { name: "Marcelo Minghetti Pereira", cotas: 1, valor: 10, metodo: "Zelle", data: "11/11/2026", hora: "4:16:57 PM", status: "verificado", state: "NC" },
       { name: "Marcelo G de Jesus", cotas: 1, valor: 10, metodo: "Zelle", data: "11/11/2026", hora: "4:19:28 PM", status: "verificado", state: "FL" },
-      { name: "Samuel Huller", cotas: 1, valor: 10, metodo: "Zelle", data: "11/11/2026", hora: "6:25:51 PM", status: "verificado", state: "NC" }
+      { name: "Samuel Huller", cotas: 1, valor: 10, metodo: "Zelle", data: "11/11/2026", hora: "6:25:51 PM", status: "verificado", state: "NC" },
+      { name: "Simone Hirle da Costa", cotas: 1, valor: 10, metodo: "Venmo", data: "12/11/2026", hora: "12:11:32 PM", status: "verificado", state: "NC" },
+      { name: "Rodrigo Hajj", cotas: 1, valor: 10, metodo: "Zelle", data: "12/11/2026", hora: "12:13:33 PM", status: "verificado", state: "NC" }
     ],
 
     // Sem bilhetes ainda. Os numeros entram depois da compra -- abrir o bolao nunca dependeu
@@ -1329,7 +1331,7 @@ window.POWERBALL_DRAWS = [
     },
 
     finance: {
-      totalArrecadado: 120, // 12 participante(s), soma das contribuicoes no banco
+      totalArrecadado: 140, // 14 participante(s), soma das contribuicoes no banco
       // Premio do sorteio anterior + o que ficou guardado. Derivado do que esta gravado, nao
       // arbitrado aqui.
       creditoSorteioAnterior: 26,
