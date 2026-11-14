@@ -6,6 +6,13 @@ outros três bolões.
 
 ---
 
+## 2026-11-14 — Abertura do sorteio de Mega Millions de 17/11
+
+Jackpot anunciado US$600 milhões (cash US$246,9 milhões), acima do limite de US$500 milhões; o
+Powerball (US$63 milhões) segue abaixo. Manifesto `operations/2026-11-17.json` abre com a cota do
+organizador; os demais entram ao pagar. Crédito herdado de 13/11: US$1 guardado + US$20 de prêmio
+(1x Mega Ball 4X) = US$21. A reserva dos ganhadores de 02/11 (US$33) não paga cota.
+
 ## 2026-11-11 — E-mail de resultado do Mega Millions não espera mais o data.ny.gov
 
 O e-mail do sorteio de 06/11 saiu 7h30 depois do sorteio e o de 10/11 só saiu por reenvio manual.
