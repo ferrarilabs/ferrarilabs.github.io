@@ -1367,6 +1367,50 @@ window.POWERBALL_DRAWS = [
       breakdown: ["1x Mega Ball"]
     },
     profit: null
+  },
+
+  {
+    id: "2026-11-17",
+    gameType: "megamillions",
+    status: "planejamento",
+    createdAt: "2026-11-14T09:05:18-05:00",
+    previousDrawId: "2026-11-13",
+
+    drawing: {
+      name: "Mega Millions Jackpot",
+      // jackpot/cashValue sao publicados pela loteria; ficam null ate serem informados.
+      jackpot: 600000000,
+      cashValue: 246900000,
+      drawDateIso: "2026-11-17T23:00:00-05:00",
+      drawDateLabel: "17/11/2026 23:00 ET"
+    },
+
+    // BOLAO ABERTO, ainda sem ninguem. Estado valido: participantes entram progressivamente.
+    participants: [
+      { name: "Eduardo Ferrari", cotas: 1, valor: 10, metodo: "Fundo próprio (organizador)", data: "14/11/2026", hora: "8:47:17 AM", status: "organizador", state: "NC" }
+    ],
+
+    // Sem bilhetes ainda. Os numeros entram depois da compra -- abrir o bolao nunca dependeu
+    // de ja existirem jogos.
+    sharedTickets: {
+      compradoPor: null,
+      dataComprovante: null,
+      valorPorTicket: 5,
+      series: []
+    },
+
+    finance: {
+      totalArrecadado: 10, // 1 participante(s), soma das contribuicoes no banco
+      // Premio do sorteio anterior + o que ficou guardado. Derivado do que esta gravado, nao
+      // arbitrado aqui.
+      creditoSorteioAnterior: 21,
+      valorUtilizado: 0,
+      valorGuardadoProximoSorteio: 0,
+      ajustesPendentes: 0
+    },
+
+    result: null,
+    profit: null
   }
 ];
 
