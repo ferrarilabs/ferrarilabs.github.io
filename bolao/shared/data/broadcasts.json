@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "sourceModel": "EPG_CORROBORATED_WITH_CURATED_OVERRIDE",
   "_comment": "Fonte de dados de 'Onde assistir' (bolao/shared/js/where_to_watch.js). Modelo EPG_CORROBORATED_WITH_CURATED_OVERRIDE (#431): registros sem 'origin' são curadoria humana e sempre vencem; registros 'origin: epg' são gerados por bolao/shared/scripts/sync_epg_broadcasts.mjs a partir da grade de TV — não edite esses à mão. Ver docs/bolao/BROADCAST_OPERATIONS.md antes de editar este arquivo.",
-  "updatedAt": "2026-11-14T01:26:53Z",
+  "updatedAt": "2026-11-14T18:02:23Z",
   "entries": [
     {
       "espnId": "401909114",
@@ -52,6 +52,17 @@
       "confirmedAt": "2026-11-12",
       "collectedAt": "2026-11-12T00:44:47Z",
       "evidence": [
+        {
+          "channel": "Premiere",
+          "source": "epgshare-br1",
+          "epgChannelId": "São.Paulo/SP..Premiere.Clubes.HD.br",
+          "programmeTitle": "Chapecoense x Vasco",
+          "programmeSubTitle": "Ao Vivo",
+          "programmeStart": "2026-11-14T23:00:00Z",
+          "programmeStop": "2026-11-15T01:40:00Z",
+          "matchedTeams": ["chapecoense", "vasco"],
+          "collectedAt": "2026-11-14T18:02:23Z"
+        },
         {
           "channel": "Premiere",
           "source": "epgshare-br2",
