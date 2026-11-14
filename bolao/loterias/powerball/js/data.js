@@ -1367,6 +1367,57 @@ window.POWERBALL_DRAWS = [
       breakdown: ["1x Mega Ball"]
     },
     profit: null
+  },
+
+  {
+    id: "2026-11-17",
+    gameType: "megamillions",
+    status: "planejamento",
+    createdAt: "2026-11-14T09:05:18-05:00",
+    previousDrawId: "2026-11-13",
+
+    drawing: {
+      name: "Mega Millions Jackpot",
+      // jackpot/cashValue sao publicados pela loteria; ficam null ate serem informados.
+      jackpot: 600000000,
+      cashValue: 246900000,
+      jackpotSource: "megamillions_official",
+      jackpotFetchedAt: "2026-11-14T14:43:00Z",
+      jackpotDrawId: "2026-11-17",
+      drawDateIso: "2026-11-17T23:00:00-05:00",
+      drawDateLabel: "17/11/2026 23:00 ET"
+    },
+
+    // BOLAO ABERTO, ainda sem ninguem. Estado valido: participantes entram progressivamente.
+    participants: [
+      { name: "Eduardo Ferrari", cotas: 1, valor: 10, metodo: "Fundo próprio (organizador)", data: "14/11/2026", hora: "8:47:17 AM", status: "organizador", state: "NC" },
+      { name: "Ewerton Gruba Silva", cotas: 1, valor: 10, metodo: "Zelle", data: "14/11/2026", hora: "8:59:25 AM", status: "verificado", state: "NC" },
+      { name: "Gustavo Bossle", cotas: 1, valor: 10, metodo: "Zelle", data: "14/11/2026", hora: "9:37:45 AM", status: "verificado", state: "NC" },
+      { name: "Rodrigo Hajj", cotas: 1, valor: 10, metodo: "Zelle", data: "14/11/2026", hora: "9:54:30 AM", status: "verificado", state: "NC" },
+      { name: "Thiago Locatelli", cotas: 1, valor: 10, metodo: "Zelle", data: "14/11/2026", hora: "10:04:10 AM", status: "verificado", state: "TX" }
+    ],
+
+    // Sem bilhetes ainda. Os numeros entram depois da compra -- abrir o bolao nunca dependeu
+    // de ja existirem jogos.
+    sharedTickets: {
+      compradoPor: null,
+      dataComprovante: null,
+      valorPorTicket: 5,
+      series: []
+    },
+
+    finance: {
+      totalArrecadado: 50, // 5 participante(s), soma das contribuicoes no banco
+      // Premio do sorteio anterior + o que ficou guardado. Derivado do que esta gravado, nao
+      // arbitrado aqui.
+      creditoSorteioAnterior: 21,
+      valorUtilizado: 0,
+      valorGuardadoProximoSorteio: 0,
+      ajustesPendentes: 0
+    },
+
+    result: null,
+    profit: null
   }
 ];
 
