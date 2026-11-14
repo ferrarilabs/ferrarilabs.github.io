@@ -1125,6 +1125,18 @@
         "cotas": 1,
         "valor": 10,
         "metodo": "Zelle"
+      },
+      {
+        "name": "Rodrigo Hajj",
+        "cotas": 1,
+        "valor": 10,
+        "metodo": "Zelle"
+      },
+      {
+        "name": "Thiago Locatelli",
+        "cotas": 1,
+        "valor": 10,
+        "metodo": "Zelle"
       }
     ]
   ]
