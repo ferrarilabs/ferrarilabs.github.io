@@ -74,6 +74,7 @@ jobs:
           POWERBALL_PRIVATE_PARTICIPANT_DATA: ${{ secrets.POWERBALL_PRIVATE_PARTICIPANT_DATA }}
           POWERBALL_PRIVATE_CONTACTS_EXTRA: ${{ secrets.POWERBALL_PRIVATE_CONTACTS_EXTRA }}
           POWERBALL_PRIVATE_CONTACTS_EXTRA_2: ${{ secrets.POWERBALL_PRIVATE_CONTACTS_EXTRA_2 }}
+          POWERBALL_PRIVATE_CONTACTS_EXTRA_3: ${{ secrets.POWERBALL_PRIVATE_CONTACTS_EXTRA_3 }}
         run: python3 build_ticket_email_contacts.py --draw "$DRAW_ID" --out "$RUNNER_TEMP/contatos.json"
 
       - name: Enviar (ou simular)

@@ -25,6 +25,19 @@ noite e pulou o catch-up das 08:00 UTC. Todas as execuções terminaram verdes. 
 Identidade, tempo, ledger e completude de destinatários não mudam: rodar mais vezes não pode
 duplicar e-mail. Prêmio, razão e participantes intocados.
 
+## 2026-11-11 — Reserva dos ganhadores de 02/11 fica só para jogos adicionais
+
+Decisão do organizador (2026-11-11): no sorteio de Mega Millions de 13/11 cada um dos ganhadores
+de 02/11 paga a própria cota, e a reserva (US$33) não paga cota nenhuma. O saldo fica guardado só
+para jogos adicionais. Registrado em `config/lottery_reserves.json` (`rule` e `decisions`);
+`paysDraws` não muda, e o livro-razão não ganha lançamento: nenhum dinheiro se moveu.
+
+## 2026-11-11 — PayPal como meio aceito no manifesto de abertura
+
+`operator_open_draw.py` passa a aceitar `PayPal` em `METODOS`: o organizador informou que Marcelo
+Barsotti vai pagar a cota do sorteio de 13/11 por PayPal. O meio nao tem restricao no banco nem
+em `operator_payments.py`; so a lista do manifesto barrava. Sem efeito em scoring, razao ou e-mails.
+
 ## 2026-11-08 — Issue #578: o refresh do jackpot grava a procedência que faltava
 
 Um sorteio aberto com `open_next_draw.py --jackpot` entra com o valor certo e sem `jackpotSource`.
