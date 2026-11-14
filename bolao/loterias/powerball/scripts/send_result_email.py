@@ -257,7 +257,8 @@ def _expected_names_for_draw(draw_id):
 SUPPLEMENTARY_CONTACTS_ENV = "POWERBALL_PRIVATE_CONTACTS_EXTRA"
 # Segredo de GitHub nao se le, so se reescreve inteiro. Cada lote novo de contatos vai num segredo
 # proprio para nao apagar os anteriores; todos so ACRESCENTAM, e o primeiro que resolve vence.
-SUPPLEMENTARY_CONTACTS_ENVS = (SUPPLEMENTARY_CONTACTS_ENV, "POWERBALL_PRIVATE_CONTACTS_EXTRA_2")
+SUPPLEMENTARY_CONTACTS_ENVS = (SUPPLEMENTARY_CONTACTS_ENV, "POWERBALL_PRIVATE_CONTACTS_EXTRA_2",
+                               "POWERBALL_PRIVATE_CONTACTS_EXTRA_3")
 
 
 def _merge_supplementary_contacts(draw_entries, draw_id):
