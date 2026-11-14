@@ -42,6 +42,15 @@ on:
     # de ser DAQUELE sorteio), tempo (nada antes de 22:59 ET + carencia) e ledger (aceito nunca
     # reenvia). Executar mais vezes nao pode duplicar e-mail; executar de menos pode perde-lo.
     - cron: '0 8,12,16,20 * * *'
+    # ─── MANHA SEGUINTE AO SORTEIO (2026-11-11) ──────────────────────────────────────────────
+    #
+    # O data.ny.gov publica na manha seguinte (Mega Millions de 10/11: 08:34 UTC). O catch-up das
+    # 08:00 nao disparou e o das 12:00 ainda nao tinha chegado; o e-mail so saiu por reenvio manual.
+    # Tres revisitas logo depois desse horario, nos dias UTC seguintes a cada sorteio (Powerball
+    # seg/qua/sab -> ter/qui/dom; Mega Millions ter/sex -> qua/sab). Com o sorteio ja notificado, cada
+    # uma sai em ALREADY_COMPLETED sem chamar provedor. O relogio confiavel continua sendo o
+    # live_cache_producer.yml (job aciona-email-resultado-loterias); isto e a rede de baixo.
+    - cron: '45 8,9,10 * * 0,2,3,4,6'
   workflow_dispatch:
     inputs:
       dry_run:

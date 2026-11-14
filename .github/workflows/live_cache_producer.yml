@@ -156,6 +156,41 @@ jobs:
           gh workflow run cdb2026_result_emails.yml -R "$GITHUB_REPOSITORY" --ref main
           echo "cdb2026_result_emails.yml acionado."
 
+  # 2026-11-11: o `powerball-results-email.yml` foi acordado pelo GitHub 3 vezes na noite do Mega
+  # Millions de 10/11 e o catch-up das 08:00 UTC nem disparou; o e-mail so saiu por reenvio manual
+  # (no 06/11, 7h30 depois do sorteio). Mesma saida do CDB2026 acima. Este job NAO envia e-mail: le o
+  # data.js e, so se houver sorteio com bilhetes SEM resultado entre 10 min e 24h depois do horario
+  # oficial, nenhuma execucao do e-mail ativa e nenhuma criada nos ultimos 15 min, dispara o ciclo
+  # normal (sem dry_run, sem force_resend), que continua decidindo sozinho o que gravar e enviar pelos
+  # portoes de identidade, tempo e ledger. Os 15 min limitam a no maximo 4 execucoes por hora.
+  aciona-email-resultado-loterias:
+    name: Aciona o e-mail de resultado das loterias depois do sorteio
+    if: github.event_name != 'workflow_dispatch' || inputs.dry_run != true
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    permissions:
+      contents: read
+      actions: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Decide e aciona
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          DECISAO=$(python3 bolao/loterias/powerball/scripts/should_kick_result_email.py)
+          echo "$DECISAO"
+          case "$DECISAO" in KICK*) ;; *) exit 0 ;; esac
+          RECENTES=$(gh run list -R "$GITHUB_REPOSITORY" --workflow powerball-results-email.yml -L 20 \
+            --json status,createdAt \
+            -q "[.[] | select(.status != \"completed\" or (.createdAt | fromdateiso8601) > (now - 900))] | length")
+          if [ "$RECENTES" != "0" ]; then
+            echo "Ha $RECENTES execucao(oes) do e-mail ativa(s) ou criada(s) nos ultimos 15 min; nao aciono outra."
+            exit 0
+          fi
+          gh workflow run powerball-results-email.yml -R "$GITHUB_REPOSITORY" --ref main
+          echo "powerball-results-email.yml acionado."
+
   # 2026-11-05: o cron de 10 min do `bolao_provider_snapshot.yml` foi acordado pelo GitHub 3 a 7
   # vezes por dia. A Tabela e os resultados encerrados do BR2026 e do CDB2026 ficavam horas atrasados,
   # e nada no site dizia isso. Mesma saida do e-mail de resultado acima: este workflow e acordado de

@@ -6,6 +6,25 @@ outros três bolões.
 
 ---
 
+## 2026-11-11 — E-mail de resultado do Mega Millions não espera mais o data.ny.gov
+
+O e-mail do sorteio de 06/11 saiu 7h30 depois do sorteio e o de 10/11 só saiu por reenvio manual.
+O sender lia apenas o data.ny.gov, que publica o Mega Millions na manhã seguinte (10/11: 08:34
+UTC, 4h30 depois do sorteio), e o GitHub acordou o `powerball-results-email.yml` 3 vezes naquela
+noite e pulou o catch-up das 08:00 UTC. Todas as execuções terminaram verdes. Três mudanças:
+
+- **Fonte**: Mega Millions lê primeiro `megamillions.com` (`lottery_sources.py`, a mesma primária
+  do coletor), validada para o sorteio esperado; o data.ny.gov fica de fallback. Powerball não muda.
+- **Relógio**: o `live_cache_producer.yml` (Cloudflare, 5 em 5 min) aciona o e-mail quando há
+  sorteio com bilhetes sem resultado entre 10 min e 24h depois do horário oficial, no máximo a
+  cada 15 min (`should_kick_result_email.py`). E o cron ganha revisitas às 08:45, 09:45 e 10:45
+  UTC nas manhãs seguintes aos sorteios.
+- **Alarme**: resultado sem fonte 2h depois do sorteio gera `::warning::` e resumo no job; em
+  execução agendada, sai 1 (vermelho) a partir de 2h no Mega Millions e 12h no Powerball.
+
+Identidade, tempo, ledger e completude de destinatários não mudam: rodar mais vezes não pode
+duplicar e-mail. Prêmio, razão e participantes intocados.
+
 ## 2026-11-11 — Reserva dos ganhadores de 02/11 fica só para jogos adicionais
 
 Decisão do organizador (2026-11-11): no sorteio de Mega Millions de 13/11 cada um dos ganhadores
