@@ -1109,6 +1109,12 @@
     ],
     [
       {
+        "name": "Alan Rech",
+        "cotas": 1,
+        "valor": 10,
+        "metodo": "Cash App"
+      },
+      {
         "name": "Eduardo Ferrari",
         "cotas": 1,
         "valor": 10,
