@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-11-15T01:02:18Z",
-  "sourceUpdatedAt": "2026-11-15T01:02:18Z",
+  "generatedAt": "2026-11-15T07:48:20Z",
+  "sourceUpdatedAt": "2026-11-15T07:48:20Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "523530d5da934060a7549db625a13dc2fbf2ed9d0837db2679628e1e0b08cd8b",
+  "payloadHash": "3bac98e52ecc6cf85e181ea8b2237aa95b88b3142106437db274cb968c633eb7",
   "matches": [
     {
       "id": "401840808",
@@ -57580,24 +57580,24 @@
     {
       "id": "401841175",
       "date": "2026-11-14T23:30Z",
-      "state": "in",
-      "statusName": "STATUS_SECOND_HALF",
-      "statusDescription": "Second Half",
-      "statusShortDetail": "72'",
-      "statusDetail": "72'",
-      "completed": false,
+      "state": "post",
+      "statusName": "STATUS_FULL_TIME",
+      "statusDescription": "Full Time",
+      "statusShortDetail": "FT",
+      "statusDetail": "FT",
+      "completed": true,
       "homeTeam": "Chapecoense",
       "awayTeam": "Vasco da Gama",
       "homeTeamId": "9318",
       "awayTeamId": "3454",
       "homeScore": 0,
-      "awayScore": 1,
+      "awayScore": 2,
       "homeWinner": false,
-      "awayWinner": false,
+      "awayWinner": true,
       "venue": "Arena Condá",
       "city": "Chapecó",
-      "clockSec": 4320.0,
-      "clockStr": "72'",
+      "clockSec": 5400.0,
+      "clockStr": "90'+5'",
       "period": 2,
       "details": [
         {
@@ -57654,6 +57654,63 @@
             {
               "displayName": "Dylan Borrero",
               "shortName": "D. Borrero"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "9318"
+          },
+          "clock": {
+            "value": 4757.0,
+            "displayValue": "80'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Camilo",
+              "shortName": "Camilo"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Goal"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "3454"
+          },
+          "clock": {
+            "value": 4820.0,
+            "displayValue": "81'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Bruno Duarte",
+              "shortName": "B. Duarte"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "9318"
+          },
+          "clock": {
+            "value": 5331.0,
+            "displayValue": "89'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Bruno Pacheco",
+              "shortName": "B. Pacheco"
             }
           ]
         }
