@@ -94,10 +94,10 @@
     },
     {
       "id": "2026-11-17",
-      "participants": 7,
-      "cotas": 7,
-      "valor": 70,
-      "totalArrecadado": 70
+      "participants": 10,
+      "cotas": 10,
+      "valor": 100,
+      "totalArrecadado": 100
     }
   ],
   "cutoverAt": "2026-08-22",
