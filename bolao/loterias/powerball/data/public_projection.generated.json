@@ -1145,7 +1145,19 @@
         "metodo": "Zelle"
       },
       {
+        "name": "Marcelo Barsotti",
+        "cotas": 1,
+        "valor": 10,
+        "metodo": "Pix"
+      },
+      {
         "name": "Marcelo G de Jesus",
+        "cotas": 1,
+        "valor": 10,
+        "metodo": "Zelle"
+      },
+      {
+        "name": "Marcelo Minghetti Pereira",
         "cotas": 1,
         "valor": 10,
         "metodo": "Zelle"
