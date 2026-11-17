@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "sourceModel": "EPG_CORROBORATED_WITH_CURATED_OVERRIDE",
   "_comment": "Fonte de dados de 'Onde assistir' (bolao/shared/js/where_to_watch.js). Modelo EPG_CORROBORATED_WITH_CURATED_OVERRIDE (#431): registros sem 'origin' são curadoria humana e sempre vencem; registros 'origin: epg' são gerados por bolao/shared/scripts/sync_epg_broadcasts.mjs a partir da grade de TV — não edite esses à mão. Ver docs/bolao/BROADCAST_OPERATIONS.md antes de editar este arquivo.",
-  "updatedAt": "2026-11-17T03:55:04Z",
+  "updatedAt": "2026-11-17T16:00:17Z",
   "entries": [
     {
       "espnId": "401909114",
@@ -82,12 +82,23 @@
       "kickoffUtc": "2026-11-18T22:30Z",
       "home": "Coritiba",
       "away": "Santos",
-      "channels": ["Record (TV aberta — consulte sua região)"],
+      "channels": ["Record (TV aberta — consulte sua região)", "Premiere 7"],
       "origin": "epg",
       "source": "EPG XMLTV epgshare01 (BR1/BR2) — corroboração automática: programa cita os dois clubes no horário do kickoff",
       "confirmedAt": "2026-11-16",
       "collectedAt": "2026-11-16T06:30:45Z",
       "evidence": [
+        {
+          "channel": "Record (TV aberta — consulte sua região)",
+          "source": "epgshare-br1",
+          "epgChannelId": "São.Paulo/SP..Record.HD.br",
+          "programmeTitle": "Coritiba x Santos",
+          "programmeSubTitle": "Ao Vivo",
+          "programmeStart": "2026-11-18T22:20:00Z",
+          "programmeStop": "2026-11-19T00:30:00Z",
+          "matchedTeams": ["coritiba", "santos"],
+          "collectedAt": "2026-11-17T16:00:17Z"
+        },
         {
           "channel": "Record (TV aberta — consulte sua região)",
           "source": "epgshare-br2",
@@ -99,6 +110,17 @@
           "programmeStop": "2026-11-19T00:30:00Z",
           "matchedTeams": ["coritiba", "santos"],
           "collectedAt": "2026-11-16T06:30:45Z"
+        },
+        {
+          "channel": "Premiere 7",
+          "source": "epgshare-br1",
+          "epgChannelId": "São.Paulo/SP..Premiere.7.br",
+          "programmeTitle": "Coritiba x Santos",
+          "programmeSubTitle": "Ao Vivo",
+          "programmeStart": "2026-11-18T22:30:00Z",
+          "programmeStop": "2026-11-19T01:30:00Z",
+          "matchedTeams": ["coritiba", "santos"],
+          "collectedAt": "2026-11-17T16:00:17Z"
         }
       ]
     },
@@ -138,6 +160,17 @@
         },
         {
           "channel": "Premiere",
+          "source": "epgshare-br1",
+          "epgChannelId": "São.Paulo/SP..Premiere.Clubes.br",
+          "programmeTitle": "Flamengo x Athletico-PR",
+          "programmeSubTitle": "Ao Vivo",
+          "programmeStart": "2026-11-18T23:30:00Z",
+          "programmeStop": "2026-11-19T01:40:00Z",
+          "matchedTeams": ["flamengo", "athletico-pr"],
+          "collectedAt": "2026-11-17T16:00:17Z"
+        },
+        {
+          "channel": "Premiere",
           "source": "epgshare-br2",
           "epgChannelId": "Premiere.Clubes.br",
           "programmeTitle": "Flamengo x Athletico-PR - Ao Vivo",
@@ -147,6 +180,78 @@
           "programmeStop": "2026-11-19T01:40:00Z",
           "matchedTeams": ["flamengo", "athletico-pr"],
           "collectedAt": "2026-11-16T06:30:45Z"
+        }
+      ]
+    },
+    {
+      "espnId": "401841314",
+      "kickoffUtc": "2026-11-18T23:30Z",
+      "home": "Cruzeiro",
+      "away": "Palmeiras",
+      "channels": ["Premiere 2"],
+      "origin": "epg",
+      "source": "EPG XMLTV epgshare01 (BR1/BR2) — corroboração automática: programa cita os dois clubes no horário do kickoff",
+      "confirmedAt": "2026-11-17",
+      "collectedAt": "2026-11-17T16:00:17Z",
+      "evidence": [
+        {
+          "channel": "Premiere 2",
+          "source": "epgshare-br1",
+          "epgChannelId": "São.Paulo/SP..Premiere.2.br",
+          "programmeTitle": "Cruzeiro x Palmeiras",
+          "programmeSubTitle": "Ao Vivo",
+          "programmeStart": "2026-11-18T23:30:00Z",
+          "programmeStop": "2026-11-19T02:30:00Z",
+          "matchedTeams": ["cruzeiro", "palmeiras"],
+          "collectedAt": "2026-11-17T16:00:17Z"
+        }
+      ]
+    },
+    {
+      "espnId": "401841312",
+      "kickoffUtc": "2026-11-19T00:30Z",
+      "home": "Grêmio",
+      "away": "Bahia",
+      "channels": ["Premiere 5"],
+      "origin": "epg",
+      "source": "EPG XMLTV epgshare01 (BR1/BR2) — corroboração automática: programa cita os dois clubes no horário do kickoff",
+      "confirmedAt": "2026-11-17",
+      "collectedAt": "2026-11-17T16:00:17Z",
+      "evidence": [
+        {
+          "channel": "Premiere 5",
+          "source": "epgshare-br1",
+          "epgChannelId": "São.Paulo/SP..PREMIERE.HD.5.³.br",
+          "programmeTitle": "Grêmio x Bahia",
+          "programmeSubTitle": "Ao Vivo",
+          "programmeStart": "2026-11-19T00:30:00Z",
+          "programmeStop": "2026-11-19T03:30:00Z",
+          "matchedTeams": ["gremio", "bahia"],
+          "collectedAt": "2026-11-17T16:00:17Z"
+        }
+      ]
+    },
+    {
+      "espnId": "401841316",
+      "kickoffUtc": "2026-11-19T00:30Z",
+      "home": "Corinthians",
+      "away": "Botafogo",
+      "channels": ["Premiere 4"],
+      "origin": "epg",
+      "source": "EPG XMLTV epgshare01 (BR1/BR2) — corroboração automática: programa cita os dois clubes no horário do kickoff",
+      "confirmedAt": "2026-11-17",
+      "collectedAt": "2026-11-17T16:00:17Z",
+      "evidence": [
+        {
+          "channel": "Premiere 4",
+          "source": "epgshare-br1",
+          "epgChannelId": "São.Paulo/SP..PREMIERE.HD.4.³.br",
+          "programmeTitle": "Corinthians x Botafogo",
+          "programmeSubTitle": "Ao Vivo",
+          "programmeStart": "2026-11-19T00:30:00Z",
+          "programmeStop": "2026-11-19T03:30:00Z",
+          "matchedTeams": ["corinthians", "botafogo"],
+          "collectedAt": "2026-11-17T16:00:17Z"
         }
       ]
     },
@@ -186,6 +291,17 @@
         },
         {
           "channel": "Premiere",
+          "source": "epgshare-br1",
+          "epgChannelId": "São.Paulo/SP..Premiere.Clubes.br",
+          "programmeTitle": "Vasco x Internacional",
+          "programmeSubTitle": "Ao Vivo",
+          "programmeStart": "2026-11-19T22:00:00Z",
+          "programmeStop": "2026-11-20T00:40:00Z",
+          "matchedTeams": ["vasco", "internacional"],
+          "collectedAt": "2026-11-17T16:00:17Z"
+        },
+        {
+          "channel": "Premiere",
           "source": "epgshare-br2",
           "epgChannelId": "Premiere.Clubes.br",
           "programmeTitle": "Vasco x Internacional - Ao Vivo",
@@ -203,12 +319,23 @@
       "kickoffUtc": "2026-11-20T00:30Z",
       "home": "São Paulo",
       "away": "Fluminense",
-      "channels": ["Globo (TV aberta — consulte sua região)"],
+      "channels": ["Globo (TV aberta — consulte sua região)", "Premiere 2"],
       "origin": "epg",
       "source": "EPG XMLTV epgshare01 (BR1/BR2) — corroboração automática: programa cita os dois clubes no horário do kickoff",
       "confirmedAt": "2026-11-17",
       "collectedAt": "2026-11-17T03:55:04Z",
       "evidence": [
+        {
+          "channel": "Globo (TV aberta — consulte sua região)",
+          "source": "epgshare-br1",
+          "epgChannelId": "São.Paulo/SP..Globo.HD.br",
+          "programmeTitle": "São Paulo x Fluminense",
+          "programmeSubTitle": "Ao Vivo",
+          "programmeStart": "2026-11-20T00:20:00Z",
+          "programmeStop": "2026-11-20T02:30:00Z",
+          "matchedTeams": ["sao-paulo", "fluminense"],
+          "collectedAt": "2026-11-17T16:00:17Z"
+        },
         {
           "channel": "Globo (TV aberta — consulte sua região)",
           "source": "epgshare-br2",
@@ -220,6 +347,17 @@
           "programmeStop": "2026-11-20T02:30:00Z",
           "matchedTeams": ["sao-paulo", "fluminense"],
           "collectedAt": "2026-11-17T03:55:04Z"
+        },
+        {
+          "channel": "Premiere 2",
+          "source": "epgshare-br1",
+          "epgChannelId": "São.Paulo/SP..Premiere.2.br",
+          "programmeTitle": "São Paulo x Fluminense",
+          "programmeSubTitle": "Ao Vivo",
+          "programmeStart": "2026-11-20T00:30:00Z",
+          "programmeStop": "2026-11-20T03:30:00Z",
+          "matchedTeams": ["sao-paulo", "fluminense"],
+          "collectedAt": "2026-11-17T16:00:17Z"
         }
       ]
     }
