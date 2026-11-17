@@ -223,6 +223,16 @@ async function main() {
   result.results.forEach((r) => console.log(
     `  - ${r.participant}: ${dryRun ? "(dry-run)" : r.deduped ? "already sent (deduped, same idempotency key)" : r.ok ? "sent" : "FAILED: " + r.error}`
   ));
+  // A provider failure per recipient used to end with exit 0, so the workflow run showed
+  // "success" while nobody got the email (2026-11-17: all 13 FAILED with EmailJS 412
+  // "Invalid grant" after the Gmail connection expired). Any real failure fails the run.
+  // Deduped results are not failures. Rerunning after a partial failure resends to everyone,
+  // because the outbox does not persist between workflow runs.
+  const failed = dryRun ? [] : result.results.filter((r) => !r.deduped && !r.ok);
+  if (failed.length) {
+    console.error(`\n${failed.length} of ${result.results.length} recipient(s) FAILED: ${failed.map((r) => r.participant).join(", ")}`);
+    process.exit(1);
+  }
 }
 
 main();
