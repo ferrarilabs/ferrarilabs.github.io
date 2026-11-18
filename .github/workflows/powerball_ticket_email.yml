@@ -67,6 +67,14 @@ jobs:
               || { echo "::error::evidencia publica ausente: ${DRAW_ID}-v${VERSION}/$f"; exit 1; }
           done
 
+      # Desde 2026-11-18 o deposito pode estar so no banco (o site le de la). Os contatos e o
+      # e-mail saem do data.js: quem pagou e nao foi sincronizado ficaria sem e-mail, em silencio.
+      - name: data.js tem todo mundo que o banco tem
+        working-directory: bolao/loterias/powerball/scripts
+        env:
+          DRAW_ID: ${{ inputs.draw_id }}
+        run: node check_datajs_matches_db.mjs --draw "$DRAW_ID"
+
       - name: Montar contatos (tudo ou nada)
         working-directory: bolao/loterias/powerball/scripts
         env:

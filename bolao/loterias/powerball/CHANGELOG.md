@@ -6,6 +6,54 @@ outros três bolões.
 
 ---
 
+## 2026-11-18 — Site lê os participantes do sorteio aberto direto do banco
+
+Pedido do organizador: "ter uma maneira de atualizar tudo no banco e o site le de la sem ter que
+fazer PR toda hora". Até aqui cada depósito exigia PR do manifesto, o apply no banco e o PR
+automático do `data.js`, cada um esperando `npm run check`; em 18/11 três depósitos ficaram horas
+fora do site porque o check travou instalando o Playwright.
+
+- **Banco → site sem PR.** RPC pública `lottery_public_open_draws` (migração
+  `20261118140000`), SECURITY DEFINER, só leitura, ratificada. Devolve, para os sorteios de até 7
+  dias atrás em diante, exatamente o que o `data.js` já publica: nome, cotas, valor líquido, meio e
+  horário da contribuição, e se houve contribuição (o "verificado" × "pendente" da projeção).
+  Nada de e-mail, telefone, referência ou memo. `anon` continua sem privilégio nas tabelas
+  `lottery_*`. Conferida contra produção antes do merge (só leitura): idêntica ao `data.js` nos
+  sorteios de 13/11, 17/11 e 20/11.
+- **`js/live_participants.js`** busca a RPC depois que a página desenha com o `data.js` e troca
+  só os participantes dos sorteios sem resultado e sem bilhetes comprados (depósito tardio não
+  entra nos jogos). Falha de rede, timeout de 6 s, resposta fora de forma ou um nome com cara de
+  e-mail/telefone (a mesma segunda tranca de `assertSemPII`) deixam a página como o `data.js` a
+  fez; o banco com menos gente que o `data.js` não apaga ninguém. Só roda na origem de produção
+  (`liveDb.origins`): servidor local e testes de navegador continuam só com o `data.js`.
+  Desligar: `liveDb.enabled: false` em `js/config.js`.
+- **CSP** passa a permitir `connect-src` para o Supabase do projeto.
+- **Escape na tabela**: nome, estado, meio e data/hora agora passam por `esc()`, porque podem
+  vir do banco em tempo real e não só do `data.js` revisado.
+- **`powerball_open_draw.yml`**: novo `publish_site` (padrão `true`, comportamento antigo) e novo
+  `add_contribution`. Depósito do dia a dia, sem PR e sem commit:
+  `gh workflow run powerball_open_draw.yml -f manifest=bolao/loterias/powerball/operations/<data>.json
+  -f add_contribution='{"name":"…","amount":10,"method":"Zelle","paid_at":"…-05:00"}' -f apply=true
+  -f publish_site=false`. O workflow parte do manifesto commitado e acrescenta o depósito num arquivo
+  do runner (`manifest_add_contribution.py`, que só aceita essas quatro chaves porque o input sai no
+  log público); `operator_open_draw.py` valida o resto como sempre. Segunda cota da mesma pessoa
+  ou correção continua indo pelo manifesto em PR. O manifesto do repositório é atualizado uma vez,
+  na sincronização antes da compra dos bilhetes.
+- **Trava nos e-mails**: `check_datajs_matches_db.mjs` roda antes do e-mail dos bilhetes (só o
+  sorteio daquele envio; banco inalcançável reprova) e do de resultado (só sorteios já realizados;
+  banco inalcançável vira aviso para não derrubar o e-mail; sem sorteio a conferir nem consulta)
+  e reprova se alguém pagou no banco e não está no `data.js`, casando por nome com contagem. É o que impede que um depósito não sincronizado fique sem e-mail
+  e fora da divisão de prêmio. Sincronizar = `publish_site=true` antes da compra dos bilhetes.
+- Testes: `test_live_participants.mjs` (gate `powerball-live-participants`) e
+  `test_manifest_add_contribution.py` (gate `powerball-add-contribution`).
+
+## 2026-11-18 — Abertura do sorteio de Mega Millions de 20/11
+
+Jackpot anunciado US$629 milhões (cash US$258,8 milhões), acima do limite de US$500 milhões.
+Manifesto `operations/2026-11-20.json` abre com a cota do organizador; os demais entram ao pagar.
+Crédito herdado de 17/11: US$1 guardado + US$80 de prêmio (2x Mega Ball + 1x 3 acertos) = US$81.
+A reserva dos ganhadores de 02/11 (US$33) não paga cota.
+
 ## 2026-11-14 — Abertura do sorteio de Mega Millions de 17/11
 
 Jackpot anunciado US$600 milhões (cash US$246,9 milhões), acima do limite de US$500 milhões; o
