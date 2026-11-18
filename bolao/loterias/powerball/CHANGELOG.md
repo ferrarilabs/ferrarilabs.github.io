@@ -6,6 +6,13 @@ outros três bolões.
 
 ---
 
+## 2026-11-18 — Abertura do sorteio de Mega Millions de 20/11
+
+Jackpot anunciado US$629 milhões (cash US$258,8 milhões), acima do limite de US$500 milhões.
+Manifesto `operations/2026-11-20.json` abre com a cota do organizador; os demais entram ao pagar.
+Crédito herdado de 17/11: US$1 guardado + US$80 de prêmio (2x Mega Ball + 1x 3 acertos) = US$81.
+A reserva dos ganhadores de 02/11 (US$33) não paga cota.
+
 ## 2026-11-14 — Abertura do sorteio de Mega Millions de 17/11
 
 Jackpot anunciado US$600 milhões (cash US$246,9 milhões), acima do limite de US$500 milhões; o
