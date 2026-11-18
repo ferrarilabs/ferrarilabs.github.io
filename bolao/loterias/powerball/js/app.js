@@ -467,16 +467,18 @@
       var statusLabel = p.status === "organizador" ? "Organizador"
         : p.status === "pendente" ? "Pagamento pendente" : "✓ Verificado";
       var prize = calculatePrizePerParticipant(draw, p);
-      var stateLabel = p.state ? " (" + p.state + ")" : "";
+      // Escapado: desde 2026-11-18 estas linhas podem vir do banco em tempo real
+      // (live_participants.js), nao so do data.js revisado em PR.
+      var stateLabel = p.state ? " (" + esc(p.state) + ")" : "";
       return "<tr>" +
-        '<td data-label="Nome">' + p.name + stateLabel + "</td>" +
+        '<td data-label="Nome">' + esc(p.name) + stateLabel + "</td>" +
         // Participação registrada COM PAGAMENTO PENDENTE: `valor`/`metodo` nulos são um estado
         // legítimo — alguém entrou no sorteio e a contribuição ainda não foi definida/confirmada.
         // Antes disto o modelo obrigava os dois campos, então registrar participação sem pagamento
         // exigiria inventar um valor. Renderizar "—/Pendente" é honesto; "$NaN" ou "undefined" não.
         '<td data-label="Valor">' + (p.valor == null ? "—" : fmtUsd(p.valor)) + "</td>" +
-        '<td data-label="Método" class="pb-td-mobile-hide">' + (p.metodo == null ? "Pendente" : p.metodo) + "</td>" +
-        '<td data-label="Data / Hora">' + p.data + (p.hora !== "—" ? " " + p.hora : "") + "</td>" +
+        '<td data-label="Método" class="pb-td-mobile-hide">' + (p.metodo == null ? "Pendente" : esc(p.metodo)) + "</td>" +
+        '<td data-label="Data / Hora">' + esc(p.data) + (p.hora !== "—" ? " " + esc(p.hora) : "") + "</td>" +
         '<td data-label="Status"><span class="pb-status-pill ' + statusClass + '">' + statusLabel + "</span></td>" +
         '<td data-label="Lump Sum Bruto" class="pb-td-mobile-hide">' + fmtUsdCompact(prize.lumpSumBruto) + "</td>" +
         '<td data-label="Lump Sum Impostos" class="pb-td-mobile-hide">' + (prize.stateKnown ? fmtUsdCompact(prize.lumpSumTax) : "—") + "</td>" +
@@ -966,12 +968,27 @@
       .catch(function () { /* seção permanece oculta; nada a afirmar sem o documento */ });
   }
 
+  // Participantes do sorteio aberto direto do banco (js/live_participants.js). A pagina ja foi
+  // desenhada com o data.js; se o banco responder, so o sorteio que mudou e redesenhado. Qualquer
+  // falha (rede, CSP, timeout, forma inesperada) deixa a pagina exatamente como o data.js a fez.
+  function carregaParticipantesAoVivo() {
+    var live = window.POWERBALL_LIVE;
+    var cfg = window.POWERBALL_CONFIG && window.POWERBALL_CONFIG.liveDb;
+    if (!live || !cfg || !cfg.enabled) return;
+    live.buscar(cfg).then(function (linhas) {
+      if (!linhas) return;
+      var r = live.mesclar(DRAWS, linhas);
+      if (r.ok && r.alterados.indexOf(DRAWS[currentIdx].id) !== -1) renderDraw(currentIdx);
+    });
+  }
+
   document.addEventListener("DOMContentLoaded", function () {
     var deepLinked = deepLinkedIndex();
     if (deepLinked !== -1) currentIdx = deepLinked;
     renderDrawSelector();
     renderDraw(currentIdx);
     carregaLotteryStatus();
+    carregaParticipantesAoVivo();
 
     // O <select> nativo não existe mais (Batch 6). O combo customizado registra os próprios
     // handlers em wireDrawCombo(), chamado uma única vez por buildDrawCombo().

@@ -99,6 +99,15 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git config user.name "github-actions[bot]"
 
+      # Desde 2026-11-18 o deposito pode estar so no banco (o site le de la), mas a divisao de
+      # premio e os destinatarios saem do data.js. So confere sorteio que ja aconteceu: entre
+      # sorteios nao ha resultado a enviar e o deposito ainda pode estar so no banco.
+      - name: data.js tem todo mundo que o banco tem (sorteios ja realizados)
+        working-directory: bolao/loterias/powerball/scripts
+        # `--allow-unknown`: Supabase fora do ar vira aviso, nao derruba o e-mail de resultado (que
+        # ja depende do banco pelo ledger). Divergencia medida reprova.
+        run: node check_datajs_matches_db.mjs --only-past-draws --allow-unknown
+
       # PREFLIGHT DE DESTINATARIOS — roda ANTES, no unico ambiente que tem o segredo.
       #
       # Sem isto, a primeira vez que se descobre que falta contato de alguem e no meio do envio,

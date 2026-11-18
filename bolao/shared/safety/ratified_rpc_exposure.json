@@ -43,6 +43,18 @@
       "declaredCapabilities": ["CONTROLS_NOTIFICATION", "READS_NOTIFICATION", "READS_POOL_STATE", "WRITES_POOL_STATE"],
       "ratifiedBy": "Eduardo Ferrari",
       "ratificationEvidence": "Cadeia de migracoes 20260812170000 -> 20260816010000, todas revogando de PUBLIC antes de conceder. Chamada real em app.js:2436 via cdbRpc."
+    },
+    {
+      "signature": "public.lottery_public_open_draws()",
+      "key": "public.lottery_public_open_draws/0",
+      "allowedRoles": ["anon", "authenticated", "service_role"],
+      "classification": "EXPECTED_CLIENT_RPC",
+      "reason": "Leitura publica dos participantes dos sorteios dos ultimos 7 dias em diante do Powerball/Mega Millions, para o site mostrar o banco sem PR a cada deposito. So le. Devolve exatamente o que o data.js publico ja publica (nome, cotas, valor liquido, meio e horario da contribuicao): a allowlist esta no SELECT, e email, phone, external_reference, memo, reason, operator_client_ref e ids nunca sao lidos. READS_PARTICIPANT_IDENTITY e READS_PAYMENT estao declarados porque o corpo toca lottery_participants (so display_name) e lottery_payment_transactions (so amount, method, paid_at, type).",
+      "expectedCaller": "bolao/loterias/powerball/js/live_participants.js",
+      "expectedRuntime": "navegador do participante, com a anon key publica",
+      "declaredCapabilities": ["READS_ENTRY", "READS_PARTICIPANT_IDENTITY", "READS_PAYMENT"],
+      "ratifiedBy": "Eduardo Ferrari",
+      "ratificationEvidence": "Pedido do organizador em 2026-11-18 ('ter uma maneira de atualizar tudo no banco e o site le de la sem ter que fazer PR toda hora'; 'sim, faz a PR'). Definicao em 20261118140000_powerball_public_open_draws_rpc.sql, que revoga PUBLIC e concede so os tres papeis. Allowlist provada por test_live_participants.mjs."
     }
   ],
 
