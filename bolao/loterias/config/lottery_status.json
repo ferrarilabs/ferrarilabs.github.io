@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-17T18:36:29Z",
+  "generatedAt": "2026-11-18T04:11:06Z",
   "threshold": {
     "minJackpotCents": 50000000000,
     "comparison": "strictly_greater",
@@ -14,10 +14,10 @@
       "cashValueCents": 3850000000,
       "nextDrawDate": "2026-11-18",
       "nextDrawAt": "2026-11-19T03:59:00Z",
-      "source": "https://www.powerball.com/",
-      "verificationState": "PRIMARY_CONFIRMED",
-      "fetchedAt": "2026-11-17T18:36:28Z",
-      "sourceHash": "4dc297d0368977a2",
+      "source": "https://nclottery.com/powerball",
+      "verificationState": "SECONDARY_ONLY",
+      "fetchedAt": "2026-11-18T04:11:05Z",
+      "sourceHash": "ffe38df5dad95d8d",
       "eligible": false,
       "state": "BELOW_THRESHOLD",
       "error": null
@@ -25,14 +25,14 @@
     "megamillions": {
       "game": "megamillions",
       "label": "Mega Millions",
-      "advertisedAnnuityCents": 60000000000,
-      "cashValueCents": 24690000000,
-      "nextDrawDate": "2026-11-17",
-      "nextDrawAt": "2026-11-18T04:00:00Z",
+      "advertisedAnnuityCents": 62900000000,
+      "cashValueCents": 25880000000,
+      "nextDrawDate": "2026-11-20",
+      "nextDrawAt": "2026-11-21T04:00:00Z",
       "source": "https://www.megamillions.com/cmspages/utilservice.asmx/GetLatestDrawData",
       "verificationState": "PRIMARY_CONFIRMED",
-      "fetchedAt": "2026-11-17T18:36:29Z",
-      "sourceHash": "0a61d928f836444b",
+      "fetchedAt": "2026-11-18T04:11:05Z",
+      "sourceHash": "ea770d8ca876e1f5",
       "eligible": true,
       "state": "ELIGIBLE",
       "error": null
@@ -41,13 +41,13 @@
   "nextPool": {
     "game": "megamillions",
     "label": "Mega Millions",
-    "jackpotCents": 60000000000,
-    "drawDate": "2026-11-17"
+    "jackpotCents": 62900000000,
+    "drawDate": "2026-11-20"
   },
   "funds": {
-    "lastDrawWinningsCents": 2000,
-    "lastDrawId": "2026-11-13",
-    "carryoverAvailableCents": 2100,
+    "lastDrawWinningsCents": 8000,
+    "lastDrawId": "2026-11-17",
+    "carryoverAvailableCents": 8100,
     "reserves": [
       {
         "id": "ganhadores-2026-11-02",
@@ -57,14 +57,31 @@
         "cents": 3300
       }
     ],
-    "ledgerEntries": 40
+    "ledgerEntries": 45
   },
   "currentDraw": {
     "id": "2026-11-17",
     "game": "megamillions",
-    "lifecycleState": "LOCKED",
-    "reason": "bilhetes comprados; entradas encerradas",
-    "result": null
+    "lifecycleState": "SETTLED",
+    "reason": "resultado oficial gravado e prêmio creditado",
+    "result": {
+      "numbers": [
+        3,
+        10,
+        19,
+        28,
+        33
+      ],
+      "special": 21,
+      "multiplier": 1,
+      "checkedAt": "18/11/2026 04:11 ET",
+      "premiosGanhos": 80,
+      "jackpotHit": false,
+      "breakdown": [
+        "2x Mega Ball",
+        "1x 3 acertos"
+      ]
+    }
   },
   "autoPurchase": false,
   "_doc": "Documento gerado; nao editar a mao. A UI e o e-mail leem daqui para que exista UMA resposta para 'ha bolao novo?'. Elegibilidade e ESTRITAMENTE > US$500M sobre a anuidade anunciada do PROXIMO sorteio."
