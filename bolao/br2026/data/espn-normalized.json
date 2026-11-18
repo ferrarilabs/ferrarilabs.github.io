@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-11-18T23:06:46Z",
-  "sourceUpdatedAt": "2026-11-18T23:06:46Z",
+  "generatedAt": "2026-11-18T23:41:15Z",
+  "sourceUpdatedAt": "2026-11-18T23:41:15Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "308ef151a2719e846dc53d947038b7329108a76cce026065655f72c949a2a72a",
+  "payloadHash": "fea56958af8f640158f7bd7710914ed095451f40eb8187c174ef08bafc3b4d03",
   "matches": [
     {
       "id": "401840808",
@@ -57720,10 +57720,10 @@
       "id": "401841315",
       "date": "2026-11-18T22:30Z",
       "state": "in",
-      "statusName": "STATUS_FIRST_HALF",
-      "statusDescription": "First Half",
-      "statusShortDetail": "32'",
-      "statusDetail": "32'",
+      "statusName": "STATUS_HALFTIME",
+      "statusDescription": "Halftime",
+      "statusShortDetail": "HT",
+      "statusDetail": "HT",
       "completed": false,
       "homeTeam": "Coritiba",
       "awayTeam": "Santos",
@@ -57735,8 +57735,8 @@
       "awayWinner": false,
       "venue": "Couto Pereira",
       "city": "Curitiba",
-      "clockSec": 1920.0,
-      "clockStr": "32'",
+      "clockSec": 2700.0,
+      "clockStr": "45'+6'",
       "period": 1,
       "details": [
         {
@@ -57757,6 +57757,25 @@
               "shortName": "T. Santos"
             }
           ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "3456"
+          },
+          "clock": {
+            "value": 2510.0,
+            "displayValue": "42'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Nicolás Fonseca",
+              "shortName": "N. Fonseca"
+            }
+          ]
         }
       ]
     },
@@ -57766,21 +57785,21 @@
       "state": "in",
       "statusName": "STATUS_FIRST_HALF",
       "statusDescription": "First Half",
-      "statusShortDetail": "4'",
-      "statusDetail": "4'",
+      "statusShortDetail": "39'",
+      "statusDetail": "39'",
       "completed": false,
       "homeTeam": "Remo",
       "awayTeam": "Chapecoense",
       "homeTeamId": "4936",
       "awayTeamId": "9318",
-      "homeScore": 1,
+      "homeScore": 2,
       "awayScore": 0,
       "homeWinner": false,
       "awayWinner": false,
       "venue": "Mangueirão",
       "city": "Belém",
-      "clockSec": 240.0,
-      "clockStr": "4'",
+      "clockSec": 2340.0,
+      "clockStr": "39'",
       "period": 1,
       "details": [
         {
@@ -57801,17 +57820,36 @@
               "shortName": "Jajá"
             }
           ]
+        },
+        {
+          "type": {
+            "text": "Penalty - Scored"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "4936"
+          },
+          "clock": {
+            "value": 1198.0,
+            "displayValue": "20'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Patrick",
+              "shortName": "Patrick"
+            }
+          ]
         }
       ]
     },
     {
       "id": "401841314",
       "date": "2026-11-18T23:30Z",
-      "state": "pre",
-      "statusName": "STATUS_SCHEDULED",
-      "statusDescription": "Scheduled",
-      "statusShortDetail": "Scheduled",
-      "statusDetail": "Wed, November 18th at 6:30 PM EST",
+      "state": "in",
+      "statusName": "STATUS_FIRST_HALF",
+      "statusDescription": "First Half",
+      "statusShortDetail": "10'",
+      "statusDetail": "10'",
       "completed": false,
       "homeTeam": "Cruzeiro",
       "awayTeam": "Palmeiras",
@@ -57823,19 +57861,19 @@
       "awayWinner": false,
       "venue": "Estadio Mineirão",
       "city": "Belo Horizonte",
-      "clockSec": 0.0,
-      "clockStr": "0'",
-      "period": null,
+      "clockSec": 600.0,
+      "clockStr": "10'",
+      "period": 1,
       "details": []
     },
     {
       "id": "401841313",
       "date": "2026-11-18T23:30Z",
-      "state": "pre",
-      "statusName": "STATUS_SCHEDULED",
-      "statusDescription": "Scheduled",
-      "statusShortDetail": "Scheduled",
-      "statusDetail": "Wed, November 18th at 6:30 PM EST",
+      "state": "in",
+      "statusName": "STATUS_FIRST_HALF",
+      "statusDescription": "First Half",
+      "statusShortDetail": "11'",
+      "statusDetail": "11'",
       "completed": false,
       "homeTeam": "Flamengo",
       "awayTeam": "Athletico Paranaense",
@@ -57847,9 +57885,9 @@
       "awayWinner": false,
       "venue": "Estadio do Maracana",
       "city": "Rio de Janeiro",
-      "clockSec": 0.0,
-      "clockStr": "0'",
-      "period": null,
+      "clockSec": 660.0,
+      "clockStr": "11'",
+      "period": 1,
       "details": []
     },
     {
