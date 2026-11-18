@@ -1405,13 +1405,27 @@ window.POWERBALL_DRAWS = [
       { name: "Marcelo Minghetti Pereira", cotas: 1, valor: 10, metodo: "Zelle", data: "16/11/2026", hora: "9:43:54 PM", status: "verificado", state: "NC" }
     ],
 
-    // Sem bilhetes ainda. Os numeros entram depois da compra -- abrir o bolao nunca dependeu
-    // de ja existirem jogos.
     sharedTickets: {
-      compradoPor: null,
-      dataComprovante: null,
-      valorPorTicket: 5,
-      series: []
+      compradoPor: "Eduardo Ferrari (organizador)",
+      dataComprovante: "17/11/2026",
+      valorPorTicket: 5, // multiplicador embutido em cada aposta
+      series: [
+        {
+          serial: "2552ACE9E82008F42", qtd: 30, jogos: "1–30",
+          numeros: [
+            "01-15-56-62-63 — MB 19 — 10X", "01-36-50-65-69 — MB 14 — 3X", "02-04-19-45-51 — MB 03 — 3X",
+            "02-14-20-37-61 — MB 21 — 3X", "03-10-28-57-70 — MB 17 — 5X", "03-21-32-36-64 — MB 22 — 5X",
+            "04-37-41-53-68 — MB 12 — 3X", "05-06-43-51-54 — MB 08 — 2X", "05-11-39-50-58 — MB 11 — 2X",
+            "05-18-33-35-48 — MB 12 — 2X", "06-23-28-60-67 — MB 20 — 2X", "07-09-27-38-50 — MB 01 — 2X",
+            "07-18-29-39-42 — MB 06 — 2X", "08-16-19-46-59 — MB 09 — 5X", "08-31-34-49-58 — MB 15 — 3X",
+            "09-17-30-33-34 — MB 24 — 2X", "10-25-27-45-66 — MB 07 — 2X", "11-15-44-47-54 — MB 23 — 2X",
+            "11-24-41-51-52 — MB 04 — 3X", "12-24-31-63-70 — MB 21 — 3X", "12-38-53-57-62 — MB 14 — 2X",
+            "12-40-43-67-68 — MB 18 — 2X", "13-17-22-61-64 — MB 05 — 2X", "13-26-29-34-66 — MB 16 — 3X",
+            "14-32-39-44-69 — MB 17 — 4X", "16-21-35-49-60 — MB 10 — 3X", "20-23-47-48-64 — MB 11 — 3X",
+            "22-26-42-55-59 — MB 02 — 2X", "25-40-46-55-65 — MB 13 — 3X", "30-49-52-55-56 — MB 18 — 3X"
+          ]
+        }
+      ]
     },
 
     finance: {
@@ -1419,8 +1433,8 @@ window.POWERBALL_DRAWS = [
       // Premio do sorteio anterior + o que ficou guardado. Derivado do que esta gravado, nao
       // arbitrado aqui.
       creditoSorteioAnterior: 21,
-      valorUtilizado: 0,
-      valorGuardadoProximoSorteio: 0,
+      valorUtilizado: 150, // 30 x US$5
+      valorGuardadoProximoSorteio: 1, // 130 + 21 - 150
       ajustesPendentes: 0
     },
 

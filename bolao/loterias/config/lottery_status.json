@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-17T18:44:42Z",
+  "generatedAt": "2026-11-17T18:36:29Z",
   "threshold": {
     "minJackpotCents": 50000000000,
     "comparison": "strictly_greater",
@@ -16,7 +16,7 @@
       "nextDrawAt": "2026-11-19T03:59:00Z",
       "source": "https://www.powerball.com/",
       "verificationState": "PRIMARY_CONFIRMED",
-      "fetchedAt": "2026-11-17T18:44:41Z",
+      "fetchedAt": "2026-11-17T18:36:28Z",
       "sourceHash": "4dc297d0368977a2",
       "eligible": false,
       "state": "BELOW_THRESHOLD",
@@ -31,7 +31,7 @@
       "nextDrawAt": "2026-11-18T04:00:00Z",
       "source": "https://www.megamillions.com/cmspages/utilservice.asmx/GetLatestDrawData",
       "verificationState": "PRIMARY_CONFIRMED",
-      "fetchedAt": "2026-11-17T18:44:42Z",
+      "fetchedAt": "2026-11-17T18:36:29Z",
       "sourceHash": "0a61d928f836444b",
       "eligible": true,
       "state": "ELIGIBLE",
@@ -62,8 +62,8 @@
   "currentDraw": {
     "id": "2026-11-17",
     "game": "megamillions",
-    "lifecycleState": "OPEN",
-    "reason": "recolhendo contribuições",
+    "lifecycleState": "LOCKED",
+    "reason": "bilhetes comprados; entradas encerradas",
     "result": null
   },
   "autoPurchase": false,
