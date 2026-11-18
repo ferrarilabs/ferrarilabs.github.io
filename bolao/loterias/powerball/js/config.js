@@ -32,6 +32,19 @@ window.POWERBALL_CONFIG = {
     participantTemplateId: "template_xq7yzzb",
     adminTemplateId: "template_4sgp5r9"
   },
+  // Participantes AO VIVO do sorteio aberto (js/live_participants.js). O site le o banco pela RPC
+  // publica `lottery_public_open_draws` e cai no data.js se ela falhar. Desligar = `enabled: false`
+  // (o data.js volta a ser a unica fonte, como antes de 2026-11-18).
+  liveDb: {
+    enabled: true,
+    url: "https://cmhqkkfczotdnssupkni.supabase.co",
+    // Chave PUBLICA (a mesma dos outros tres bolões); nao da acesso a tabela nenhuma.
+    anonKey: "sb_publishable_9eJsJzMcROuj9SFOMVUTvA_mWVz0fG5",
+    timeoutMs: 6000,
+    // So a origem de PRODUCAO le o banco. Servidor local e testes de navegador ficam no data.js:
+    // sem rede, deterministicos, e sem chamar o banco de producao a cada execucao da suite.
+    origins: ["https://www.ferrarilabs.com"]
+  },
   adminEmail: "emferrari@gmail.com"
 };
 

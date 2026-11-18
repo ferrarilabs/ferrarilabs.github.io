@@ -28,6 +28,14 @@ on:
         description: "Gravar de verdade (sem isto e simulacao)"
         type: boolean
         default: false
+      add_contribution:
+        description: 'Deposito sem PR: {"name":"..","amount":10,"method":"Zelle","paid_at":"2026-11-18T10:01:20-05:00"} (so estas 4 chaves; vazio = so o manifesto)'
+        type: string
+        default: ""
+      publish_site:
+        description: "Tambem abrir o PR do data.js (desligado: o site le o banco ao vivo; sincronize antes de comprar os bilhetes)"
+        type: boolean
+        default: true
 
 permissions:
   contents: read
@@ -61,15 +69,32 @@ jobs:
           case "$MANIFEST" in *..*) echo "::error::caminho com '..'"; exit 1 ;; esac
           test -f "$MANIFEST"
 
+      # Deposito sem PR (2026-11-18): parte do manifesto commitado e acrescenta UMA contribuicao num
+      # arquivo do runner. O helper so aceita name/amount/method/paid_at (o input sai no log
+      # publico); nome, meio e data continuam validados pelo operator_open_draw.py logo abaixo.
+      - name: Manifesto efetivo
+        env:
+          MANIFEST: ${{ inputs.manifest }}
+          ADD_CONTRIBUTION: ${{ inputs.add_contribution }}
+        run: |
+          set -euo pipefail
+          if [ -n "$ADD_CONTRIBUTION" ]; then
+            python3 bolao/loterias/powerball/scripts/manifest_add_contribution.py \
+              --manifest "$GITHUB_WORKSPACE/$MANIFEST" --add "$ADD_CONTRIBUTION" \
+              --out "$RUNNER_TEMP/manifest_efetivo.json"
+            echo "EFETIVO=$RUNNER_TEMP/manifest_efetivo.json" >> "$GITHUB_ENV"
+          else
+            echo "EFETIVO=$GITHUB_WORKSPACE/$MANIFEST" >> "$GITHUB_ENV"
+          fi
+
       - name: Abrir sorteio
         env:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           GITHUB_ACTOR: ${{ github.actor }}
-          MANIFEST: ${{ inputs.manifest }}
           APPLY: ${{ inputs.apply }}
         run: |
           set -euo pipefail
-          ARGS=(--manifest "$GITHUB_WORKSPACE/$MANIFEST")
+          ARGS=(--manifest "$EFETIVO")
           [ "$APPLY" = "true" ] && ARGS+=(--apply)
           python3 bolao/loterias/powerball/scripts/operator_open_draw.py "${ARGS[@]}"
 
@@ -87,7 +112,11 @@ jobs:
   site:
     name: Publicar no site (PR automatico)
     needs: abrir
-    if: inputs.apply
+    # Desde 2026-11-18 o site le os participantes do sorteio aberto direto do banco
+    # (js/live_participants.js). Deposito do dia a dia: `publish_site=false`, sem PR. O data.js
+    # continua sendo o registro publico e o fallback: sincronize (publish_site=true) antes da
+    # compra dos bilhetes, que le os participantes dele.
+    if: inputs.apply && inputs.publish_site
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     permissions:

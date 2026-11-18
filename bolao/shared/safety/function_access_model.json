@@ -23,6 +23,10 @@
     "public.cdb_save_my_picks/3": [
       "anon",
       "authenticated"
+    ],
+    "public.lottery_public_open_draws/0": [
+      "anon",
+      "authenticated"
     ]
   },
   "_heranca": "As entradas abaixo sao EXPOSICAO HERDADA, nao ratificacao. Cada uma e uma funcao de servico ou interna que a DDL deixa alcancavel por papel de cliente porque nunca revogou o que o default concedeu no nascimento. A lista e um CATRACA: o gate reprova qualquer assinatura alcancavel por cliente que nao esteja aqui, entao ela nao pode CRESCER; e cada item que ganhar o seu `revoke` sai daqui e nao pode voltar. Ela NAO e permissao -- e divida registrada, com Issue. ATUALIZADO 2026-08-21: a lista caiu de 14 para 3. Onze entradas sairam porque `bolao/shared/sql/032_codify_notification_function_client_revokes.sql` passou a revogar `anon`/`authenticated` nominalmente delas, alinhando a reconstrucao ao que producao ja tem. As tres que ficam estao explicadas item a item em `whyStillHere`, e sao de dois tipos diferentes: duas sao exposicao REAL ao vivo (Issue #282) e uma e divergencia de ORDEM DE REPLAY. ATUALIZADO 2026-08-22: a lista caiu de 3 para 1. As duas entradas da Issue #282 sairam porque a exposicao foi REVOGADA EM PRODUCAO (migracao 20260822110933), nao porque a DDL mudou de opiniao sobre elas. ATUALIZADO 2026-08-22 (#292): a catraca chegou a ZERO. `delete_canary_job` saiu porque a ordem de replay passou a ser a real; os dois helpers sairam porque foram revogados em producao (#282). Uma lista vazia aqui e o estado PRETENDIDO: qualquer funcao de servico alcancavel por cliente agora reprova, sem excecao declarada.",
@@ -127,6 +131,11 @@
       "class": "CLIENT_RPC",
       "secdef": true,
       "why": "gravacao do palpite do participante do CDB2026"
+    },
+    "public.lottery_public_open_draws/0": {
+      "class": "CLIENT_RPC",
+      "secdef": true,
+      "why": "leitura publica dos participantes do sorteio aberto do Powerball/Mega Millions (site ao vivo, 2026-11-18)"
     },
     "public.cdb_update_entry_picks/3": {
       "class": "INTERNAL_FUNCTION",
