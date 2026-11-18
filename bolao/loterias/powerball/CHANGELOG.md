@@ -30,14 +30,22 @@ fora do site porque o check travou instalando o Playwright.
 - **CSP** passa a permitir `connect-src` para o Supabase do projeto.
 - **Escape na tabela**: nome, estado, meio e data/hora agora passam por `esc()`, porque podem
   vir do banco em tempo real e não só do `data.js` revisado.
-- **`powerball_open_draw.yml`**: novo `publish_site` (padrão `true`, comportamento antigo). Depósito
-  do dia a dia: `publish_site=false`, grava no banco e pronto.
+- **`powerball_open_draw.yml`**: novo `publish_site` (padrão `true`, comportamento antigo) e novo
+  `add_contribution`. Depósito do dia a dia, sem PR e sem commit:
+  `gh workflow run powerball_open_draw.yml -f manifest=bolao/loterias/powerball/operations/<data>.json
+  -f add_contribution='{"name":"…","amount":10,"method":"Zelle","paid_at":"…-05:00"}' -f apply=true
+  -f publish_site=false`. O workflow parte do manifesto commitado e acrescenta o depósito num arquivo
+  do runner (`manifest_add_contribution.py`, que só aceita essas quatro chaves porque o input sai no
+  log público); `operator_open_draw.py` valida o resto como sempre. Segunda cota da mesma pessoa
+  ou correção continua indo pelo manifesto em PR. O manifesto do repositório é atualizado uma vez,
+  na sincronização antes da compra dos bilhetes.
 - **Trava nos e-mails**: `check_datajs_matches_db.mjs` roda antes do e-mail dos bilhetes (só o
   sorteio daquele envio; banco inalcançável reprova) e do de resultado (só sorteios já realizados;
   banco inalcançável vira aviso para não derrubar o e-mail; sem sorteio a conferir nem consulta)
   e reprova se alguém pagou no banco e não está no `data.js`, casando por nome com contagem. É o que impede que um depósito não sincronizado fique sem e-mail
   e fora da divisão de prêmio. Sincronizar = `publish_site=true` antes da compra dos bilhetes.
-- Teste: `test_live_participants.mjs` (gate `powerball-live-participants`).
+- Testes: `test_live_participants.mjs` (gate `powerball-live-participants`) e
+  `test_manifest_add_contribution.py` (gate `powerball-add-contribution`).
 
 ## 2026-11-18 — Abertura do sorteio de Mega Millions de 20/11
 

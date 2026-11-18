@@ -626,6 +626,8 @@ const CHECKS = [
     why: "o sorteio ABERTO tem de mostrar jackpot oficial com procedencia, nunca estado de espera com o dado disponivel" },
   { id: "powerball-live-participants", group: "app", cmd: ["node", "bolao/loterias/powerball/scripts/test_live_participants.mjs"],
     why: "o site le o sorteio aberto do banco so pela RPC publica, recusa resposta fora de forma, nunca apaga participante do data.js, escapa o que vem do banco; e a trava dos e-mails reprova data.js atrasado em relacao ao banco" },
+  { id: "powerball-add-contribution", group: "app", cmd: ["python3", "bolao/loterias/powerball/scripts/test_manifest_add_contribution.py"],
+    why: "deposito sem PR: o input do workflow so aceita name/amount/method/paid_at, e idempotente e recusa ambiguidade" },
   { id: "powerball-scoring", group: "scoring", cmd: ["python3", "bolao/loterias/powerball/scripts/audit_scoring.py"],
     why: "premiacao do Powerball" },
   { id: "powerball-scoring-email-placeholder", group: "scoring", cmd: ["python3", "bolao/loterias/powerball/scripts/test_audit_scoring_email_placeholder.py"],
