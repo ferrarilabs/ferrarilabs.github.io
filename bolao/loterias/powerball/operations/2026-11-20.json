@@ -1,5 +1,5 @@
 {
-  "_o_que_e": "Manifesto de abertura do sorteio Mega Millions de 2026-11-20, aplicado por operator_open_draw.py. Cada participante paga a propria cota de US$10; a reserva dos ganhadores de 02/11 (US$33) nao paga cota (fica para jogos adicionais, decisao de 2026-11-11). Credito herdado do sorteio de 17/11: US$1 guardado + US$80 de premio (2x Mega Ball + 1x 3 acertos) = US$81, derivado do livro-razao. So entra quem ja pagou: abre com a cota do organizador (fundo proprio). Quem paga depois entra quando o pagamento chegar, com valor, meio e horario reais, acrescentado a este manifesto e reaplicado (a reaplicacao e idempotente). Sem referencia de pagamento: o repositorio e publico.",
+  "_o_que_e": "Manifesto de abertura do sorteio Mega Millions de 2026-11-20, aplicado por operator_open_draw.py. Cada participante paga a propria cota de US$10; a reserva dos ganhadores de 02/11 (US$33) nao paga cota (fica para jogos adicionais, decisao de 2026-11-11). Credito herdado do sorteio de 17/11: US$1 guardado + US$80 de premio (2x Mega Ball + 1x 3 acertos) = US$81, derivado do livro-razao. So entra quem ja pagou: abre com a cota do organizador (fundo proprio). Thiago Locatelli e Ewerton Gruba Silva entram com a segunda cota paga por Zelle em 16/11 (depois de ja terem pago 17/11), segurada por decisao do organizador e usada neste sorteio (decisao de 2026-11-18). Quem paga depois entra quando o pagamento chegar, com valor, meio e horario reais, acrescentado a este manifesto e reaplicado (a reaplicacao e idempotente). Sem referencia de pagamento: o repositorio e publico.",
   "draw_date": "2026-11-20",
   "jackpot": 629000000,
   "cash_value": 258800000,
@@ -9,6 +9,30 @@
       "amount": 10,
       "method": "Fundo próprio (organizador)",
       "paid_at": "2026-11-18T06:49:06-05:00"
+    },
+    {
+      "name": "Thiago Locatelli",
+      "amount": 10,
+      "method": "Zelle",
+      "paid_at": "2026-11-16T15:17:38-05:00"
+    },
+    {
+      "name": "Ewerton Gruba Silva",
+      "amount": 10,
+      "method": "Zelle",
+      "paid_at": "2026-11-16T17:19:43-05:00"
+    },
+    {
+      "name": "Gustavo Bossle",
+      "amount": 10,
+      "method": "Zelle",
+      "paid_at": "2026-11-18T08:09:32-05:00"
+    },
+    {
+      "name": "Marcelo Moreira",
+      "amount": 10,
+      "method": "Zelle",
+      "paid_at": "2026-11-18T08:57:47-05:00"
     }
   ]
 }
