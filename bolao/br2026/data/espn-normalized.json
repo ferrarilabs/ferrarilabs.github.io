@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-11-19T22:41:11Z",
-  "sourceUpdatedAt": "2026-11-19T22:41:11Z",
+  "generatedAt": "2026-11-19T23:11:15Z",
+  "sourceUpdatedAt": "2026-11-19T23:11:15Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "f334fd45ac3adef2b43d9ed362d90443fbc0cdefc4316fa6cd47a8e1c3b86cf1",
+  "payloadHash": "fb75e86b39f0712f71068859ea4f7502c26b2fb732add731fb5192aac31ade68",
   "matches": [
     {
       "id": "401840808",
@@ -58784,23 +58784,62 @@
       "state": "in",
       "statusName": "STATUS_FIRST_HALF",
       "statusDescription": "First Half",
-      "statusShortDetail": "9'",
-      "statusDetail": "9'",
+      "statusShortDetail": "39'",
+      "statusDetail": "39'",
       "completed": false,
       "homeTeam": "Vasco da Gama",
       "awayTeam": "Internacional",
       "homeTeamId": "3454",
       "awayTeamId": "1936",
-      "homeScore": 0,
+      "homeScore": 1,
       "awayScore": 0,
       "homeWinner": false,
       "awayWinner": false,
       "venue": "Estádio São Januário",
       "city": "Rio de Janeiro",
-      "clockSec": 540.0,
-      "clockStr": "9'",
+      "clockSec": 2340.0,
+      "clockStr": "39'",
       "period": 1,
-      "details": []
+      "details": [
+        {
+          "type": {
+            "text": "Goal - Volley"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "3454"
+          },
+          "clock": {
+            "value": 1546.0,
+            "displayValue": "26'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Thiago Mendes",
+              "shortName": "T. Mendes"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "1936"
+          },
+          "clock": {
+            "value": 1933.0,
+            "displayValue": "33'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Alan Patrick",
+              "shortName": "Alan Patrick"
+            }
+          ]
+        }
+      ]
     },
     {
       "id": "401841317",
@@ -58808,21 +58847,21 @@
       "state": "in",
       "statusName": "STATUS_FIRST_HALF",
       "statusDescription": "First Half",
-      "statusShortDetail": "9'",
-      "statusDetail": "9'",
+      "statusShortDetail": "39'",
+      "statusDetail": "39'",
       "completed": false,
       "homeTeam": "Vitória",
       "awayTeam": "Red Bull Bragantino",
       "homeTeamId": "3457",
       "awayTeamId": "6079",
-      "homeScore": 1,
+      "homeScore": 2,
       "awayScore": 0,
       "homeWinner": false,
       "awayWinner": false,
       "venue": "Estadio Manoel Barradas",
       "city": "Salvador",
-      "clockSec": 540.0,
-      "clockStr": "9'",
+      "clockSec": 2340.0,
+      "clockStr": "39'",
       "period": 1,
       "details": [
         {
@@ -58860,6 +58899,44 @@
             {
               "displayName": "Emanuel Britez",
               "shortName": "E. Britez"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "6079"
+          },
+          "clock": {
+            "value": 671.0,
+            "displayValue": "12'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Juninho Capixaba",
+              "shortName": "J. Capixaba"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Goal"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "3457"
+          },
+          "clock": {
+            "value": 1427.0,
+            "displayValue": "24'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Renê",
+              "shortName": "Renê"
             }
           ]
         }
