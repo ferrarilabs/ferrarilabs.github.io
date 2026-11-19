@@ -1207,7 +1207,31 @@
         "metodo": "Zelle"
       },
       {
+        "name": "Gustavo Ribeiro",
+        "cotas": 1,
+        "valor": 10,
+        "metodo": "Zelle"
+      },
+      {
+        "name": "Leandro Augustineli",
+        "cotas": 1,
+        "valor": 10,
+        "metodo": "Zelle"
+      },
+      {
+        "name": "Marcelo Barsotti",
+        "cotas": 1,
+        "valor": 10,
+        "metodo": "Pix"
+      },
+      {
         "name": "Marcelo Moreira",
+        "cotas": 1,
+        "valor": 10,
+        "metodo": "Zelle"
+      },
+      {
+        "name": "Marcus Steffenon",
         "cotas": 1,
         "valor": 10,
         "metodo": "Zelle"
