@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-11-19T01:41:14Z",
-  "sourceUpdatedAt": "2026-11-19T01:41:14Z",
+  "generatedAt": "2026-11-19T04:40:59Z",
+  "sourceUpdatedAt": "2026-11-19T04:40:59Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "0aec6b3171e81dc834bb26f1cd2b65f51ee51b3c78001fb8077986991f3eefdd",
+  "payloadHash": "02961e3fe45b7902d23dbcee71d033a41127702abc7ef3b0903c1f3dc9f44d3d",
   "matches": [
     {
       "id": "401840808",
@@ -58484,24 +58484,24 @@
     {
       "id": "401841316",
       "date": "2026-11-19T00:30Z",
-      "state": "in",
-      "statusName": "STATUS_IN_PROGRESS",
-      "statusDescription": "In Progress",
-      "statusShortDetail": "51'",
-      "statusDetail": "51'",
-      "completed": false,
+      "state": "post",
+      "statusName": "STATUS_FULL_TIME",
+      "statusDescription": "Full Time",
+      "statusShortDetail": "FT",
+      "statusDetail": "FT",
+      "completed": true,
       "homeTeam": "Corinthians",
       "awayTeam": "Botafogo",
       "homeTeamId": "874",
       "awayTeamId": "6086",
-      "homeScore": 2,
+      "homeScore": 4,
       "awayScore": 0,
-      "homeWinner": false,
+      "homeWinner": true,
       "awayWinner": false,
       "venue": "Neo Química Arena",
       "city": "Sao Paulo",
-      "clockSec": 3060.0,
-      "clockStr": "51'",
+      "clockSec": 5400.0,
+      "clockStr": "90'+1'",
       "period": 2,
       "details": [
         {
@@ -58579,18 +58579,113 @@
               "shortName": "A. Carrillo"
             }
           ]
+        },
+        {
+          "type": {
+            "text": "Goal"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "874"
+          },
+          "clock": {
+            "value": 3593.0,
+            "displayValue": "60'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Kaio",
+              "shortName": "Kaio"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "6086"
+          },
+          "clock": {
+            "value": 3822.0,
+            "displayValue": "64'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Victor Hugo",
+              "shortName": "Victor Hugo"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Goal"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "874"
+          },
+          "clock": {
+            "value": 3980.0,
+            "displayValue": "67'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Kaio",
+              "shortName": "Kaio"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "874"
+          },
+          "clock": {
+            "value": 4050.0,
+            "displayValue": "68'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Kaio",
+              "shortName": "Kaio"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "874"
+          },
+          "clock": {
+            "value": 4925.0,
+            "displayValue": "83'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Raniele",
+              "shortName": "Raniele"
+            }
+          ]
         }
       ]
     },
     {
       "id": "401841312",
       "date": "2026-11-19T00:30Z",
-      "state": "in",
-      "statusName": "STATUS_SECOND_HALF",
-      "statusDescription": "Second Half",
-      "statusShortDetail": "50'",
-      "statusDetail": "50'",
-      "completed": false,
+      "state": "post",
+      "statusName": "STATUS_FULL_TIME",
+      "statusDescription": "Full Time",
+      "statusShortDetail": "FT",
+      "statusDetail": "FT",
+      "completed": true,
       "homeTeam": "Grêmio",
       "awayTeam": "Bahia",
       "homeTeamId": "6273",
@@ -58601,8 +58696,8 @@
       "awayWinner": false,
       "venue": "Arena do Grêmio",
       "city": "Porto Alegre",
-      "clockSec": 3000.0,
-      "clockStr": "50'",
+      "clockSec": 5400.0,
+      "clockStr": "90'+6'",
       "period": 2,
       "details": [
         {
@@ -58640,6 +58735,44 @@
             {
               "displayName": "João Pedro",
               "shortName": "João Pedro"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "9967"
+          },
+          "clock": {
+            "value": 3813.0,
+            "displayValue": "64'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Alejo Veliz",
+              "shortName": "A. Veliz"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "6273"
+          },
+          "clock": {
+            "value": 3962.0,
+            "displayValue": "67'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "José Enamorado",
+              "shortName": "J. Enamorado"
             }
           ]
         }
