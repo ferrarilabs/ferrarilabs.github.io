@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-11-17T00:26:20Z",
-  "sourceUpdatedAt": "2026-11-17T00:26:20Z",
+  "generatedAt": "2026-11-19T01:41:14Z",
+  "sourceUpdatedAt": "2026-11-19T01:41:14Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "424a8af3db8e020e2d368f39ce5ff30460a09364110948c50ff9448224f3013f",
+  "payloadHash": "0aec6b3171e81dc834bb26f1cd2b65f51ee51b3c78001fb8077986991f3eefdd",
   "matches": [
     {
       "id": "401840808",
@@ -57719,131 +57719,877 @@
     {
       "id": "401841315",
       "date": "2026-11-18T22:30Z",
-      "state": "pre",
-      "statusName": "STATUS_SCHEDULED",
-      "statusDescription": "Scheduled",
-      "statusShortDetail": "Scheduled",
-      "statusDetail": "Wed, November 18th at 5:30 PM EST",
-      "completed": false,
+      "state": "post",
+      "statusName": "STATUS_FULL_TIME",
+      "statusDescription": "Full Time",
+      "statusShortDetail": "FT",
+      "statusDetail": "FT",
+      "completed": true,
       "homeTeam": "Coritiba",
       "awayTeam": "Santos",
       "homeTeamId": "3456",
       "awayTeamId": "2674",
       "homeScore": 0,
-      "awayScore": 0,
+      "awayScore": 1,
       "homeWinner": false,
-      "awayWinner": false,
+      "awayWinner": true,
       "venue": "Couto Pereira",
       "city": "Curitiba",
-      "clockSec": 0.0,
-      "clockStr": "0'",
-      "period": null,
-      "details": []
+      "clockSec": 5400.0,
+      "clockStr": "90'+8'",
+      "period": 2,
+      "details": [
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "3456"
+          },
+          "clock": {
+            "value": 810.0,
+            "displayValue": "14'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Thiago Santos",
+              "shortName": "T. Santos"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "3456"
+          },
+          "clock": {
+            "value": 2510.0,
+            "displayValue": "42'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Nicolás Fonseca",
+              "shortName": "N. Fonseca"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "3456"
+          },
+          "clock": {
+            "value": 3060.0,
+            "displayValue": "51'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Sebastián Gómez",
+              "shortName": "S. Gómez"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "2674"
+          },
+          "clock": {
+            "value": 3635.0,
+            "displayValue": "61'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Rodinei",
+              "shortName": "Rodinei"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "2674"
+          },
+          "clock": {
+            "value": 4751.0,
+            "displayValue": "80'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Gustavo Henrique",
+              "shortName": "G. Henrique"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Goal"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "2674"
+          },
+          "clock": {
+            "value": 5400.0,
+            "displayValue": "90'+2'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Gabriel Barbosa",
+              "shortName": "G. Barbosa"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "3456"
+          },
+          "clock": {
+            "value": 5400.0,
+            "displayValue": "90'+6'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Jacy Maranhão",
+              "shortName": "J. Maranhão"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "3456"
+          },
+          "clock": {
+            "value": 5400.0,
+            "displayValue": "90'+9'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Brian Ocampo",
+              "shortName": "B. Ocampo"
+            }
+          ]
+        }
+      ]
     },
     {
       "id": "401841310",
       "date": "2026-11-18T23:00Z",
-      "state": "pre",
-      "statusName": "STATUS_SCHEDULED",
-      "statusDescription": "Scheduled",
-      "statusShortDetail": "Scheduled",
-      "statusDetail": "Wed, November 18th at 6:00 PM EST",
-      "completed": false,
+      "state": "post",
+      "statusName": "STATUS_FULL_TIME",
+      "statusDescription": "Full Time",
+      "statusShortDetail": "FT",
+      "statusDetail": "FT",
+      "completed": true,
       "homeTeam": "Remo",
       "awayTeam": "Chapecoense",
       "homeTeamId": "4936",
       "awayTeamId": "9318",
-      "homeScore": 0,
+      "homeScore": 2,
       "awayScore": 0,
-      "homeWinner": false,
+      "homeWinner": true,
       "awayWinner": false,
       "venue": "Mangueirão",
       "city": "Belém",
-      "clockSec": 0.0,
-      "clockStr": "0'",
-      "period": null,
-      "details": []
+      "clockSec": 5400.0,
+      "clockStr": "90'+4'",
+      "period": 2,
+      "details": [
+        {
+          "type": {
+            "text": "Goal"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "4936"
+          },
+          "clock": {
+            "value": 126.0,
+            "displayValue": "3'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Jajá",
+              "shortName": "Jajá"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Penalty - Scored"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "4936"
+          },
+          "clock": {
+            "value": 1198.0,
+            "displayValue": "20'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Patrick",
+              "shortName": "Patrick"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "9318"
+          },
+          "clock": {
+            "value": 2601.0,
+            "displayValue": "44'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Giovanni Augusto",
+              "shortName": "Giovanni Augusto"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "4936"
+          },
+          "clock": {
+            "value": 2679.0,
+            "displayValue": "45'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Leonel Picco",
+              "shortName": "L. Picco"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "9318"
+          },
+          "clock": {
+            "value": 2807.0,
+            "displayValue": "47'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "David David",
+              "shortName": "D. David"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "4936"
+          },
+          "clock": {
+            "value": 4029.0,
+            "displayValue": "68'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Antonio Galeano",
+              "shortName": "A. Galeano"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "4936"
+          },
+          "clock": {
+            "value": 4675.0,
+            "displayValue": "78'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Gabriel Taliari",
+              "shortName": "G. Taliari"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "9318"
+          },
+          "clock": {
+            "value": 5400.0,
+            "displayValue": "90'+2'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Eduardo Doma",
+              "shortName": "Eduardo Doma"
+            }
+          ]
+        }
+      ]
     },
     {
       "id": "401841314",
       "date": "2026-11-18T23:30Z",
-      "state": "pre",
-      "statusName": "STATUS_SCHEDULED",
-      "statusDescription": "Scheduled",
-      "statusShortDetail": "Scheduled",
-      "statusDetail": "Wed, November 18th at 6:30 PM EST",
-      "completed": false,
+      "state": "post",
+      "statusName": "STATUS_FULL_TIME",
+      "statusDescription": "Full Time",
+      "statusShortDetail": "FT",
+      "statusDetail": "FT",
+      "completed": true,
       "homeTeam": "Cruzeiro",
       "awayTeam": "Palmeiras",
       "homeTeamId": "2022",
       "awayTeamId": "2029",
-      "homeScore": 0,
-      "awayScore": 0,
-      "homeWinner": false,
+      "homeScore": 2,
+      "awayScore": 1,
+      "homeWinner": true,
       "awayWinner": false,
       "venue": "Estadio Mineirão",
       "city": "Belo Horizonte",
-      "clockSec": 0.0,
-      "clockStr": "0'",
-      "period": null,
-      "details": []
+      "clockSec": 5400.0,
+      "clockStr": "90'+8'",
+      "period": 2,
+      "details": [
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "2029"
+          },
+          "clock": {
+            "value": 1869.0,
+            "displayValue": "32'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Alexander Barboza",
+              "shortName": "A. Barboza"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "2029"
+          },
+          "clock": {
+            "value": 2311.0,
+            "displayValue": "39'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Ramón Sosa",
+              "shortName": "R. Sosa"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "2022"
+          },
+          "clock": {
+            "value": 2685.0,
+            "displayValue": "45'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Kaio Jorge",
+              "shortName": "Kaio Jorge"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Goal"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "2029"
+          },
+          "clock": {
+            "value": 2718.0,
+            "displayValue": "46'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Ramón Sosa",
+              "shortName": "R. Sosa"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "2029"
+          },
+          "clock": {
+            "value": 3520.0,
+            "displayValue": "59'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Vitor Roque",
+              "shortName": "V. Roque"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "2022"
+          },
+          "clock": {
+            "value": 3600.0,
+            "displayValue": "60'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Gerson",
+              "shortName": "Gerson"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Goal - Free-kick"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "2022"
+          },
+          "clock": {
+            "value": 4414.0,
+            "displayValue": "74'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Matheus Pereira",
+              "shortName": "M. Pereira"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Own Goal"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "2022"
+          },
+          "clock": {
+            "value": 4584.0,
+            "displayValue": "77'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Khellven",
+              "shortName": "Khellven"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "2022"
+          },
+          "clock": {
+            "value": 5368.0,
+            "displayValue": "90'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Matheus Henrique",
+              "shortName": "Matheus Henrique"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "2029"
+          },
+          "clock": {
+            "value": 5400.0,
+            "displayValue": "90'+5'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Bruno Fuchs",
+              "shortName": "B. Fuchs"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "2022"
+          },
+          "clock": {
+            "value": 5400.0,
+            "displayValue": "90'+5'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Matheus Pereira",
+              "shortName": "M. Pereira"
+            }
+          ]
+        }
+      ]
     },
     {
       "id": "401841313",
       "date": "2026-11-18T23:30Z",
-      "state": "pre",
-      "statusName": "STATUS_SCHEDULED",
-      "statusDescription": "Scheduled",
-      "statusShortDetail": "Scheduled",
-      "statusDetail": "Wed, November 18th at 6:30 PM EST",
-      "completed": false,
+      "state": "post",
+      "statusName": "STATUS_FULL_TIME",
+      "statusDescription": "Full Time",
+      "statusShortDetail": "FT",
+      "statusDetail": "FT",
+      "completed": true,
       "homeTeam": "Flamengo",
       "awayTeam": "Athletico Paranaense",
       "homeTeamId": "819",
       "awayTeamId": "3458",
-      "homeScore": 0,
-      "awayScore": 0,
-      "homeWinner": false,
+      "homeScore": 2,
+      "awayScore": 1,
+      "homeWinner": true,
       "awayWinner": false,
       "venue": "Estadio do Maracana",
       "city": "Rio de Janeiro",
-      "clockSec": 0.0,
-      "clockStr": "0'",
-      "period": null,
-      "details": []
+      "clockSec": 5400.0,
+      "clockStr": "90'+6'",
+      "period": 2,
+      "details": [
+        {
+          "type": {
+            "text": "Goal"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "3458"
+          },
+          "clock": {
+            "value": 655.0,
+            "displayValue": "11'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Kerwin Vargas",
+              "shortName": "K. Vargas"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Goal"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "819"
+          },
+          "clock": {
+            "value": 974.0,
+            "displayValue": "17'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Jorge Carrascal",
+              "shortName": "J. Carrascal"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "3458"
+          },
+          "clock": {
+            "value": 1436.0,
+            "displayValue": "24'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Gastón Benavídez",
+              "shortName": "G. Benavídez"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Penalty - Scored"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "819"
+          },
+          "clock": {
+            "value": 1594.0,
+            "displayValue": "27'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Jorginho",
+              "shortName": "Jorginho"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "819"
+          },
+          "clock": {
+            "value": 1670.0,
+            "displayValue": "28'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Erick Pulgar",
+              "shortName": "E. Pulgar"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "819"
+          },
+          "clock": {
+            "value": 3501.0,
+            "displayValue": "59'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Léo Pereira",
+              "shortName": "L. Pereira"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "3458"
+          },
+          "clock": {
+            "value": 4536.0,
+            "displayValue": "76'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Stiven Mendoza",
+              "shortName": "S. Mendoza"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "3458"
+          },
+          "clock": {
+            "value": 5250.0,
+            "displayValue": "88'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Jorge Rivaldo",
+              "shortName": "J. Rivaldo"
+            }
+          ]
+        }
+      ]
     },
     {
       "id": "401841316",
       "date": "2026-11-19T00:30Z",
-      "state": "pre",
-      "statusName": "STATUS_SCHEDULED",
-      "statusDescription": "Scheduled",
-      "statusShortDetail": "Scheduled",
-      "statusDetail": "Wed, November 18th at 7:30 PM EST",
+      "state": "in",
+      "statusName": "STATUS_IN_PROGRESS",
+      "statusDescription": "In Progress",
+      "statusShortDetail": "51'",
+      "statusDetail": "51'",
       "completed": false,
       "homeTeam": "Corinthians",
       "awayTeam": "Botafogo",
       "homeTeamId": "874",
       "awayTeamId": "6086",
-      "homeScore": 0,
+      "homeScore": 2,
       "awayScore": 0,
       "homeWinner": false,
       "awayWinner": false,
       "venue": "Neo Química Arena",
       "city": "Sao Paulo",
-      "clockSec": 0.0,
-      "clockStr": "0'",
-      "period": null,
-      "details": []
+      "clockSec": 3060.0,
+      "clockStr": "51'",
+      "period": 2,
+      "details": [
+        {
+          "type": {
+            "text": "Goal"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "874"
+          },
+          "clock": {
+            "value": 1640.0,
+            "displayValue": "28'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Kaio",
+              "shortName": "Kaio"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Goal"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "874"
+          },
+          "clock": {
+            "value": 2009.0,
+            "displayValue": "34'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Memphis Depay",
+              "shortName": "M. Depay"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "6086"
+          },
+          "clock": {
+            "value": 2178.0,
+            "displayValue": "37'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Alex Telles",
+              "shortName": "A. Telles"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "874"
+          },
+          "clock": {
+            "value": 2902.0,
+            "displayValue": "49'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "André Carrillo",
+              "shortName": "A. Carrillo"
+            }
+          ]
+        }
+      ]
     },
     {
       "id": "401841312",
       "date": "2026-11-19T00:30Z",
-      "state": "pre",
-      "statusName": "STATUS_SCHEDULED",
-      "statusDescription": "Scheduled",
-      "statusShortDetail": "Scheduled",
-      "statusDetail": "Wed, November 18th at 7:30 PM EST",
+      "state": "in",
+      "statusName": "STATUS_SECOND_HALF",
+      "statusDescription": "Second Half",
+      "statusShortDetail": "50'",
+      "statusDetail": "50'",
       "completed": false,
       "homeTeam": "Grêmio",
       "awayTeam": "Bahia",
@@ -57855,10 +58601,49 @@
       "awayWinner": false,
       "venue": "Arena do Grêmio",
       "city": "Porto Alegre",
-      "clockSec": 0.0,
-      "clockStr": "0'",
-      "period": null,
-      "details": []
+      "clockSec": 3000.0,
+      "clockStr": "50'",
+      "period": 2,
+      "details": [
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "9967"
+          },
+          "clock": {
+            "value": 1369.0,
+            "displayValue": "23'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Kanu",
+              "shortName": "Kanu"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "6273"
+          },
+          "clock": {
+            "value": 2069.0,
+            "displayValue": "35'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "João Pedro",
+              "shortName": "João Pedro"
+            }
+          ]
+        }
+      ]
     },
     {
       "id": "401841308",
@@ -58245,37 +59030,13 @@
       "details": []
     },
     {
-      "id": "401841328",
-      "date": "2026-11-28T20:00Z",
-      "state": "pre",
-      "statusName": "STATUS_SCHEDULED",
-      "statusDescription": "Scheduled",
-      "statusShortDetail": "TBD",
-      "statusDetail": "TBD",
-      "completed": false,
-      "homeTeam": "Atlético-MG",
-      "awayTeam": "Vasco da Gama",
-      "homeTeamId": "7632",
-      "awayTeamId": "3454",
-      "homeScore": 0,
-      "awayScore": 0,
-      "homeWinner": false,
-      "awayWinner": false,
-      "venue": "Arena MRV",
-      "city": "Belo Horizonte",
-      "clockSec": 0.0,
-      "clockStr": "0'",
-      "period": null,
-      "details": []
-    },
-    {
       "id": "401841336",
-      "date": "2026-11-28T20:00Z",
+      "date": "2026-11-29T00:00Z",
       "state": "pre",
       "statusName": "STATUS_SCHEDULED",
       "statusDescription": "Scheduled",
-      "statusShortDetail": "TBD",
-      "statusDetail": "TBD",
+      "statusShortDetail": "Scheduled",
+      "statusDetail": "Sat, November 28th at 7:00 PM EST",
       "completed": false,
       "homeTeam": "Botafogo",
       "awayTeam": "Bahia",
@@ -58293,37 +59054,13 @@
       "details": []
     },
     {
-      "id": "401841334",
-      "date": "2026-11-28T20:00Z",
-      "state": "pre",
-      "statusName": "STATUS_SCHEDULED",
-      "statusDescription": "Scheduled",
-      "statusShortDetail": "TBD",
-      "statusDetail": "TBD",
-      "completed": false,
-      "homeTeam": "Corinthians",
-      "awayTeam": "Grêmio",
-      "homeTeamId": "874",
-      "awayTeamId": "6273",
-      "homeScore": 0,
-      "awayScore": 0,
-      "homeWinner": false,
-      "awayWinner": false,
-      "venue": "Neo Química Arena",
-      "city": "Sao Paulo",
-      "clockSec": 0.0,
-      "clockStr": "0'",
-      "period": null,
-      "details": []
-    },
-    {
       "id": "401841333",
-      "date": "2026-11-28T20:00Z",
+      "date": "2026-11-29T19:00Z",
       "state": "pre",
       "statusName": "STATUS_SCHEDULED",
       "statusDescription": "Scheduled",
-      "statusShortDetail": "TBD",
-      "statusDetail": "TBD",
+      "statusShortDetail": "Scheduled",
+      "statusDetail": "Sun, November 29th at 2:00 PM EST",
       "completed": false,
       "homeTeam": "Coritiba",
       "awayTeam": "Flamengo",
@@ -58341,13 +59078,61 @@
       "details": []
     },
     {
-      "id": "401841331",
-      "date": "2026-11-28T20:00Z",
+      "id": "401841332",
+      "date": "2026-11-29T19:00Z",
       "state": "pre",
       "statusName": "STATUS_SCHEDULED",
       "statusDescription": "Scheduled",
-      "statusShortDetail": "TBD",
-      "statusDetail": "TBD",
+      "statusShortDetail": "Scheduled",
+      "statusDetail": "Sun, November 29th at 2:00 PM EST",
+      "completed": false,
+      "homeTeam": "Vitória",
+      "awayTeam": "Santos",
+      "homeTeamId": "3457",
+      "awayTeamId": "2674",
+      "homeScore": 0,
+      "awayScore": 0,
+      "homeWinner": false,
+      "awayWinner": false,
+      "venue": "Estadio Manoel Barradas",
+      "city": "Salvador",
+      "clockSec": 0.0,
+      "clockStr": "0'",
+      "period": null,
+      "details": []
+    },
+    {
+      "id": "401841334",
+      "date": "2026-11-29T21:30Z",
+      "state": "pre",
+      "statusName": "STATUS_SCHEDULED",
+      "statusDescription": "Scheduled",
+      "statusShortDetail": "Scheduled",
+      "statusDetail": "Sun, November 29th at 4:30 PM EST",
+      "completed": false,
+      "homeTeam": "Corinthians",
+      "awayTeam": "Grêmio",
+      "homeTeamId": "874",
+      "awayTeamId": "6273",
+      "homeScore": 0,
+      "awayScore": 0,
+      "homeWinner": false,
+      "awayWinner": false,
+      "venue": "Neo Química Arena",
+      "city": "Sao Paulo",
+      "clockSec": 0.0,
+      "clockStr": "0'",
+      "period": null,
+      "details": []
+    },
+    {
+      "id": "401841331",
+      "date": "2026-11-29T21:30Z",
+      "state": "pre",
+      "statusName": "STATUS_SCHEDULED",
+      "statusDescription": "Scheduled",
+      "statusShortDetail": "Scheduled",
+      "statusDetail": "Sun, November 29th at 4:30 PM EST",
       "completed": false,
       "homeTeam": "Internacional",
       "awayTeam": "Red Bull Bragantino",
@@ -58366,12 +59151,12 @@
     },
     {
       "id": "401841330",
-      "date": "2026-11-28T20:00Z",
+      "date": "2026-11-29T21:30Z",
       "state": "pre",
       "statusName": "STATUS_SCHEDULED",
       "statusDescription": "Scheduled",
-      "statusShortDetail": "TBD",
-      "statusDetail": "TBD",
+      "statusShortDetail": "Scheduled",
+      "statusDetail": "Sun, November 29th at 4:30 PM EST",
       "completed": false,
       "homeTeam": "Mirassol",
       "awayTeam": "Athletico Paranaense",
@@ -58389,24 +59174,24 @@
       "details": []
     },
     {
-      "id": "401841332",
-      "date": "2026-11-28T20:00Z",
+      "id": "401841328",
+      "date": "2026-11-29T22:30Z",
       "state": "pre",
       "statusName": "STATUS_SCHEDULED",
       "statusDescription": "Scheduled",
-      "statusShortDetail": "TBD",
-      "statusDetail": "TBD",
+      "statusShortDetail": "Scheduled",
+      "statusDetail": "Sun, November 29th at 5:30 PM EST",
       "completed": false,
-      "homeTeam": "Vitória",
-      "awayTeam": "Santos",
-      "homeTeamId": "3457",
-      "awayTeamId": "2674",
+      "homeTeam": "Atlético-MG",
+      "awayTeam": "Vasco da Gama",
+      "homeTeamId": "7632",
+      "awayTeamId": "3454",
       "homeScore": 0,
       "awayScore": 0,
       "homeWinner": false,
       "awayWinner": false,
-      "venue": "Estadio Manoel Barradas",
-      "city": "Salvador",
+      "venue": "Arena MRV",
+      "city": "Belo Horizonte",
       "clockSec": 0.0,
       "clockStr": "0'",
       "period": null,
