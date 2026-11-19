@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-11-19T02:11:13Z",
-  "sourceUpdatedAt": "2026-11-19T02:11:13Z",
+  "generatedAt": "2026-11-19T02:51:12Z",
+  "sourceUpdatedAt": "2026-11-19T02:51:12Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "a7738ef27581db494fcffe15e2cfe72b50d9c63d10a600a418a6100e8b4ded0e",
+  "payloadHash": "02961e3fe45b7902d23dbcee71d033a41127702abc7ef3b0903c1f3dc9f44d3d",
   "matches": [
     {
       "id": "401840808",
@@ -58484,24 +58484,24 @@
     {
       "id": "401841316",
       "date": "2026-11-19T00:30Z",
-      "state": "in",
-      "statusName": "STATUS_SECOND_HALF",
-      "statusDescription": "Second Half",
-      "statusShortDetail": "81'",
-      "statusDetail": "81'",
-      "completed": false,
+      "state": "post",
+      "statusName": "STATUS_FULL_TIME",
+      "statusDescription": "Full Time",
+      "statusShortDetail": "FT",
+      "statusDetail": "FT",
+      "completed": true,
       "homeTeam": "Corinthians",
       "awayTeam": "Botafogo",
       "homeTeamId": "874",
       "awayTeamId": "6086",
       "homeScore": 4,
       "awayScore": 0,
-      "homeWinner": false,
+      "homeWinner": true,
       "awayWinner": false,
       "venue": "Neo Química Arena",
       "city": "Sao Paulo",
-      "clockSec": 4860.0,
-      "clockStr": "81'",
+      "clockSec": 5400.0,
+      "clockStr": "90'+1'",
       "period": 2,
       "details": [
         {
@@ -58655,18 +58655,37 @@
               "shortName": "Kaio"
             }
           ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "874"
+          },
+          "clock": {
+            "value": 4925.0,
+            "displayValue": "83'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Raniele",
+              "shortName": "Raniele"
+            }
+          ]
         }
       ]
     },
     {
       "id": "401841312",
       "date": "2026-11-19T00:30Z",
-      "state": "in",
-      "statusName": "STATUS_SECOND_HALF",
-      "statusDescription": "Second Half",
-      "statusShortDetail": "80'",
-      "statusDetail": "80'",
-      "completed": false,
+      "state": "post",
+      "statusName": "STATUS_FULL_TIME",
+      "statusDescription": "Full Time",
+      "statusShortDetail": "FT",
+      "statusDetail": "FT",
+      "completed": true,
       "homeTeam": "Grêmio",
       "awayTeam": "Bahia",
       "homeTeamId": "6273",
@@ -58677,8 +58696,8 @@
       "awayWinner": false,
       "venue": "Arena do Grêmio",
       "city": "Porto Alegre",
-      "clockSec": 4800.0,
-      "clockStr": "80'",
+      "clockSec": 5400.0,
+      "clockStr": "90'+6'",
       "period": 2,
       "details": [
         {
