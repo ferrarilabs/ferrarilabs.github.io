@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-11-19T00:21:18Z",
-  "sourceUpdatedAt": "2026-11-19T00:21:18Z",
+  "generatedAt": "2026-11-19T01:01:13Z",
+  "sourceUpdatedAt": "2026-11-19T01:01:13Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "a7fe3c3546fdd463a12aca1dec8f61173496abe21362e0ef4367f23b72776f8d",
+  "payloadHash": "ec8a29d2d7c77aa4ed564c7d316667527b02cf9fb33ee03f5480a4ba091c46cc",
   "matches": [
     {
       "id": "401840808",
@@ -57719,24 +57719,24 @@
     {
       "id": "401841315",
       "date": "2026-11-18T22:30Z",
-      "state": "in",
-      "statusName": "STATUS_SECOND_HALF",
-      "statusDescription": "Second Half",
-      "statusShortDetail": "82'",
-      "statusDetail": "82'",
-      "completed": false,
+      "state": "post",
+      "statusName": "STATUS_FULL_TIME",
+      "statusDescription": "Full Time",
+      "statusShortDetail": "FT",
+      "statusDetail": "FT",
+      "completed": true,
       "homeTeam": "Coritiba",
       "awayTeam": "Santos",
       "homeTeamId": "3456",
       "awayTeamId": "2674",
       "homeScore": 0,
-      "awayScore": 0,
+      "awayScore": 1,
       "homeWinner": false,
-      "awayWinner": false,
+      "awayWinner": true,
       "venue": "Couto Pereira",
       "city": "Curitiba",
-      "clockSec": 4920.0,
-      "clockStr": "82'",
+      "clockSec": 5400.0,
+      "clockStr": "90'+8'",
       "period": 2,
       "details": [
         {
@@ -57833,30 +57833,87 @@
               "shortName": "G. Henrique"
             }
           ]
+        },
+        {
+          "type": {
+            "text": "Goal"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "2674"
+          },
+          "clock": {
+            "value": 5400.0,
+            "displayValue": "90'+2'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Gabriel Barbosa",
+              "shortName": "G. Barbosa"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "3456"
+          },
+          "clock": {
+            "value": 5400.0,
+            "displayValue": "90'+6'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Jacy Maranhão",
+              "shortName": "J. Maranhão"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "3456"
+          },
+          "clock": {
+            "value": 5400.0,
+            "displayValue": "90'+9'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Brian Ocampo",
+              "shortName": "B. Ocampo"
+            }
+          ]
         }
       ]
     },
     {
       "id": "401841310",
       "date": "2026-11-18T23:00Z",
-      "state": "in",
-      "statusName": "STATUS_SECOND_HALF",
-      "statusDescription": "Second Half",
-      "statusShortDetail": "57'",
-      "statusDetail": "57'",
-      "completed": false,
+      "state": "post",
+      "statusName": "STATUS_FULL_TIME",
+      "statusDescription": "Full Time",
+      "statusShortDetail": "FT",
+      "statusDetail": "FT",
+      "completed": true,
       "homeTeam": "Remo",
       "awayTeam": "Chapecoense",
       "homeTeamId": "4936",
       "awayTeamId": "9318",
       "homeScore": 2,
       "awayScore": 0,
-      "homeWinner": false,
+      "homeWinner": true,
       "awayWinner": false,
       "venue": "Mangueirão",
       "city": "Belém",
-      "clockSec": 3420.0,
-      "clockStr": "57'",
+      "clockSec": 5400.0,
+      "clockStr": "90'+4'",
       "period": 2,
       "details": [
         {
@@ -57953,6 +58010,63 @@
               "shortName": "D. David"
             }
           ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "4936"
+          },
+          "clock": {
+            "value": 4029.0,
+            "displayValue": "68'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Antonio Galeano",
+              "shortName": "A. Galeano"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "4936"
+          },
+          "clock": {
+            "value": 4675.0,
+            "displayValue": "78'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Gabriel Taliari",
+              "shortName": "G. Taliari"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "9318"
+          },
+          "clock": {
+            "value": 5400.0,
+            "displayValue": "90'+2'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Eduardo Doma",
+              "shortName": "Eduardo Doma"
+            }
+          ]
         }
       ]
     },
@@ -57960,24 +58074,24 @@
       "id": "401841314",
       "date": "2026-11-18T23:30Z",
       "state": "in",
-      "statusName": "STATUS_HALFTIME",
-      "statusDescription": "Halftime",
-      "statusShortDetail": "HT",
-      "statusDetail": "HT",
+      "statusName": "STATUS_SECOND_HALF",
+      "statusDescription": "Second Half",
+      "statusShortDetail": "70'",
+      "statusDetail": "70'",
       "completed": false,
       "homeTeam": "Cruzeiro",
       "awayTeam": "Palmeiras",
       "homeTeamId": "2022",
       "awayTeamId": "2029",
       "homeScore": 0,
-      "awayScore": 0,
+      "awayScore": 1,
       "homeWinner": false,
       "awayWinner": false,
       "venue": "Estadio Mineirão",
       "city": "Belo Horizonte",
-      "clockSec": 2700.0,
-      "clockStr": "45'+3'",
-      "period": 1,
+      "clockSec": 4200.0,
+      "clockStr": "70'",
+      "period": 2,
       "details": [
         {
           "type": {
@@ -58035,6 +58149,63 @@
               "shortName": "Kaio Jorge"
             }
           ]
+        },
+        {
+          "type": {
+            "text": "Goal"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "2029"
+          },
+          "clock": {
+            "value": 2718.0,
+            "displayValue": "46'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Ramón Sosa",
+              "shortName": "R. Sosa"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "2029"
+          },
+          "clock": {
+            "value": 3520.0,
+            "displayValue": "59'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Vitor Roque",
+              "shortName": "V. Roque"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "2022"
+          },
+          "clock": {
+            "value": 3600.0,
+            "displayValue": "60'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Gerson",
+              "shortName": "Gerson"
+            }
+          ]
         }
       ]
     },
@@ -58042,10 +58213,10 @@
       "id": "401841313",
       "date": "2026-11-18T23:30Z",
       "state": "in",
-      "statusName": "STATUS_HALFTIME",
-      "statusDescription": "Halftime",
-      "statusShortDetail": "HT",
-      "statusDetail": "HT",
+      "statusName": "STATUS_SECOND_HALF",
+      "statusDescription": "Second Half",
+      "statusShortDetail": "69'",
+      "statusDetail": "69'",
       "completed": false,
       "homeTeam": "Flamengo",
       "awayTeam": "Athletico Paranaense",
@@ -58057,9 +58228,9 @@
       "awayWinner": false,
       "venue": "Estadio do Maracana",
       "city": "Rio de Janeiro",
-      "clockSec": 2700.0,
-      "clockStr": "45'+5'",
-      "period": 1,
+      "clockSec": 4140.0,
+      "clockStr": "69'",
+      "period": 2,
       "details": [
         {
           "type": {
@@ -58146,7 +58317,7 @@
             "id": "819"
           },
           "clock": {
-            "value": 1675.0,
+            "value": 1670.0,
             "displayValue": "28'"
           },
           "athletesInvolved": [
@@ -58155,41 +58326,80 @@
               "shortName": "E. Pulgar"
             }
           ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "819"
+          },
+          "clock": {
+            "value": 3501.0,
+            "displayValue": "59'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Léo Pereira",
+              "shortName": "L. Pereira"
+            }
+          ]
         }
       ]
     },
     {
       "id": "401841316",
       "date": "2026-11-19T00:30Z",
-      "state": "pre",
-      "statusName": "STATUS_SCHEDULED",
-      "statusDescription": "Scheduled",
-      "statusShortDetail": "Scheduled",
-      "statusDetail": "Wed, November 18th at 7:30 PM EST",
+      "state": "in",
+      "statusName": "STATUS_FIRST_HALF",
+      "statusDescription": "First Half",
+      "statusShortDetail": "31'",
+      "statusDetail": "31'",
       "completed": false,
       "homeTeam": "Corinthians",
       "awayTeam": "Botafogo",
       "homeTeamId": "874",
       "awayTeamId": "6086",
-      "homeScore": 0,
+      "homeScore": 1,
       "awayScore": 0,
       "homeWinner": false,
       "awayWinner": false,
       "venue": "Neo Química Arena",
       "city": "Sao Paulo",
-      "clockSec": 0.0,
-      "clockStr": "0'",
-      "period": null,
-      "details": []
+      "clockSec": 1860.0,
+      "clockStr": "31'",
+      "period": 1,
+      "details": [
+        {
+          "type": {
+            "text": "Goal"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "874"
+          },
+          "clock": {
+            "value": 1640.0,
+            "displayValue": "28'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Kaio",
+              "shortName": "Kaio"
+            }
+          ]
+        }
+      ]
     },
     {
       "id": "401841312",
       "date": "2026-11-19T00:30Z",
-      "state": "pre",
-      "statusName": "STATUS_SCHEDULED",
-      "statusDescription": "Scheduled",
-      "statusShortDetail": "Scheduled",
-      "statusDetail": "Wed, November 18th at 7:30 PM EST",
+      "state": "in",
+      "statusName": "STATUS_FIRST_HALF",
+      "statusDescription": "First Half",
+      "statusShortDetail": "31'",
+      "statusDetail": "31'",
       "completed": false,
       "homeTeam": "Grêmio",
       "awayTeam": "Bahia",
@@ -58201,10 +58411,30 @@
       "awayWinner": false,
       "venue": "Arena do Grêmio",
       "city": "Porto Alegre",
-      "clockSec": 0.0,
-      "clockStr": "0'",
-      "period": null,
-      "details": []
+      "clockSec": 1860.0,
+      "clockStr": "31'",
+      "period": 1,
+      "details": [
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "9967"
+          },
+          "clock": {
+            "value": 1369.0,
+            "displayValue": "23'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Kanu",
+              "shortName": "Kanu"
+            }
+          ]
+        }
+      ]
     },
     {
       "id": "401841308",
