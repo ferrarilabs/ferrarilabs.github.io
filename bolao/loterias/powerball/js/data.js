@@ -1480,7 +1480,10 @@ window.POWERBALL_DRAWS = [
       { name: "Marcelo Barsotti", cotas: 1, valor: 10, metodo: "Pix", data: "18/11/2026", hora: "10:05:52 AM", status: "verificado", state: "ON" },
       { name: "Marcus Steffenon", cotas: 1, valor: 10, metodo: "Zelle", data: "18/11/2026", hora: "12:03:43 PM", status: "verificado", state: "NC" },
       { name: "Gustavo Ribeiro", cotas: 1, valor: 10, metodo: "Zelle", data: "18/11/2026", hora: "12:22:32 PM", status: "verificado", state: "NC" },
-      { name: "Alan Rech", cotas: 1, valor: 10, metodo: "Cash App", data: "19/11/2026", hora: "4:09:02 PM", status: "verificado", state: "FL" }
+      { name: "Alan Rech", cotas: 1, valor: 10, metodo: "Cash App", data: "19/11/2026", hora: "4:09:02 PM", status: "verificado", state: "FL" },
+      { name: "Rodrigo Hajj", cotas: 1, valor: 10, metodo: "Zelle", data: "19/11/2026", hora: "7:00:06 PM", status: "verificado", state: "NC" },
+      { name: "Marcelo G de Jesus", cotas: 1, valor: 10, metodo: "Zelle", data: "19/11/2026", hora: "7:07:40 PM", status: "verificado", state: "FL" },
+      { name: "Marcelo Minghetti Pereira", cotas: 1, valor: 10, metodo: "Zelle", data: "19/11/2026", hora: "11:06:29 PM", status: "verificado", state: "NC" }
     ],
 
     sharedTickets: {
@@ -1515,7 +1518,7 @@ window.POWERBALL_DRAWS = [
     },
 
     finance: {
-      totalArrecadado: 100, // 10 participante(s), soma das contribuicoes no banco
+      totalArrecadado: 130, // 13 participante(s), soma das contribuicoes no banco
       // Premio do sorteio anterior + o que ficou guardado. Derivado do que esta gravado, nao
       // arbitrado aqui.
       creditoSorteioAnterior: 81,
