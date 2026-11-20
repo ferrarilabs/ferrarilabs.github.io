@@ -1513,6 +1513,14 @@ window.POWERBALL_DRAWS = [
           numeros: [
             "13-22-47-51-70 — MB 10 — 4X", "28-33-37-50-69 — MB 22 — 3X"
           ]
+        },
+        {
+          serial: "28D1AA5A0E558656A", qtd: 6, jogos: "37–42",
+          numeros: [
+            "01-17-52-55-67 — MB 11 — 3X", "04-08-15-60-61 — MB 18 — 3X",
+            "05-21-25-36-42 — MB 17 — 3X", "06-19-30-35-53 — MB 15 — 3X",
+            "09-16-29-63-66 — MB 16 — 2X", "10-26-27-49-65 — MB 07 — 2X"
+          ]
         }
       ]
     },
@@ -1522,8 +1530,8 @@ window.POWERBALL_DRAWS = [
       // Premio do sorteio anterior + o que ficou guardado. Derivado do que esta gravado, nao
       // arbitrado aqui.
       creditoSorteioAnterior: 81,
-      valorUtilizado: 180, // 36 x US$5 (34 + 2 pela cota do Alan Rech, paga depois da primeira compra)
-      valorGuardadoProximoSorteio: 1, // 100 + 81 - 180
+      valorUtilizado: 210, // 42 x US$5 (34 + 2 pela cota do Alan Rech + 6 pelas 3 cotas da janela ate 20/11 9h ET)
+      valorGuardadoProximoSorteio: 1, // 130 + 81 - 210
       ajustesPendentes: 0
     },
 
