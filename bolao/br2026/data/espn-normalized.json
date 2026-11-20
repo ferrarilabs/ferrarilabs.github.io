@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-11-20T01:50:59Z",
-  "sourceUpdatedAt": "2026-11-20T01:50:59Z",
+  "generatedAt": "2026-11-20T02:21:01Z",
+  "sourceUpdatedAt": "2026-11-20T02:21:01Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "a07c6ecdb4d0fd0db267f7cfd7ac0603496abd41c156f701d346b92b1aa04b84",
+  "payloadHash": "b064d0808d396574ab9a211907b7616ef7c5f334af33aecc6746b255284cc67e",
   "matches": [
     {
       "id": "401840808",
@@ -59233,8 +59233,8 @@
       "state": "in",
       "statusName": "STATUS_SECOND_HALF",
       "statusDescription": "Second Half",
-      "statusShortDetail": "58'",
-      "statusDetail": "58'",
+      "statusShortDetail": "88'",
+      "statusDetail": "88'",
       "completed": false,
       "homeTeam": "São Paulo",
       "awayTeam": "Fluminense",
@@ -59246,8 +59246,8 @@
       "awayWinner": false,
       "venue": "Estádio Cícero Pompeu de Toledo",
       "city": "Sao Paulo",
-      "clockSec": 3480.0,
-      "clockStr": "58'",
+      "clockSec": 5280.0,
+      "clockStr": "88'",
       "period": 2,
       "details": [
         {
@@ -59266,6 +59266,44 @@
             {
               "displayName": "Hércules",
               "shortName": "Hércules"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "3445"
+          },
+          "clock": {
+            "value": 3761.0,
+            "displayValue": "63'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Luciano Acosta",
+              "shortName": "L. Acosta"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "2026"
+          },
+          "clock": {
+            "value": 4771.0,
+            "displayValue": "80'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Pablo Maia",
+              "shortName": "Pablo Maia"
             }
           ]
         }
