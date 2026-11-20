@@ -730,68 +730,33 @@ def validate_data(draw, participants=None):
 
 
 def audit_log(action, entity_type, entity_id, status, details=None, error_msg=None):
-    """Log action to Supabase audit_log table."""
+    """Registra o evento na auditoria canonica (audit.audit_events, via m8m9.emit_audit).
+
+    Antes gravava por REST anonimo em `public.audit_log`, tabela que nunca existiu em producao:
+    toda execucao logava "Audit log failed (continuing): HTTP Error 404" e nada era gravado.
+    `email_log` tinha o mesmo destino (e ainda levava o endereco do destinatario); a entrega por
+    destinatario ja tem dono, o ledger duravel, entao ela nao foi substituida.
+
+    Auditoria nao derruba o envio, mas tambem nao finge registro: sem a service role (ex.: o passo
+    "Montar contatos" do e-mail de bilhetes) ou com erro do banco, o log diz que NAO gravou.
+    So contagens e estados vao para os metadados, nunca endereco.
+    """
+    if os.environ.get("PYTEST_CURRENT_TEST") or os.environ.get("BOLAO_TEST_RUN"):
+        return None
+    if not (os.environ.get("SUPABASE_SERVICE_ROLE_KEY") or "").strip():
+        logger.info(f"Auditoria nao gravada ({entity_type}.{action}): sem SUPABASE_SERVICE_ROLE_KEY neste passo")
+        return None
+    meta = dict(details or {})
+    meta["status"] = status
+    if error_msg:
+        meta["error"] = str(error_msg)[:200]
     try:
-        payload = json.dumps({
-            "action": action,
-            "entity_type": entity_type,
-            "entity_id": str(entity_id),
-            "performed_by": "send_result_email.py",
-            "status": status,
-            "details": details or {},
-            "error_message": error_msg
-        }).encode()
-
-        url = f"{SUPABASE_URL}/rest/v1/audit_log"
-        req = urllib.request.Request(
-            url,
-            data=payload,
-            headers={
-                "apikey": SUPABASE_ANON_KEY,
-                "Authorization": f"Bearer {SUPABASE_ANON_KEY}",
-                "Content-Type": "application/json",
-                "Prefer": "return=minimal"
-            },
-            method="POST"
-        )
-
-        with urllib.request.urlopen(req, timeout=5) as r:
-            logger.debug(f"✓ Audited: {action} → {entity_type} {entity_id}")
+        import m8m9
+        return m8m9.emit_audit(f"{entity_type}.{action}", entity_type, str(entity_id),
+                               metadata=meta, source="send_result_email.py")
     except Exception as e:
-        logger.warning(f"⚠ Audit log failed (continuing): {e}")
-
-
-def log_email_sent(recipient_email, recipient_name, subject, draw_id, status, details=None, error_msg=None):
-    """Log email send to Supabase email_log table."""
-    try:
-        payload = json.dumps({
-            "recipient_email": recipient_email,
-            "recipient_name": recipient_name,
-            "subject": subject,
-            "bolao_type": "powerball",
-            "draw_id": draw_id,
-            "status": status,
-            "error_reason": error_msg,
-            "metadata": details or {}
-        }).encode()
-
-        url = f"{SUPABASE_URL}/rest/v1/email_log"
-        req = urllib.request.Request(
-            url,
-            data=payload,
-            headers={
-                "apikey": SUPABASE_ANON_KEY,
-                "Authorization": f"Bearer {SUPABASE_ANON_KEY}",
-                "Content-Type": "application/json",
-                "Prefer": "return=minimal"
-            },
-            method="POST"
-        )
-
-        with urllib.request.urlopen(req, timeout=5) as r:
-            logger.info(f"📧 Logged email to {recipient_email}: {status}")
-    except Exception as e:
-        logger.warning(f"⚠ Email log failed (continuing): {e}")
+        logger.warning(f"⚠ Auditoria NAO gravada ({entity_type}.{action}): {str(e)[:200]}")
+        return None
 
 
 def fmtUsd(n):
@@ -1091,7 +1056,6 @@ def send_email(addr, subject, html, recipient_name="", draw_id=""):
     if not addr or "@" not in addr:
         error = f"Invalid email: {_mask(addr)}"
         logger.error(f"❌ {error}")
-        log_email_sent(addr, recipient_name, subject, draw_id, "failed", error_msg=error)
         return False, error
 
     body = json.dumps({
@@ -1112,19 +1076,14 @@ def send_email(addr, subject, html, recipient_name="", draw_id=""):
             status_code = r.status
             if status_code == 200:
                 logger.info(f"✅ Email sent successfully to {_mask(addr)}")
-                log_email_sent(addr, recipient_name, subject, draw_id, "sent", details={"http_status": status_code})
-                audit_log("email_sent", "email", addr, "success", {"recipient": recipient_name, "draw_id": draw_id})
                 return True, f"HTTP {status_code}"
             else:
                 error = f"HTTP {status_code}"
                 logger.warning(f"⚠ Email failed with {error}")
-                log_email_sent(addr, recipient_name, subject, draw_id, "failed", details={"http_status": status_code}, error_msg=error)
                 return False, error
     except Exception as e:
         error = str(e)
         logger.error(f"❌ Exception sending to {_mask(addr)}: {error}")
-        log_email_sent(addr, recipient_name, subject, draw_id, "failed", error_msg=error)
-        audit_log("email_failed", "email", addr, "failed", {"recipient": recipient_name, "error": error}, error_msg=error)
         return False, error
 
 

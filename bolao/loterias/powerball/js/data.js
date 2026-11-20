@@ -1480,7 +1480,10 @@ window.POWERBALL_DRAWS = [
       { name: "Marcelo Barsotti", cotas: 1, valor: 10, metodo: "Pix", data: "18/11/2026", hora: "10:05:52 AM", status: "verificado", state: "ON" },
       { name: "Marcus Steffenon", cotas: 1, valor: 10, metodo: "Zelle", data: "18/11/2026", hora: "12:03:43 PM", status: "verificado", state: "NC" },
       { name: "Gustavo Ribeiro", cotas: 1, valor: 10, metodo: "Zelle", data: "18/11/2026", hora: "12:22:32 PM", status: "verificado", state: "NC" },
-      { name: "Alan Rech", cotas: 1, valor: 10, metodo: "Cash App", data: "19/11/2026", hora: "4:09:02 PM", status: "verificado", state: "FL" }
+      { name: "Alan Rech", cotas: 1, valor: 10, metodo: "Cash App", data: "19/11/2026", hora: "4:09:02 PM", status: "verificado", state: "FL" },
+      { name: "Rodrigo Hajj", cotas: 1, valor: 10, metodo: "Zelle", data: "19/11/2026", hora: "7:00:06 PM", status: "verificado", state: "NC" },
+      { name: "Marcelo G de Jesus", cotas: 1, valor: 10, metodo: "Zelle", data: "19/11/2026", hora: "7:07:40 PM", status: "verificado", state: "FL" },
+      { name: "Marcelo Minghetti Pereira", cotas: 1, valor: 10, metodo: "Zelle", data: "19/11/2026", hora: "11:06:29 PM", status: "verificado", state: "NC" }
     ],
 
     sharedTickets: {
@@ -1510,17 +1513,25 @@ window.POWERBALL_DRAWS = [
           numeros: [
             "13-22-47-51-70 — MB 10 — 4X", "28-33-37-50-69 — MB 22 — 3X"
           ]
+        },
+        {
+          serial: "28D1AA5A0E558656A", qtd: 6, jogos: "37–42",
+          numeros: [
+            "01-17-52-55-67 — MB 11 — 3X", "04-08-15-60-61 — MB 18 — 3X",
+            "05-21-25-36-42 — MB 17 — 3X", "06-19-30-35-53 — MB 15 — 3X",
+            "09-16-29-63-66 — MB 16 — 2X", "10-26-27-49-65 — MB 07 — 2X"
+          ]
         }
       ]
     },
 
     finance: {
-      totalArrecadado: 100, // 10 participante(s), soma das contribuicoes no banco
+      totalArrecadado: 130, // 13 participante(s), soma das contribuicoes no banco
       // Premio do sorteio anterior + o que ficou guardado. Derivado do que esta gravado, nao
       // arbitrado aqui.
       creditoSorteioAnterior: 81,
-      valorUtilizado: 180, // 36 x US$5 (34 + 2 pela cota do Alan Rech, paga depois da primeira compra)
-      valorGuardadoProximoSorteio: 1, // 100 + 81 - 180
+      valorUtilizado: 210, // 42 x US$5 (34 + 2 pela cota do Alan Rech + 6 pelas 3 cotas da janela ate 20/11 9h ET)
+      valorGuardadoProximoSorteio: 1, // 130 + 81 - 210
       ajustesPendentes: 0
     },
 

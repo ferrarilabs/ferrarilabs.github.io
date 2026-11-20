@@ -63,6 +63,24 @@
       "amount": 10,
       "method": "Cash App",
       "paid_at": "2026-11-19T16:09:02-05:00"
+    },
+    {
+      "name": "Rodrigo Hajj",
+      "amount": 10,
+      "method": "Zelle",
+      "paid_at": "2026-11-19T19:00:06-05:00"
+    },
+    {
+      "name": "Marcelo G de Jesus",
+      "amount": 10,
+      "method": "Zelle",
+      "paid_at": "2026-11-19T19:07:40-05:00"
+    },
+    {
+      "name": "Marcelo Minghetti Pereira",
+      "amount": 10,
+      "method": "Zelle",
+      "paid_at": "2026-11-19T23:06:29-05:00"
     }
   ]
 }
