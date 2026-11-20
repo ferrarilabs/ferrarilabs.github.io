@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-11-20T00:01:00Z",
-  "sourceUpdatedAt": "2026-11-20T00:01:00Z",
+  "generatedAt": "2026-11-20T00:31:04Z",
+  "sourceUpdatedAt": "2026-11-20T00:31:04Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "c2a6109e6705405563455724a196a05e5431f3ef1b34ec566b8ce94af237e3a2",
+  "payloadHash": "bb0bf78c48ee78d938b039daece9f8058904a45e564c329bb3b26f695b5b5894",
   "matches": [
     {
       "id": "401840808",
@@ -58781,24 +58781,24 @@
     {
       "id": "401841308",
       "date": "2026-11-19T22:30Z",
-      "state": "in",
-      "statusName": "STATUS_SECOND_HALF",
-      "statusDescription": "Second Half",
-      "statusShortDetail": "69'",
-      "statusDetail": "69'",
-      "completed": false,
+      "state": "post",
+      "statusName": "STATUS_FULL_TIME",
+      "statusDescription": "Full Time",
+      "statusShortDetail": "FT",
+      "statusDetail": "FT",
+      "completed": true,
       "homeTeam": "Vasco da Gama",
       "awayTeam": "Internacional",
       "homeTeamId": "3454",
       "awayTeamId": "1936",
       "homeScore": 2,
       "awayScore": 1,
-      "homeWinner": false,
+      "homeWinner": true,
       "awayWinner": false,
       "venue": "Estádio São Januário",
       "city": "Rio de Janeiro",
-      "clockSec": 4140.0,
-      "clockStr": "69'",
+      "clockSec": 5400.0,
+      "clockStr": "90'+7'",
       "period": 2,
       "details": [
         {
@@ -58895,6 +58895,101 @@
               "shortName": "F. Colidio"
             }
           ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "1936"
+          },
+          "clock": {
+            "value": 4427.0,
+            "displayValue": "74'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Vitinho",
+              "shortName": "Vitinho"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "3454"
+          },
+          "clock": {
+            "value": 5060.0,
+            "displayValue": "85'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Andrés Gómez",
+              "shortName": "A. Gómez"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "3454"
+          },
+          "clock": {
+            "value": 5335.0,
+            "displayValue": "89'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Marino Hinestroza",
+              "shortName": "M. Hinestroza"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "1936"
+          },
+          "clock": {
+            "value": 5338.0,
+            "displayValue": "89'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Rodrigo Villagra",
+              "shortName": "R. Villagra"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "1936"
+          },
+          "clock": {
+            "value": 5400.0,
+            "displayValue": "90'+6'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Gabriel Mercado",
+              "shortName": "G. Mercado"
+            }
+          ]
         }
       ]
     },
@@ -58904,21 +58999,21 @@
       "state": "in",
       "statusName": "STATUS_SECOND_HALF",
       "statusDescription": "Second Half",
-      "statusShortDetail": "63'",
-      "statusDetail": "63'",
+      "statusShortDetail": "90'+3'",
+      "statusDetail": "90'+3'",
       "completed": false,
       "homeTeam": "Vitória",
       "awayTeam": "Red Bull Bragantino",
       "homeTeamId": "3457",
       "awayTeamId": "6079",
       "homeScore": 2,
-      "awayScore": 0,
+      "awayScore": 1,
       "homeWinner": false,
       "awayWinner": false,
       "venue": "Estadio Manoel Barradas",
       "city": "Salvador",
-      "clockSec": 3780.0,
-      "clockStr": "63'",
+      "clockSec": 5400.0,
+      "clockStr": "90'+3'",
       "period": 2,
       "details": [
         {
@@ -59013,6 +59108,82 @@
             {
               "displayName": "Matheusinho",
               "shortName": "Matheusinho"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "6079"
+          },
+          "clock": {
+            "value": 3794.0,
+            "displayValue": "64'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Fabinho",
+              "shortName": "Fabinho"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Goal"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "6079"
+          },
+          "clock": {
+            "value": 4365.0,
+            "displayValue": "73'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Henry Mosquera",
+              "shortName": "H. Mosquera"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "6079"
+          },
+          "clock": {
+            "value": 4705.0,
+            "displayValue": "79'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Gustavo Marques",
+              "shortName": "Gustavo Marques"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "6079"
+          },
+          "clock": {
+            "value": 4815.0,
+            "displayValue": "81'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Matheus Fernandes",
+              "shortName": "Matheus Fernandes"
             }
           ]
         }
