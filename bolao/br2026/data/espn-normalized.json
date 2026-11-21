@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-11-21T22:20:48Z",
-  "sourceUpdatedAt": "2026-11-21T22:20:48Z",
+  "generatedAt": "2026-11-21T22:40:48Z",
+  "sourceUpdatedAt": "2026-11-21T22:40:48Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "196ccb658f44badc2a35f9f16dbb7360bbbc2672c517714de2701abcca238853",
+  "payloadHash": "e6a275fcd82fb8da2d52429c85bd54b0122ecef85efff998bcc263557560a6bf",
   "matches": [
     {
       "id": "401840808",
@@ -59489,12 +59489,12 @@
     {
       "id": "401841327",
       "date": "2026-11-21T20:30Z",
-      "state": "in",
-      "statusName": "STATUS_SECOND_HALF",
-      "statusDescription": "Second Half",
-      "statusShortDetail": "88'",
-      "statusDetail": "88'",
-      "completed": false,
+      "state": "post",
+      "statusName": "STATUS_FULL_TIME",
+      "statusDescription": "Full Time",
+      "statusShortDetail": "FT",
+      "statusDetail": "FT",
+      "completed": true,
       "homeTeam": "Bahia",
       "awayTeam": "Coritiba",
       "homeTeamId": "9967",
@@ -59502,11 +59502,11 @@
       "homeScore": 0,
       "awayScore": 1,
       "homeWinner": false,
-      "awayWinner": false,
+      "awayWinner": true,
       "venue": "Arena Fonte Nova",
       "city": "Salvador",
-      "clockSec": 5280.0,
-      "clockStr": "88'",
+      "clockSec": 5400.0,
+      "clockStr": "90'+8'",
       "period": 2,
       "details": [
         {
@@ -59601,6 +59601,25 @@
             {
               "displayName": "Nicolás Acevedo",
               "shortName": "N. Acevedo"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "3456"
+          },
+          "clock": {
+            "value": 5400.0,
+            "displayValue": "90'+7'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Joaquín Lavega",
+              "shortName": "J. Lavega"
             }
           ]
         }
