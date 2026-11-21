@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-11-21T22:00:49Z",
-  "sourceUpdatedAt": "2026-11-21T22:00:49Z",
+  "generatedAt": "2026-11-21T22:20:48Z",
+  "sourceUpdatedAt": "2026-11-21T22:20:48Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "0a491251be38105473e642a8729f140059a56b990b3bee00165aa7fd789de115",
+  "payloadHash": "196ccb658f44badc2a35f9f16dbb7360bbbc2672c517714de2701abcca238853",
   "matches": [
     {
       "id": "401840808",
@@ -59492,23 +59492,119 @@
       "state": "in",
       "statusName": "STATUS_SECOND_HALF",
       "statusDescription": "Second Half",
-      "statusShortDetail": "68'",
-      "statusDetail": "68'",
+      "statusShortDetail": "88'",
+      "statusDetail": "88'",
       "completed": false,
       "homeTeam": "Bahia",
       "awayTeam": "Coritiba",
       "homeTeamId": "9967",
       "awayTeamId": "3456",
       "homeScore": 0,
-      "awayScore": 0,
+      "awayScore": 1,
       "homeWinner": false,
       "awayWinner": false,
       "venue": "Arena Fonte Nova",
       "city": "Salvador",
-      "clockSec": 4080.0,
-      "clockStr": "68'",
+      "clockSec": 5280.0,
+      "clockStr": "88'",
       "period": 2,
-      "details": []
+      "details": [
+        {
+          "type": {
+            "text": "Goal"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "3456"
+          },
+          "clock": {
+            "value": 4396.0,
+            "displayValue": "74'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Breno",
+              "shortName": "Breno"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "3456"
+          },
+          "clock": {
+            "value": 4646.0,
+            "displayValue": "78'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Breno",
+              "shortName": "Breno"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "9967"
+          },
+          "clock": {
+            "value": 4652.0,
+            "displayValue": "78'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Jean Lucas",
+              "shortName": "Jean Lucas"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "9967"
+          },
+          "clock": {
+            "value": 4812.0,
+            "displayValue": "81'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Nicolás Acevedo",
+              "shortName": "N. Acevedo"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Red Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "9967"
+          },
+          "clock": {
+            "value": 4878.0,
+            "displayValue": "82'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Nicolás Acevedo",
+              "shortName": "N. Acevedo"
+            }
+          ]
+        }
+      ]
     },
     {
       "id": "401841325",
