@@ -1266,6 +1266,14 @@
         "valor": 10,
         "metodo": "Zelle"
       }
+    ],
+    [
+      {
+        "name": "Eduardo Ferrari",
+        "cotas": 1,
+        "valor": 10,
+        "metodo": "Fundo próprio (organizador)"
+      }
     ]
   ]
 }
