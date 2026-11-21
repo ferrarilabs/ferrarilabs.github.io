@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-11-21T20:40:48Z",
-  "sourceUpdatedAt": "2026-11-21T20:40:48Z",
+  "generatedAt": "2026-11-21T21:07:31Z",
+  "sourceUpdatedAt": "2026-11-21T21:07:31Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "c5f32f1b6af742c96e24a760fb160b407d99dee347bb7165aae30fd2de835b50",
+  "payloadHash": "6f2a6b00ad6c5ba40b83e19815b3c6c32146680c7139e1287cd9d54bf530b658",
   "matches": [
     {
       "id": "401840808",
@@ -59313,23 +59313,23 @@
       "id": "401841322",
       "date": "2026-11-21T19:30Z",
       "state": "in",
-      "statusName": "STATUS_IN_PROGRESS",
-      "statusDescription": "In Progress",
-      "statusShortDetail": "50'",
-      "statusDetail": "50'",
+      "statusName": "STATUS_SECOND_HALF",
+      "statusDescription": "Second Half",
+      "statusShortDetail": "77'",
+      "statusDetail": "77'",
       "completed": false,
       "homeTeam": "Palmeiras",
       "awayTeam": "Flamengo",
       "homeTeamId": "2029",
       "awayTeamId": "819",
       "homeScore": 1,
-      "awayScore": 0,
+      "awayScore": 1,
       "homeWinner": false,
       "awayWinner": false,
       "venue": "Allianz Parque",
       "city": "Sao Paulo",
-      "clockSec": 3000.0,
-      "clockStr": "50'",
+      "clockSec": 4620.0,
+      "clockStr": "77'",
       "period": 2,
       "details": [
         {
@@ -59388,6 +59388,25 @@
               "shortName": "Alex Sandro"
             }
           ]
+        },
+        {
+          "type": {
+            "text": "Goal"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "819"
+          },
+          "clock": {
+            "value": 4502.0,
+            "displayValue": "76'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Samuel Lino",
+              "shortName": "S. Lino"
+            }
+          ]
         }
       ]
     },
@@ -59397,8 +59416,8 @@
       "state": "in",
       "statusName": "STATUS_FIRST_HALF",
       "statusDescription": "First Half",
-      "statusShortDetail": "7'",
-      "statusDetail": "7'",
+      "statusShortDetail": "34'",
+      "statusDetail": "34'",
       "completed": false,
       "homeTeam": "Bahia",
       "awayTeam": "Coritiba",
@@ -59410,8 +59429,8 @@
       "awayWinner": false,
       "venue": "Arena Fonte Nova",
       "city": "Salvador",
-      "clockSec": 420.0,
-      "clockStr": "7'",
+      "clockSec": 2040.0,
+      "clockStr": "34'",
       "period": 1,
       "details": []
     },
