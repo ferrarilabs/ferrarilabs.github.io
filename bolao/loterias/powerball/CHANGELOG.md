@@ -6,6 +6,13 @@ outros três bolões.
 
 ---
 
+## 2026-11-21 — Abertura do sorteio de Mega Millions de 24/11
+
+Jackpot anunciado US$645 milhões (cash US$270,8 milhões), acima do limite de US$500 milhões.
+Manifesto `operations/2026-11-24.json` abre com a cota do organizador; os demais entram ao pagar.
+Crédito herdado de 20/11: US$1 guardado + US$10 de prêmio (1x Mega Ball) = US$11.
+A reserva dos ganhadores de 02/11 (US$33) não paga cota.
+
 ## 2026-11-18 — Site lê os participantes do sorteio aberto direto do banco
 
 Pedido do organizador: "ter uma maneira de atualizar tudo no banco e o site le de la sem ter que
