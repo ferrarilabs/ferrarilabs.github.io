@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-11-21T19:40:48Z",
-  "sourceUpdatedAt": "2026-11-21T19:40:48Z",
+  "generatedAt": "2026-11-21T20:00:50Z",
+  "sourceUpdatedAt": "2026-11-21T20:00:50Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "1b7ccccebeb99361ad4ae090113913c65c76a8aa17acfae81f8f502553578bff",
+  "payloadHash": "15031ca11c3045c95ff32fe06d683700fd2c396dbf82c83501fa7d4c8e40c120",
   "matches": [
     {
       "id": "401840808",
@@ -59315,23 +59315,43 @@
       "state": "in",
       "statusName": "STATUS_FIRST_HALF",
       "statusDescription": "First Half",
-      "statusShortDetail": "10'",
-      "statusDetail": "10'",
+      "statusShortDetail": "30'",
+      "statusDetail": "30'",
       "completed": false,
       "homeTeam": "Palmeiras",
       "awayTeam": "Flamengo",
       "homeTeamId": "2029",
       "awayTeamId": "819",
-      "homeScore": 0,
+      "homeScore": 1,
       "awayScore": 0,
       "homeWinner": false,
       "awayWinner": false,
       "venue": "Allianz Parque",
       "city": "Sao Paulo",
-      "clockSec": 600.0,
-      "clockStr": "10'",
+      "clockSec": 1800.0,
+      "clockStr": "30'",
       "period": 1,
-      "details": []
+      "details": [
+        {
+          "type": {
+            "text": "Goal - Header"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "2029"
+          },
+          "clock": {
+            "value": 690.0,
+            "displayValue": "12'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Jhon Arias",
+              "shortName": "J. Arias"
+            }
+          ]
+        }
+      ]
     },
     {
       "id": "401841327",
