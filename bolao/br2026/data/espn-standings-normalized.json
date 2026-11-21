@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-11-21T21:40:48Z",
-  "sourceUpdatedAt": "2026-11-21T21:40:48Z",
+  "generatedAt": "2026-11-21T22:40:47Z",
+  "sourceUpdatedAt": "2026-11-21T22:40:47Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "351d0dcd039470f55339157b639c8acbefbdddaa736d17415cfde1c359b6e6ac",
+  "payloadHash": "46be47cb84281f77398647494d17528047b3eb2812c6b4d47a5ad728cbe76550",
   "matches": [
     {
       "name": "Flamengo",
@@ -84,13 +84,13 @@
       "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/9967.png",
       "rank": 6.0,
       "points": 54.0,
-      "played": 35.0,
+      "played": 36.0,
       "wins": 14.0,
       "draws": 12.0,
-      "losses": 9.0,
+      "losses": 10.0,
       "gf": 50.0,
-      "ga": 45.0,
-      "gd": 5.0
+      "ga": 46.0,
+      "gd": 4.0
     },
     {
       "name": "Atlético-MG",
@@ -149,10 +149,24 @@
       "gd": -4.0
     },
     {
+      "name": "Coritiba",
+      "abbr": "CFC",
+      "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/3456.png",
+      "rank": 11.0,
+      "points": 45.0,
+      "played": 36.0,
+      "wins": 12.0,
+      "draws": 9.0,
+      "losses": 15.0,
+      "gf": 41.0,
+      "ga": 52.0,
+      "gd": -11.0
+    },
+    {
       "name": "São Paulo",
       "abbr": "SAO",
       "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/2026.png",
-      "rank": 11.0,
+      "rank": 12.0,
       "points": 44.0,
       "played": 35.0,
       "wins": 12.0,
@@ -166,7 +180,7 @@
       "name": "Botafogo",
       "abbr": "BOT",
       "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/6086.png",
-      "rank": 12.0,
+      "rank": 13.0,
       "points": 42.0,
       "played": 35.0,
       "wins": 11.0,
@@ -175,20 +189,6 @@
       "gf": 46.0,
       "ga": 57.0,
       "gd": -11.0
-    },
-    {
-      "name": "Coritiba",
-      "abbr": "CFC",
-      "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/3456.png",
-      "rank": 13.0,
-      "points": 42.0,
-      "played": 35.0,
-      "wins": 11.0,
-      "draws": 9.0,
-      "losses": 15.0,
-      "gf": 40.0,
-      "ga": 52.0,
-      "gd": -12.0
     },
     {
       "name": "Vitória",
