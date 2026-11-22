@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "sourceModel": "EPG_CORROBORATED_WITH_CURATED_OVERRIDE",
   "_comment": "Fonte de dados de 'Onde assistir' (bolao/shared/js/where_to_watch.js). Modelo EPG_CORROBORATED_WITH_CURATED_OVERRIDE (#431): registros sem 'origin' são curadoria humana e sempre vencem; registros 'origin: epg' são gerados por bolao/shared/scripts/sync_epg_broadcasts.mjs a partir da grade de TV — não edite esses à mão. Ver docs/bolao/BROADCAST_OPERATIONS.md antes de editar este arquivo.",
-  "updatedAt": "2026-11-21T19:16:14Z",
+  "updatedAt": "2026-11-22T01:20:21Z",
   "entries": [
     {
       "espnId": "401909114",
@@ -40,42 +40,6 @@
       "channels": ["Globo (TV aberta — consulte sua região)", "sportv", "Premiere", "Amazon Prime Video"],
       "confirmedAt": "2026-09-02",
       "source": "maquinadoesporte.com.br + cnnbrasil.com.br + vavel.com (Globo regional: RJ, BA, ES, SE, RN, PB, MA, Santarém-PA, Juiz de Fora-MG)"
-    },
-    {
-      "espnId": "401841175",
-      "kickoffUtc": "2026-11-14T23:30Z",
-      "home": "Chapecoense",
-      "away": "Vasco da Gama",
-      "channels": ["Premiere"],
-      "origin": "epg",
-      "source": "EPG XMLTV epgshare01 (BR1/BR2) — corroboração automática: programa cita os dois clubes no horário do kickoff",
-      "confirmedAt": "2026-11-12",
-      "collectedAt": "2026-11-12T00:44:47Z",
-      "evidence": [
-        {
-          "channel": "Premiere",
-          "source": "epgshare-br1",
-          "epgChannelId": "São.Paulo/SP..Premiere.Clubes.HD.br",
-          "programmeTitle": "Chapecoense x Vasco",
-          "programmeSubTitle": "Ao Vivo",
-          "programmeStart": "2026-11-14T23:00:00Z",
-          "programmeStop": "2026-11-15T01:40:00Z",
-          "matchedTeams": ["chapecoense", "vasco"],
-          "collectedAt": "2026-11-14T18:02:23Z"
-        },
-        {
-          "channel": "Premiere",
-          "source": "epgshare-br2",
-          "epgChannelId": "Premiere.Clubes.br",
-          "programmeTitle": "Chapecoense x Vasco - Ao Vivo",
-          "programmeSubTitle": null,
-          "programmeCategories": ["Esporte", "Futebol"],
-          "programmeStart": "2026-11-14T23:00:00Z",
-          "programmeStop": "2026-11-15T01:40:00Z",
-          "matchedTeams": ["chapecoense", "vasco"],
-          "collectedAt": "2026-11-12T00:44:47Z"
-        }
-      ]
     },
     {
       "espnId": "401841315",
@@ -567,6 +531,31 @@
           "programmeStop": "2026-11-24T03:00:00Z",
           "matchedTeams": ["santos", "gremio"],
           "collectedAt": "2026-11-21T19:16:14Z"
+        }
+      ]
+    },
+    {
+      "espnId": "401841335",
+      "kickoffUtc": "2026-11-24T21:00Z",
+      "home": "Chapecoense",
+      "away": "Palmeiras",
+      "channels": ["Premiere"],
+      "origin": "epg",
+      "source": "EPG XMLTV epgshare01 (BR1/BR2) — corroboração automática: programa cita os dois clubes no horário do kickoff",
+      "confirmedAt": "2026-11-22",
+      "collectedAt": "2026-11-22T01:20:21Z",
+      "evidence": [
+        {
+          "channel": "Premiere",
+          "source": "epgshare-br2",
+          "epgChannelId": "Premiere.Clubes.br",
+          "programmeTitle": "Chapecoense x Palmeiras - Ao Vivo",
+          "programmeSubTitle": null,
+          "programmeCategories": ["Esporte", "Futebol"],
+          "programmeStart": "2026-11-24T20:30:00Z",
+          "programmeStop": "2026-11-24T23:10:00Z",
+          "matchedTeams": ["chapecoense", "palmeiras"],
+          "collectedAt": "2026-11-22T01:20:21Z"
         }
       ]
     }
