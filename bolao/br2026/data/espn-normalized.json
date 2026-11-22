@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-11-22T02:20:48Z",
-  "sourceUpdatedAt": "2026-11-22T02:20:48Z",
+  "generatedAt": "2026-11-22T19:10:53Z",
+  "sourceUpdatedAt": "2026-11-22T19:10:53Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "ebf0c94709e0cd37c61fd70e7bdc5d3da0b5c4241ae933bcbaa778985968a2f2",
+  "payloadHash": "48a3d1bd710fd2a01e6448da9d65fca1f02a275fb98e9e38f49c15a2d36faee1",
   "matches": [
     {
       "id": "401840808",
@@ -59767,26 +59767,46 @@
     {
       "id": "401841318",
       "date": "2026-11-22T19:00Z",
-      "state": "pre",
-      "statusName": "STATUS_SCHEDULED",
-      "statusDescription": "Scheduled",
-      "statusShortDetail": "Scheduled",
-      "statusDetail": "Sun, November 22nd at 2:00 PM EST",
+      "state": "in",
+      "statusName": "STATUS_FIRST_HALF",
+      "statusDescription": "First Half",
+      "statusShortDetail": "10'",
+      "statusDetail": "10'",
       "completed": false,
       "homeTeam": "Athletico Paranaense",
       "awayTeam": "Remo",
       "homeTeamId": "3458",
       "awayTeamId": "4936",
-      "homeScore": 0,
+      "homeScore": 1,
       "awayScore": 0,
       "homeWinner": false,
       "awayWinner": false,
       "venue": "Arena da Baixada",
       "city": "Curitiba",
-      "clockSec": 0.0,
-      "clockStr": "0'",
-      "period": null,
-      "details": []
+      "clockSec": 600.0,
+      "clockStr": "10'",
+      "period": 1,
+      "details": [
+        {
+          "type": {
+            "text": "Goal"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "3458"
+          },
+          "clock": {
+            "value": 528.0,
+            "displayValue": "9'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Stiven Mendoza",
+              "shortName": "S. Mendoza"
+            }
+          ]
+        }
+      ]
     },
     {
       "id": "401841324",
