@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-11-22T00:00:49Z",
-  "sourceUpdatedAt": "2026-11-22T00:00:49Z",
+  "generatedAt": "2026-11-22T00:20:48Z",
+  "sourceUpdatedAt": "2026-11-22T00:20:48Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "a734883547a628b5542647a1864e75383bd064d02b556e1c6a4de41fc94535d2",
+  "payloadHash": "fcab5c4affc092b1782483b38873d4e5022f9e325a20927c5963d19fe254644a",
   "matches": [
     {
       "id": "401840808",
@@ -59628,11 +59628,11 @@
     {
       "id": "401841325",
       "date": "2026-11-22T00:00Z",
-      "state": "pre",
-      "statusName": "STATUS_SCHEDULED",
-      "statusDescription": "Scheduled",
-      "statusShortDetail": "Scheduled",
-      "statusDetail": "Sat, November 21st at 7:00 PM EST",
+      "state": "in",
+      "statusName": "STATUS_FIRST_HALF",
+      "statusDescription": "First Half",
+      "statusShortDetail": "20'",
+      "statusDetail": "20'",
       "completed": false,
       "homeTeam": "Chapecoense",
       "awayTeam": "Cruzeiro",
@@ -59644,10 +59644,30 @@
       "awayWinner": false,
       "venue": "Arena Condá",
       "city": "Chapecó",
-      "clockSec": 0.0,
-      "clockStr": "0'",
-      "period": null,
-      "details": []
+      "clockSec": 1200.0,
+      "clockStr": "20'",
+      "period": 1,
+      "details": [
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "9318"
+          },
+          "clock": {
+            "value": 776.0,
+            "displayValue": "13'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Victor Caetano",
+              "shortName": "V. Caetano"
+            }
+          ]
+        }
+      ]
     },
     {
       "id": "401841318",
