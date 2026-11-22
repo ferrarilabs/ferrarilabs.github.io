@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-11-22T00:20:48Z",
-  "sourceUpdatedAt": "2026-11-22T00:20:48Z",
+  "generatedAt": "2026-11-22T00:40:48Z",
+  "sourceUpdatedAt": "2026-11-22T00:40:48Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "fcab5c4affc092b1782483b38873d4e5022f9e325a20927c5963d19fe254644a",
+  "payloadHash": "10aea84a740e741a3416c61d4042f69c61770346bfd637a5e19b686bed0f8efd",
   "matches": [
     {
       "id": "401840808",
@@ -59631,8 +59631,8 @@
       "state": "in",
       "statusName": "STATUS_FIRST_HALF",
       "statusDescription": "First Half",
-      "statusShortDetail": "20'",
-      "statusDetail": "20'",
+      "statusShortDetail": "40'",
+      "statusDetail": "40'",
       "completed": false,
       "homeTeam": "Chapecoense",
       "awayTeam": "Cruzeiro",
@@ -59644,8 +59644,8 @@
       "awayWinner": false,
       "venue": "Arena Condá",
       "city": "Chapecó",
-      "clockSec": 1200.0,
-      "clockStr": "20'",
+      "clockSec": 2400.0,
+      "clockStr": "40'",
       "period": 1,
       "details": [
         {
