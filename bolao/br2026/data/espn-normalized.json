@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-11-22T22:40:55Z",
-  "sourceUpdatedAt": "2026-11-22T22:40:55Z",
+  "generatedAt": "2026-11-22T23:00:49Z",
+  "sourceUpdatedAt": "2026-11-22T23:00:49Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "29755acfb5cb8f15f7c356188f8f2b39d50ec46545304f03b3560818862ae43c",
+  "payloadHash": "ab7b2263a8a7516bbfb323d2ff5df53447903f16b247f7c766f9ee86fc629303",
   "matches": [
     {
       "id": "401840808",
@@ -60080,8 +60080,8 @@
       "state": "in",
       "statusName": "STATUS_SECOND_HALF",
       "statusDescription": "Second Half",
-      "statusShortDetail": "48'",
-      "statusDetail": "48'",
+      "statusShortDetail": "67'",
+      "statusDetail": "67'",
       "completed": false,
       "homeTeam": "Fluminense",
       "awayTeam": "Mirassol",
@@ -60093,8 +60093,8 @@
       "awayWinner": false,
       "venue": "Estadio do Maracana",
       "city": "Rio de Janeiro",
-      "clockSec": 2880.0,
-      "clockStr": "48'",
+      "clockSec": 4020.0,
+      "clockStr": "67'",
       "period": 2,
       "details": [
         {
@@ -60124,8 +60124,8 @@
       "state": "in",
       "statusName": "STATUS_FIRST_HALF",
       "statusDescription": "First Half",
-      "statusShortDetail": "9'",
-      "statusDetail": "9'",
+      "statusShortDetail": "29'",
+      "statusDetail": "29'",
       "completed": false,
       "homeTeam": "Red Bull Bragantino",
       "awayTeam": "Vasco da Gama",
@@ -60137,10 +60137,30 @@
       "awayWinner": false,
       "venue": "Estádio Municipal Cicero de Souza Marques",
       "city": "Bragança Paulista",
-      "clockSec": 540.0,
-      "clockStr": "9'",
+      "clockSec": 1740.0,
+      "clockStr": "29'",
       "period": 1,
-      "details": []
+      "details": [
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "3454"
+          },
+          "clock": {
+            "value": 1260.0,
+            "displayValue": "21'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Gabriel Pereira",
+              "shortName": "G. Pereira"
+            }
+          ]
+        }
+      ]
     },
     {
       "id": "401841323",
