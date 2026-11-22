@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-11-22T01:15:25Z",
-  "sourceUpdatedAt": "2026-11-22T01:15:25Z",
+  "generatedAt": "2026-11-22T01:40:52Z",
+  "sourceUpdatedAt": "2026-11-22T01:40:52Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "eaa569727b2305103f0191e226d2c77b780975f3adb8240512a222b0c40c8d5c",
+  "payloadHash": "4bba8155f4651917c24bc66521ad49e7facc5e6cb44813da61b247b9e099083f",
   "matches": [
     {
       "id": "401840808",
@@ -59631,21 +59631,21 @@
       "state": "in",
       "statusName": "STATUS_SECOND_HALF",
       "statusDescription": "Second Half",
-      "statusShortDetail": "57'",
-      "statusDetail": "57'",
+      "statusShortDetail": "82'",
+      "statusDetail": "82'",
       "completed": false,
       "homeTeam": "Chapecoense",
       "awayTeam": "Cruzeiro",
       "homeTeamId": "9318",
       "awayTeamId": "2022",
-      "homeScore": 0,
+      "homeScore": 1,
       "awayScore": 1,
       "homeWinner": false,
       "awayWinner": false,
       "venue": "Arena Condá",
       "city": "Chapecó",
-      "clockSec": 3420.0,
-      "clockStr": "57'",
+      "clockSec": 4920.0,
+      "clockStr": "82'",
       "period": 2,
       "details": [
         {
@@ -59683,6 +59683,44 @@
             {
               "displayName": "Matheus Pereira",
               "shortName": "M. Pereira"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Goal - Header"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "9318"
+          },
+          "clock": {
+            "value": 4428.0,
+            "displayValue": "74'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Kauan",
+              "shortName": "Kauan"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "2022"
+          },
+          "clock": {
+            "value": 4548.0,
+            "displayValue": "76'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Marquinhos",
+              "shortName": "Marquinhos"
             }
           ]
         }
