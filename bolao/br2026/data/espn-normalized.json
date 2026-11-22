@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-11-22T20:20:49Z",
-  "sourceUpdatedAt": "2026-11-22T20:20:49Z",
+  "generatedAt": "2026-11-22T20:40:51Z",
+  "sourceUpdatedAt": "2026-11-22T20:40:51Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "19f267441a3305ca128e73436d56c03a9543644751d8ad3242e88a81eb1e3056",
+  "payloadHash": "986d150d84e26b9056109bde8fa0c376b418e6271f43e44c1554b399fc44fc47",
   "matches": [
     {
       "id": "401840808",
@@ -59768,23 +59768,23 @@
       "id": "401841318",
       "date": "2026-11-22T19:00Z",
       "state": "in",
-      "statusName": "STATUS_IN_PROGRESS",
-      "statusDescription": "In Progress",
-      "statusShortDetail": "56'",
-      "statusDetail": "56'",
+      "statusName": "STATUS_SECOND_HALF",
+      "statusDescription": "Second Half",
+      "statusShortDetail": "77'",
+      "statusDetail": "77'",
       "completed": false,
       "homeTeam": "Athletico Paranaense",
       "awayTeam": "Remo",
       "homeTeamId": "3458",
       "awayTeamId": "4936",
-      "homeScore": 2,
-      "awayScore": 0,
+      "homeScore": 3,
+      "awayScore": 1,
       "homeWinner": false,
       "awayWinner": false,
       "venue": "Arena da Baixada",
       "city": "Curitiba",
-      "clockSec": 3360.0,
-      "clockStr": "56'",
+      "clockSec": 4620.0,
+      "clockStr": "77'",
       "period": 2,
       "details": [
         {
@@ -59898,6 +59898,139 @@
             {
               "displayName": "Stiven Mendoza",
               "shortName": "S. Mendoza"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "4936"
+          },
+          "clock": {
+            "value": 3329.0,
+            "displayValue": "56'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Marllon",
+              "shortName": "Marllon"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "4936"
+          },
+          "clock": {
+            "value": 3500.0,
+            "displayValue": "59'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Duplexe Tchamba",
+              "shortName": "D. Tchamba"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "3458"
+          },
+          "clock": {
+            "value": 3620.0,
+            "displayValue": "61'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Dantas",
+              "shortName": "Dantas"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Goal"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "4936"
+          },
+          "clock": {
+            "value": 3672.0,
+            "displayValue": "62'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "David Francisco",
+              "shortName": "David Francisco"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "3458"
+          },
+          "clock": {
+            "value": 3774.0,
+            "displayValue": "63'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Lucas Esquivel",
+              "shortName": "L. Esquivel"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "4936"
+          },
+          "clock": {
+            "value": 3910.0,
+            "displayValue": "66'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Jajá",
+              "shortName": "Jajá"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Goal"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "3458"
+          },
+          "clock": {
+            "value": 4064.0,
+            "displayValue": "68'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Leozinho",
+              "shortName": "Leozinho"
             }
           ]
         }
