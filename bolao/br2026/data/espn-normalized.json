@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-11-22T00:40:48Z",
-  "sourceUpdatedAt": "2026-11-22T00:40:48Z",
+  "generatedAt": "2026-11-22T02:20:48Z",
+  "sourceUpdatedAt": "2026-11-22T02:20:48Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "10aea84a740e741a3416c61d4042f69c61770346bfd637a5e19b686bed0f8efd",
+  "payloadHash": "ebf0c94709e0cd37c61fd70e7bdc5d3da0b5c4241ae933bcbaa778985968a2f2",
   "matches": [
     {
       "id": "401840808",
@@ -59628,25 +59628,25 @@
     {
       "id": "401841325",
       "date": "2026-11-22T00:00Z",
-      "state": "in",
-      "statusName": "STATUS_FIRST_HALF",
-      "statusDescription": "First Half",
-      "statusShortDetail": "40'",
-      "statusDetail": "40'",
-      "completed": false,
+      "state": "post",
+      "statusName": "STATUS_FULL_TIME",
+      "statusDescription": "Full Time",
+      "statusShortDetail": "FT",
+      "statusDetail": "FT",
+      "completed": true,
       "homeTeam": "Chapecoense",
       "awayTeam": "Cruzeiro",
       "homeTeamId": "9318",
       "awayTeamId": "2022",
-      "homeScore": 0,
-      "awayScore": 0,
+      "homeScore": 1,
+      "awayScore": 2,
       "homeWinner": false,
-      "awayWinner": false,
+      "awayWinner": true,
       "venue": "Arena Condá",
       "city": "Chapecó",
-      "clockSec": 2400.0,
-      "clockStr": "40'",
-      "period": 1,
+      "clockSec": 5400.0,
+      "clockStr": "90'+5'",
+      "period": 2,
       "details": [
         {
           "type": {
@@ -59664,6 +59664,101 @@
             {
               "displayName": "Victor Caetano",
               "shortName": "V. Caetano"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Goal"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "2022"
+          },
+          "clock": {
+            "value": 2903.0,
+            "displayValue": "49'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Matheus Pereira",
+              "shortName": "M. Pereira"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Goal - Header"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "9318"
+          },
+          "clock": {
+            "value": 4428.0,
+            "displayValue": "74'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Kauan",
+              "shortName": "Kauan"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "2022"
+          },
+          "clock": {
+            "value": 4548.0,
+            "displayValue": "76'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Marquinhos",
+              "shortName": "Marquinhos"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Goal"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "2022"
+          },
+          "clock": {
+            "value": 5254.0,
+            "displayValue": "88'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Wesley Ribeiro",
+              "shortName": "W. Ribeiro"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "9318"
+          },
+          "clock": {
+            "value": 5400.0,
+            "displayValue": "90'+3'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Max",
+              "shortName": "Max"
             }
           ]
         }
