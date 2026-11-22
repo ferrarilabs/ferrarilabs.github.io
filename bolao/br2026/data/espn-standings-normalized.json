@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-11-22T02:20:47Z",
-  "sourceUpdatedAt": "2026-11-22T02:20:47Z",
+  "generatedAt": "2026-11-22T21:20:47Z",
+  "sourceUpdatedAt": "2026-11-22T21:20:47Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "ba9f90a907a7e3e44eb0b15a5ff490c79483cbdf262ce7855e697d0e34f066a5",
+  "payloadHash": "ca016a9c29b1d91f0217e261b230ea81bb181126eb05a540cec8994af7a933a1",
   "matches": [
     {
       "name": "Flamengo",
@@ -69,14 +69,14 @@
       "abbr": "CAP",
       "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/3458.png",
       "rank": 5.0,
-      "points": 54.0,
-      "played": 35.0,
-      "wins": 15.0,
+      "points": 57.0,
+      "played": 36.0,
+      "wins": 16.0,
       "draws": 9.0,
       "losses": 11.0,
-      "gf": 52.0,
-      "ga": 45.0,
-      "gd": 7.0
+      "gf": 56.0,
+      "ga": 47.0,
+      "gd": 9.0
     },
     {
       "name": "Bahia",
@@ -266,13 +266,13 @@
       "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/4936.png",
       "rank": 19.0,
       "points": 32.0,
-      "played": 35.0,
+      "played": 36.0,
       "wins": 7.0,
       "draws": 11.0,
-      "losses": 17.0,
-      "gf": 39.0,
-      "ga": 57.0,
-      "gd": -18.0
+      "losses": 18.0,
+      "gf": 41.0,
+      "ga": 61.0,
+      "gd": -20.0
     },
     {
       "name": "Chapecoense",
