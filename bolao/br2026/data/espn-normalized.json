@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-11-22T01:40:52Z",
-  "sourceUpdatedAt": "2026-11-22T01:40:52Z",
+  "generatedAt": "2026-11-22T02:20:48Z",
+  "sourceUpdatedAt": "2026-11-22T02:20:48Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "4bba8155f4651917c24bc66521ad49e7facc5e6cb44813da61b247b9e099083f",
+  "payloadHash": "ebf0c94709e0cd37c61fd70e7bdc5d3da0b5c4241ae933bcbaa778985968a2f2",
   "matches": [
     {
       "id": "401840808",
@@ -59628,24 +59628,24 @@
     {
       "id": "401841325",
       "date": "2026-11-22T00:00Z",
-      "state": "in",
-      "statusName": "STATUS_SECOND_HALF",
-      "statusDescription": "Second Half",
-      "statusShortDetail": "82'",
-      "statusDetail": "82'",
-      "completed": false,
+      "state": "post",
+      "statusName": "STATUS_FULL_TIME",
+      "statusDescription": "Full Time",
+      "statusShortDetail": "FT",
+      "statusDetail": "FT",
+      "completed": true,
       "homeTeam": "Chapecoense",
       "awayTeam": "Cruzeiro",
       "homeTeamId": "9318",
       "awayTeamId": "2022",
       "homeScore": 1,
-      "awayScore": 1,
+      "awayScore": 2,
       "homeWinner": false,
-      "awayWinner": false,
+      "awayWinner": true,
       "venue": "Arena Condá",
       "city": "Chapecó",
-      "clockSec": 4920.0,
-      "clockStr": "82'",
+      "clockSec": 5400.0,
+      "clockStr": "90'+5'",
       "period": 2,
       "details": [
         {
@@ -59721,6 +59721,44 @@
             {
               "displayName": "Marquinhos",
               "shortName": "Marquinhos"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Goal"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "2022"
+          },
+          "clock": {
+            "value": 5254.0,
+            "displayValue": "88'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Wesley Ribeiro",
+              "shortName": "W. Ribeiro"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "9318"
+          },
+          "clock": {
+            "value": 5400.0,
+            "displayValue": "90'+3'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Max",
+              "shortName": "Max"
             }
           ]
         }
