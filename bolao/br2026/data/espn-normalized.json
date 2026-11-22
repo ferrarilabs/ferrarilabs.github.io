@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-11-22T20:40:51Z",
-  "sourceUpdatedAt": "2026-11-22T20:40:51Z",
+  "generatedAt": "2026-11-22T21:00:50Z",
+  "sourceUpdatedAt": "2026-11-22T21:00:50Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "986d150d84e26b9056109bde8fa0c376b418e6271f43e44c1554b399fc44fc47",
+  "payloadHash": "e2b5dd0d9e4506223de6dbd1f69aaea22ed3e3c37f1bbfff7035ea6c8bb1a570",
   "matches": [
     {
       "id": "401840808",
@@ -59767,24 +59767,24 @@
     {
       "id": "401841318",
       "date": "2026-11-22T19:00Z",
-      "state": "in",
-      "statusName": "STATUS_SECOND_HALF",
-      "statusDescription": "Second Half",
-      "statusShortDetail": "77'",
-      "statusDetail": "77'",
-      "completed": false,
+      "state": "post",
+      "statusName": "STATUS_FULL_TIME",
+      "statusDescription": "Full Time",
+      "statusShortDetail": "FT",
+      "statusDetail": "FT",
+      "completed": true,
       "homeTeam": "Athletico Paranaense",
       "awayTeam": "Remo",
       "homeTeamId": "3458",
       "awayTeamId": "4936",
-      "homeScore": 3,
-      "awayScore": 1,
-      "homeWinner": false,
+      "homeScore": 4,
+      "awayScore": 2,
+      "homeWinner": true,
       "awayWinner": false,
       "venue": "Arena da Baixada",
       "city": "Curitiba",
-      "clockSec": 4620.0,
-      "clockStr": "77'",
+      "clockSec": 5400.0,
+      "clockStr": "90'+5'",
       "period": 2,
       "details": [
         {
@@ -60031,6 +60031,44 @@
             {
               "displayName": "Leozinho",
               "shortName": "Leozinho"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Goal"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "3458"
+          },
+          "clock": {
+            "value": 5024.0,
+            "displayValue": "84'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Jorge Rivaldo",
+              "shortName": "J. Rivaldo"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Goal - Header"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "4936"
+          },
+          "clock": {
+            "value": 5376.0,
+            "displayValue": "90'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Antonio Galeano",
+              "shortName": "A. Galeano"
             }
           ]
         }
