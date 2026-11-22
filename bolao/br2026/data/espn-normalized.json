@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-11-22T01:00:55Z",
-  "sourceUpdatedAt": "2026-11-22T01:00:55Z",
+  "generatedAt": "2026-11-22T01:15:25Z",
+  "sourceUpdatedAt": "2026-11-22T01:15:25Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "a05ccde2d33acbeaea6d7213114d42ff108d2537f93cfbbc9a9928296cb0b3a6",
+  "payloadHash": "eaa569727b2305103f0191e226d2c77b780975f3adb8240512a222b0c40c8d5c",
   "matches": [
     {
       "id": "401840808",
@@ -59629,24 +59629,24 @@
       "id": "401841325",
       "date": "2026-11-22T00:00Z",
       "state": "in",
-      "statusName": "STATUS_HALFTIME",
-      "statusDescription": "Halftime",
-      "statusShortDetail": "HT",
-      "statusDetail": "HT",
+      "statusName": "STATUS_SECOND_HALF",
+      "statusDescription": "Second Half",
+      "statusShortDetail": "57'",
+      "statusDetail": "57'",
       "completed": false,
       "homeTeam": "Chapecoense",
       "awayTeam": "Cruzeiro",
       "homeTeamId": "9318",
       "awayTeamId": "2022",
       "homeScore": 0,
-      "awayScore": 0,
+      "awayScore": 1,
       "homeWinner": false,
       "awayWinner": false,
       "venue": "Arena Condá",
       "city": "Chapecó",
-      "clockSec": 2700.0,
-      "clockStr": "45'+3'",
-      "period": 1,
+      "clockSec": 3420.0,
+      "clockStr": "57'",
+      "period": 2,
       "details": [
         {
           "type": {
@@ -59664,6 +59664,25 @@
             {
               "displayName": "Victor Caetano",
               "shortName": "V. Caetano"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Goal"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "2022"
+          },
+          "clock": {
+            "value": 2903.0,
+            "displayValue": "49'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Matheus Pereira",
+              "shortName": "M. Pereira"
             }
           ]
         }
