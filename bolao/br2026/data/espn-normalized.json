@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-11-22T23:40:47Z",
-  "sourceUpdatedAt": "2026-11-22T23:40:47Z",
+  "generatedAt": "2026-11-23T00:01:01Z",
+  "sourceUpdatedAt": "2026-11-23T00:01:01Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "8d99d51b11deec953a58a9c6716dfeb1994e5f9e1706060b8f656da20d6295f8",
+  "payloadHash": "00f492d37153793d4b299dd7e8aea9e9c811e44142c40f1746c2187eb1136280",
   "matches": [
     {
       "id": "401840808",
@@ -60181,21 +60181,21 @@
       "state": "in",
       "statusName": "STATUS_SECOND_HALF",
       "statusDescription": "Second Half",
-      "statusShortDetail": "49'",
-      "statusDetail": "49'",
+      "statusShortDetail": "69'",
+      "statusDetail": "69'",
       "completed": false,
       "homeTeam": "Red Bull Bragantino",
       "awayTeam": "Vasco da Gama",
       "homeTeamId": "6079",
       "awayTeamId": "3454",
-      "homeScore": 0,
+      "homeScore": 1,
       "awayScore": 0,
       "homeWinner": false,
       "awayWinner": false,
       "venue": "Estádio Municipal Cicero de Souza Marques",
       "city": "Bragança Paulista",
-      "clockSec": 2940.0,
-      "clockStr": "49'",
+      "clockSec": 4140.0,
+      "clockStr": "69'",
       "period": 2,
       "details": [
         {
@@ -60233,6 +60233,25 @@
             {
               "displayName": "Juninho Capixaba",
               "shortName": "J. Capixaba"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Goal - Header"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "6079"
+          },
+          "clock": {
+            "value": 3911.0,
+            "displayValue": "66'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Eduardo Sasha",
+              "shortName": "Eduardo Sasha"
             }
           ]
         }
