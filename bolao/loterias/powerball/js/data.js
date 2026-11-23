@@ -1568,25 +1568,67 @@ window.POWERBALL_DRAWS = [
 
     // BOLAO ABERTO, ainda sem ninguem. Estado valido: participantes entram progressivamente.
     participants: [
-      { name: "Eduardo Ferrari", cotas: 1, valor: 10, metodo: "Fundo próprio (organizador)", data: "21/11/2026", hora: "11:11:10 AM", status: "organizador", state: "NC" }
+      { name: "Eduardo Ferrari", cotas: 1, valor: 10, metodo: "Fundo próprio (organizador)", data: "21/11/2026", hora: "11:11:10 AM", status: "organizador", state: "NC" },
+      { name: "Thiago Locatelli", cotas: 1, valor: 10, metodo: "Zelle", data: "21/11/2026", hora: "6:58:30 PM", status: "verificado", state: "TX" },
+      { name: "Marcelo Moreira", cotas: 1, valor: 10, metodo: "Zelle", data: "21/11/2026", hora: "7:00:48 PM", status: "verificado", state: "NC" },
+      { name: "Ewerton Gruba Silva", cotas: 1, valor: 10, metodo: "Zelle", data: "21/11/2026", hora: "7:13:06 PM", status: "verificado", state: "NC" },
+      { name: "Gustavo Bossle", cotas: 1, valor: 10, metodo: "Zelle", data: "21/11/2026", hora: "8:09:46 PM", status: "verificado", state: "NC" },
+      { name: "Gustavo Ribeiro", cotas: 1, valor: 10, metodo: "Zelle", data: "22/11/2026", hora: "11:23:45 AM", status: "verificado", state: "NC" },
+      { name: "Leandro Augustineli", cotas: 1, valor: 10, metodo: "Zelle", data: "22/11/2026", hora: "12:59:14 PM", status: "verificado", state: "NC" },
+      { name: "Alan Rech", cotas: 1, valor: 10, metodo: "Cash App", data: "22/11/2026", hora: "2:04:06 PM", status: "verificado", state: "FL" },
+      { name: "Marcelo G de Jesus", cotas: 1, valor: 10, metodo: "Zelle", data: "22/11/2026", hora: "2:34:44 PM", status: "verificado", state: "FL" },
+      { name: "Marcelo Barsotti", cotas: 1, valor: 10, metodo: "Pix", data: "23/11/2026", hora: "9:53:04 AM", status: "verificado", state: "ON" },
+      { name: "Marcus Steffenon", cotas: 1, valor: 10, metodo: "Zelle", data: "23/11/2026", hora: "9:56:58 AM", status: "verificado", state: "NC" },
+      { name: "Samuel Huller", cotas: 1, valor: 10, metodo: "Zelle", data: "23/11/2026", hora: "11:40:20 AM", status: "verificado", state: "NC" },
+      { name: "Rodrigo Hajj", cotas: 1, valor: 10, metodo: "Zelle", data: "23/11/2026", hora: "11:55:07 AM", status: "verificado", state: "NC" }
     ],
 
-    // Sem bilhetes ainda. Os numeros entram depois da compra -- abrir o bolao nunca dependeu
-    // de ja existirem jogos.
     sharedTickets: {
-      compradoPor: null,
-      dataComprovante: null,
-      valorPorTicket: 5,
-      series: []
+      compradoPor: "Eduardo Ferrari (organizador)",
+      dataComprovante: "23/11/2026",
+      valorPorTicket: 5, // multiplicador embutido em cada aposta
+      series: [
+        {
+          serial: "2F973B72DB70E99B6", qtd: 20, jogos: "1–20",
+          numeros: [
+            "01-10-46-49-64 — MB 23 — 2X", "02-03-24-63-67 — MB 02 — 2X", "02-20-23-37-53 — MB 24 — 2X",
+            "03-06-14-52-59 — MB 13 — 3X", "04-24-29-33-60 — MB 10 — 2X", "05-11-14-44-65 — MB 09 — 2X",
+            "05-18-22-49-68 — MB 18 — 2X", "07-33-61-62-64 — MB 05 — 2X", "08-19-35-56-70 — MB 12 — 3X",
+            "08-21-30-57-62 — MB 08 — 3X", "09-22-26-39-45 — MB 15 — 3X", "09-27-28-47-66 — MB 06 — 3X",
+            "10-34-50-57-63 — MB 16 — 3X", "12-15-17-40-59 — MB 19 — 3X", "13-16-42-50-51 — MB 17 — 4X",
+            "15-32-48-56-67 — MB 04 — 3X", "16-20-45-46-61 — MB 11 — 2X", "17-36-55-66-70 — MB 14 — 3X",
+            "19-28-31-36-68 — MB 21 — 2X", "21-32-41-54-69 — MB 01 — 3X"
+          ]
+        },
+        {
+          serial: "2469D62D29BD23C3D", qtd: 4, jogos: "21–24",
+          numeros: [
+            "25-27-38-43-60 — MB 22 — 2X", "26-34-41-55-58 — MB 20 — 2X", "30-38-47-48-51 — MB 07 — 2X",
+            "31-35-40-42-52 — MB 03 — 3X"
+          ]
+        },
+        {
+          serial: "250908598E712FF8F", qtd: 2, jogos: "25–26",
+          numeros: [
+            "04-23-31-43-65 — MB 13 — 3X", "13-18-29-37-39 — MB 11 — 2X"
+          ]
+        },
+        {
+          serial: "242E64C2CA993A253", qtd: 2, jogos: "27–28",
+          numeros: [
+            "06-12-37-44-54 — MB 19 — 2X", "11-36-49-53-69 — MB 09 — 5X"
+          ]
+        }
+      ]
     },
 
     finance: {
-      totalArrecadado: 10, // 1 participante(s), soma das contribuicoes no banco
+      totalArrecadado: 130, // 13 participante(s), soma das contribuicoes no banco
       // Premio do sorteio anterior + o que ficou guardado. Derivado do que esta gravado, nao
       // arbitrado aqui.
       creditoSorteioAnterior: 11,
-      valorUtilizado: 0,
-      valorGuardadoProximoSorteio: 0,
+      valorUtilizado: 140, // 28 x US$5
+      valorGuardadoProximoSorteio: 1, // 130 + 11 - 140
       ajustesPendentes: 0
     },
 
