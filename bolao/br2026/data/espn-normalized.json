@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-11-23T00:40:51Z",
-  "sourceUpdatedAt": "2026-11-23T00:40:51Z",
+  "generatedAt": "2026-11-23T22:35:46Z",
+  "sourceUpdatedAt": "2026-11-23T22:35:46Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "1a08f85b5cd0e243ea65950fae632ede95ef88ab04c8363ab3a9917e90559b52",
+  "payloadHash": "a0f3e22724180c89a1cdcb89889e72a30694e533eb44b7f4d71c18ea42eaa91f",
   "matches": [
     {
       "id": "401840808",
@@ -60355,26 +60355,46 @@
     {
       "id": "401841323",
       "date": "2026-11-23T22:30Z",
-      "state": "pre",
-      "statusName": "STATUS_SCHEDULED",
-      "statusDescription": "Scheduled",
-      "statusShortDetail": "Scheduled",
-      "statusDetail": "Mon, November 23rd at 5:30 PM EST",
+      "state": "in",
+      "statusName": "STATUS_FIRST_HALF",
+      "statusDescription": "First Half",
+      "statusShortDetail": "5'",
+      "statusDetail": "5'",
       "completed": false,
       "homeTeam": "Internacional",
       "awayTeam": "Vitória",
       "homeTeamId": "1936",
       "awayTeamId": "3457",
       "homeScore": 0,
-      "awayScore": 0,
+      "awayScore": 1,
       "homeWinner": false,
       "awayWinner": false,
       "venue": "Estadio Beira-Rio",
       "city": "Porto Alegre",
-      "clockSec": 0.0,
-      "clockStr": "0'",
-      "period": null,
-      "details": []
+      "clockSec": 300.0,
+      "clockStr": "5'",
+      "period": 1,
+      "details": [
+        {
+          "type": {
+            "text": "Goal"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "3457"
+          },
+          "clock": {
+            "value": 13.0,
+            "displayValue": "1'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Renê",
+              "shortName": "Renê"
+            }
+          ]
+        }
+      ]
     },
     {
       "id": "401841326",
