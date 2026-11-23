@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-11-23T00:01:01Z",
-  "sourceUpdatedAt": "2026-11-23T00:01:01Z",
+  "generatedAt": "2026-11-23T00:20:50Z",
+  "sourceUpdatedAt": "2026-11-23T00:20:50Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "00f492d37153793d4b299dd7e8aea9e9c811e44142c40f1746c2187eb1136280",
+  "payloadHash": "63d78c34c1971a9c98b3f233f0eac859ba2d245734e8c6a1b4f56799c5fc04f7",
   "matches": [
     {
       "id": "401840808",
@@ -60181,8 +60181,8 @@
       "state": "in",
       "statusName": "STATUS_SECOND_HALF",
       "statusDescription": "Second Half",
-      "statusShortDetail": "69'",
-      "statusDetail": "69'",
+      "statusShortDetail": "89'",
+      "statusDetail": "89'",
       "completed": false,
       "homeTeam": "Red Bull Bragantino",
       "awayTeam": "Vasco da Gama",
@@ -60194,8 +60194,8 @@
       "awayWinner": false,
       "venue": "Estádio Municipal Cicero de Souza Marques",
       "city": "Bragança Paulista",
-      "clockSec": 4140.0,
-      "clockStr": "69'",
+      "clockSec": 5340.0,
+      "clockStr": "89'",
       "period": 2,
       "details": [
         {
@@ -60252,6 +60252,63 @@
             {
               "displayName": "Eduardo Sasha",
               "shortName": "Eduardo Sasha"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "6079"
+          },
+          "clock": {
+            "value": 4305.0,
+            "displayValue": "72'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Alix Vinicius",
+              "shortName": "A. Vinicius"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "3454"
+          },
+          "clock": {
+            "value": 4355.0,
+            "displayValue": "73'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Paulo Henrique",
+              "shortName": "Paulo Henrique"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "6079"
+          },
+          "clock": {
+            "value": 4826.0,
+            "displayValue": "81'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Wallace Yan",
+              "shortName": "W. Yan"
             }
           ]
         }
