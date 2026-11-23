@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-11-23T00:20:50Z",
-  "sourceUpdatedAt": "2026-11-23T00:20:50Z",
+  "generatedAt": "2026-11-23T00:40:51Z",
+  "sourceUpdatedAt": "2026-11-23T00:40:51Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "63d78c34c1971a9c98b3f233f0eac859ba2d245734e8c6a1b4f56799c5fc04f7",
+  "payloadHash": "1a08f85b5cd0e243ea65950fae632ede95ef88ab04c8363ab3a9917e90559b52",
   "matches": [
     {
       "id": "401840808",
@@ -60178,24 +60178,24 @@
     {
       "id": "401841321",
       "date": "2026-11-22T22:30Z",
-      "state": "in",
-      "statusName": "STATUS_SECOND_HALF",
-      "statusDescription": "Second Half",
-      "statusShortDetail": "89'",
-      "statusDetail": "89'",
-      "completed": false,
+      "state": "post",
+      "statusName": "STATUS_FULL_TIME",
+      "statusDescription": "Full Time",
+      "statusShortDetail": "FT",
+      "statusDetail": "FT",
+      "completed": true,
       "homeTeam": "Red Bull Bragantino",
       "awayTeam": "Vasco da Gama",
       "homeTeamId": "6079",
       "awayTeamId": "3454",
       "homeScore": 1,
       "awayScore": 0,
-      "homeWinner": false,
+      "homeWinner": true,
       "awayWinner": false,
       "venue": "Estádio Municipal Cicero de Souza Marques",
       "city": "Bragança Paulista",
-      "clockSec": 5340.0,
-      "clockStr": "89'",
+      "clockSec": 5400.0,
+      "clockStr": "90'+9'",
       "period": 2,
       "details": [
         {
@@ -60309,6 +60309,44 @@
             {
               "displayName": "Wallace Yan",
               "shortName": "W. Yan"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Red Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "3454"
+          },
+          "clock": {
+            "value": 5332.0,
+            "displayValue": "89'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Robert",
+              "shortName": "Robert"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "6079"
+          },
+          "clock": {
+            "value": 5400.0,
+            "displayValue": "90'+6'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Agustín Sant'Anna",
+              "shortName": "A. Sant'Anna"
             }
           ]
         }
