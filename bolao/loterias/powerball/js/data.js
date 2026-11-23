@@ -1568,7 +1568,19 @@ window.POWERBALL_DRAWS = [
 
     // BOLAO ABERTO, ainda sem ninguem. Estado valido: participantes entram progressivamente.
     participants: [
-      { name: "Eduardo Ferrari", cotas: 1, valor: 10, metodo: "Fundo próprio (organizador)", data: "21/11/2026", hora: "11:11:10 AM", status: "organizador", state: "NC" }
+      { name: "Eduardo Ferrari", cotas: 1, valor: 10, metodo: "Fundo próprio (organizador)", data: "21/11/2026", hora: "11:11:10 AM", status: "organizador", state: "NC" },
+      { name: "Thiago Locatelli", cotas: 1, valor: 10, metodo: "Zelle", data: "21/11/2026", hora: "6:58:30 PM", status: "verificado", state: "TX" },
+      { name: "Marcelo Moreira", cotas: 1, valor: 10, metodo: "Zelle", data: "21/11/2026", hora: "7:00:48 PM", status: "verificado", state: "NC" },
+      { name: "Ewerton Gruba Silva", cotas: 1, valor: 10, metodo: "Zelle", data: "21/11/2026", hora: "7:13:06 PM", status: "verificado", state: "NC" },
+      { name: "Gustavo Bossle", cotas: 1, valor: 10, metodo: "Zelle", data: "21/11/2026", hora: "8:09:46 PM", status: "verificado", state: "NC" },
+      { name: "Gustavo Ribeiro", cotas: 1, valor: 10, metodo: "Zelle", data: "22/11/2026", hora: "11:23:45 AM", status: "verificado", state: "NC" },
+      { name: "Leandro Augustineli", cotas: 1, valor: 10, metodo: "Zelle", data: "22/11/2026", hora: "12:59:14 PM", status: "verificado", state: "NC" },
+      { name: "Alan Rech", cotas: 1, valor: 10, metodo: "Cash App", data: "22/11/2026", hora: "2:04:06 PM", status: "verificado", state: "FL" },
+      { name: "Marcelo G de Jesus", cotas: 1, valor: 10, metodo: "Zelle", data: "22/11/2026", hora: "2:34:44 PM", status: "verificado", state: "FL" },
+      { name: "Marcelo Barsotti", cotas: 1, valor: 10, metodo: "Pix", data: "23/11/2026", hora: "9:53:04 AM", status: "verificado", state: "ON" },
+      { name: "Marcus Steffenon", cotas: 1, valor: 10, metodo: "Zelle", data: "23/11/2026", hora: "9:56:58 AM", status: "verificado", state: "NC" },
+      { name: "Samuel Huller", cotas: 1, valor: 10, metodo: "Zelle", data: "23/11/2026", hora: "11:40:20 AM", status: "verificado", state: "NC" },
+      { name: "Rodrigo Hajj", cotas: 1, valor: 10, metodo: "Zelle", data: "23/11/2026", hora: "11:55:07 AM", status: "verificado", state: "NC" }
     ],
 
     // Sem bilhetes ainda. Os numeros entram depois da compra -- abrir o bolao nunca dependeu
@@ -1581,7 +1593,7 @@ window.POWERBALL_DRAWS = [
     },
 
     finance: {
-      totalArrecadado: 10, // 1 participante(s), soma das contribuicoes no banco
+      totalArrecadado: 130, // 13 participante(s), soma das contribuicoes no banco
       // Premio do sorteio anterior + o que ficou guardado. Derivado do que esta gravado, nao
       // arbitrado aqui.
       creditoSorteioAnterior: 11,
