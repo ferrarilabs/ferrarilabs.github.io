@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-11-24T02:00:51Z",
-  "sourceUpdatedAt": "2026-11-24T02:00:51Z",
+  "generatedAt": "2026-11-24T02:40:51Z",
+  "sourceUpdatedAt": "2026-11-24T02:40:51Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "e717b8561261c09d92e5fd33f0718949c904bbddf0d6b7dd44c8806fb48d7708",
+  "payloadHash": "119d1e121e41bb05d8f6b974d39436b0eb17841b4038feec12957453a63492c4",
   "matches": [
     {
       "id": "401840808",
@@ -60874,12 +60874,12 @@
     {
       "id": "401841320",
       "date": "2026-11-24T00:00Z",
-      "state": "in",
-      "statusName": "STATUS_SECOND_HALF",
-      "statusDescription": "Second Half",
-      "statusShortDetail": "90'+3'",
-      "statusDetail": "90'+3'",
-      "completed": false,
+      "state": "post",
+      "statusName": "STATUS_FULL_TIME",
+      "statusDescription": "Full Time",
+      "statusShortDetail": "FT",
+      "statusDetail": "FT",
+      "completed": true,
       "homeTeam": "Santos",
       "awayTeam": "Grêmio",
       "homeTeamId": "2674",
@@ -60887,11 +60887,11 @@
       "homeScore": 0,
       "awayScore": 2,
       "homeWinner": false,
-      "awayWinner": false,
+      "awayWinner": true,
       "venue": "Estádio Cícero Pompeu de Toledo",
       "city": "Sao Paulo",
       "clockSec": 5400.0,
-      "clockStr": "90'+3'",
+      "clockStr": "90'+8'",
       "period": 2,
       "details": [
         {
@@ -60967,6 +60967,44 @@
             {
               "displayName": "Martin Braithwaite",
               "shortName": "M. Braithwaite"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "6273"
+          },
+          "clock": {
+            "value": 5400.0,
+            "displayValue": "90'+4'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Caio Paulista",
+              "shortName": "Caio Paulista"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "2674"
+          },
+          "clock": {
+            "value": 5400.0,
+            "displayValue": "90'+6'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Willian Arão",
+              "shortName": "W. Arão"
             }
           ]
         }
