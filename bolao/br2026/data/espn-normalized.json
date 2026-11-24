@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-11-24T21:11:18Z",
-  "sourceUpdatedAt": "2026-11-24T21:11:18Z",
+  "generatedAt": "2026-11-24T21:31:20Z",
+  "sourceUpdatedAt": "2026-11-24T21:31:20Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "da702870d3cdc27c8175d81fed48067dc9334e58d78a1b27dc6e28865918baa5",
+  "payloadHash": "d418eed56058b703bcbb85b3fa45164db392aee9e774d3f12a787cca3b101d64",
   "matches": [
     {
       "id": "401840808",
@@ -61016,8 +61016,8 @@
       "state": "in",
       "statusName": "STATUS_FIRST_HALF",
       "statusDescription": "First Half",
-      "statusShortDetail": "9'",
-      "statusDetail": "9'",
+      "statusShortDetail": "30'",
+      "statusDetail": "30'",
       "completed": false,
       "homeTeam": "Chapecoense",
       "awayTeam": "Palmeiras",
@@ -61029,8 +61029,8 @@
       "awayWinner": false,
       "venue": "Arena Condá",
       "city": "Chapecó",
-      "clockSec": 540.0,
-      "clockStr": "9'",
+      "clockSec": 1800.0,
+      "clockStr": "30'",
       "period": 1,
       "details": [
         {
@@ -61049,6 +61049,44 @@
             {
               "displayName": "Camilo",
               "shortName": "Camilo"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "9318"
+          },
+          "clock": {
+            "value": 888.0,
+            "displayValue": "15'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Camilo",
+              "shortName": "Camilo"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "9318"
+          },
+          "clock": {
+            "value": 1560.0,
+            "displayValue": "26'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Bruno Pacheco",
+              "shortName": "B. Pacheco"
             }
           ]
         }
