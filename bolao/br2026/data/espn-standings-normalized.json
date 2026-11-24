@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-11-24T01:00:50Z",
-  "sourceUpdatedAt": "2026-11-24T01:00:50Z",
+  "generatedAt": "2026-11-24T01:20:51Z",
+  "sourceUpdatedAt": "2026-11-24T01:20:51Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "6d24350cff2a54f9be4cad52286c223859ce82ec05b386510130cb5cfe649995",
+  "payloadHash": "79ae5124654f152965c91008d87380ea7620a62b498c008c2db83989210fb824",
   "matches": [
     {
       "name": "Flamengo",
@@ -149,10 +149,24 @@
       "gd": -5.0
     },
     {
+      "name": "São Paulo",
+      "abbr": "SAO",
+      "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/2026.png",
+      "rank": 11.0,
+      "points": 45.0,
+      "played": 36.0,
+      "wins": 12.0,
+      "draws": 9.0,
+      "losses": 15.0,
+      "gf": 40.0,
+      "ga": 41.0,
+      "gd": -1.0
+    },
+    {
       "name": "Coritiba",
       "abbr": "CFC",
       "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/3456.png",
-      "rank": 11.0,
+      "rank": 12.0,
       "points": 45.0,
       "played": 36.0,
       "wins": 12.0,
@@ -161,20 +175,6 @@
       "gf": 41.0,
       "ga": 52.0,
       "gd": -11.0
-    },
-    {
-      "name": "São Paulo",
-      "abbr": "SAO",
-      "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/2026.png",
-      "rank": 12.0,
-      "points": 44.0,
-      "played": 35.0,
-      "wins": 12.0,
-      "draws": 8.0,
-      "losses": 15.0,
-      "gf": 39.0,
-      "ga": 40.0,
-      "gd": -1.0
     },
     {
       "name": "Vitória",
@@ -195,13 +195,13 @@
       "abbr": "BOT",
       "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/6086.png",
       "rank": 14.0,
-      "points": 42.0,
-      "played": 35.0,
+      "points": 43.0,
+      "played": 36.0,
       "wins": 11.0,
-      "draws": 9.0,
+      "draws": 10.0,
       "losses": 15.0,
-      "gf": 46.0,
-      "ga": 57.0,
+      "gf": 47.0,
+      "ga": 58.0,
       "gd": -11.0
     },
     {
