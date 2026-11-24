@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "sourceModel": "EPG_CORROBORATED_WITH_CURATED_OVERRIDE",
   "_comment": "Fonte de dados de 'Onde assistir' (bolao/shared/js/where_to_watch.js). Modelo EPG_CORROBORATED_WITH_CURATED_OVERRIDE (#431): registros sem 'origin' são curadoria humana e sempre vencem; registros 'origin: epg' são gerados por bolao/shared/scripts/sync_epg_broadcasts.mjs a partir da grade de TV — não edite esses à mão. Ver docs/bolao/BROADCAST_OPERATIONS.md antes de editar este arquivo.",
-  "updatedAt": "2026-11-23T01:44:27Z",
+  "updatedAt": "2026-11-24T13:43:59Z",
   "entries": [
     {
       "espnId": "401909114",
@@ -539,12 +539,24 @@
       "kickoffUtc": "2026-11-24T21:00Z",
       "home": "Chapecoense",
       "away": "Palmeiras",
-      "channels": ["Premiere"],
+      "channels": ["Record (TV aberta — consulte sua região)", "Premiere"],
       "origin": "epg",
       "source": "EPG XMLTV epgshare01 (BR1/BR2) — corroboração automática: programa cita os dois clubes no horário do kickoff",
       "confirmedAt": "2026-11-22",
       "collectedAt": "2026-11-22T11:26:29Z",
       "evidence": [
+        {
+          "channel": "Record (TV aberta — consulte sua região)",
+          "source": "epgshare-br2",
+          "epgChannelId": "Record.TV.br",
+          "programmeTitle": "Chapecoense x Palmeiras - Ao Vivo",
+          "programmeSubTitle": null,
+          "programmeCategories": ["Esporte", "Futebol"],
+          "programmeStart": "2026-11-24T20:50:00Z",
+          "programmeStop": "2026-11-24T23:00:00Z",
+          "matchedTeams": ["chapecoense", "palmeiras"],
+          "collectedAt": "2026-11-24T13:43:59Z"
+        },
         {
           "channel": "Premiere",
           "source": "epgshare-br2",
@@ -581,6 +593,31 @@
           "programmeStop": "2026-11-26T01:10:00Z",
           "matchedTeams": ["atletico-mg", "corinthians"],
           "collectedAt": "2026-11-23T01:44:27Z"
+        }
+      ]
+    },
+    {
+      "espnId": "401841329",
+      "kickoffUtc": "2026-11-26T23:00Z",
+      "home": "São Paulo",
+      "away": "Remo",
+      "channels": ["Premiere"],
+      "origin": "epg",
+      "source": "EPG XMLTV epgshare01 (BR1/BR2) — corroboração automática: programa cita os dois clubes no horário do kickoff",
+      "confirmedAt": "2026-11-24",
+      "collectedAt": "2026-11-24T13:43:59Z",
+      "evidence": [
+        {
+          "channel": "Premiere",
+          "source": "epgshare-br2",
+          "epgChannelId": "Premiere.Clubes.br",
+          "programmeTitle": "São Paulo x Remo - Ao Vivo",
+          "programmeSubTitle": null,
+          "programmeCategories": ["Esporte", "Futebol"],
+          "programmeStart": "2026-11-26T22:30:00Z",
+          "programmeStop": "2026-11-27T01:10:00Z",
+          "matchedTeams": ["sao-paulo", "remo"],
+          "collectedAt": "2026-11-24T13:43:59Z"
         }
       ]
     }
