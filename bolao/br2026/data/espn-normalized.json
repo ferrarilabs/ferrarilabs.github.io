@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-11-24T21:31:20Z",
-  "sourceUpdatedAt": "2026-11-24T21:31:20Z",
+  "generatedAt": "2026-11-24T22:11:21Z",
+  "sourceUpdatedAt": "2026-11-24T22:11:21Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "d418eed56058b703bcbb85b3fa45164db392aee9e774d3f12a787cca3b101d64",
+  "payloadHash": "c61345b4bb39b820dc1b3e2b167f47c74f604c14237b97a7d977292934e47329",
   "matches": [
     {
       "id": "401840808",
@@ -61014,24 +61014,24 @@
       "id": "401841335",
       "date": "2026-11-24T21:00Z",
       "state": "in",
-      "statusName": "STATUS_FIRST_HALF",
-      "statusDescription": "First Half",
-      "statusShortDetail": "30'",
-      "statusDetail": "30'",
+      "statusName": "STATUS_IN_PROGRESS",
+      "statusDescription": "In Progress",
+      "statusShortDetail": "50'",
+      "statusDetail": "50'",
       "completed": false,
       "homeTeam": "Chapecoense",
       "awayTeam": "Palmeiras",
       "homeTeamId": "9318",
       "awayTeamId": "2029",
-      "homeScore": 1,
+      "homeScore": 2,
       "awayScore": 0,
       "homeWinner": false,
       "awayWinner": false,
       "venue": "Arena Condá",
       "city": "Chapecó",
-      "clockSec": 1800.0,
-      "clockStr": "30'",
-      "period": 1,
+      "clockSec": 3000.0,
+      "clockStr": "50'",
+      "period": 2,
       "details": [
         {
           "type": {
@@ -61087,6 +61087,25 @@
             {
               "displayName": "Bruno Pacheco",
               "shortName": "B. Pacheco"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Goal"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "9318"
+          },
+          "clock": {
+            "value": 1910.0,
+            "displayValue": "32'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Max",
+              "shortName": "Max"
             }
           ]
         }
