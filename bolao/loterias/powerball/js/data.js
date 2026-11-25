@@ -1656,6 +1656,9 @@ window.POWERBALL_DRAWS = [
       // jackpot/cashValue sao publicados pela loteria; ficam null ate serem informados.
       jackpot: 673000000,
       cashValue: 282600000,
+      jackpotSource: "megamillions_official",
+      jackpotFetchedAt: "2026-11-25T13:00:44Z",
+      jackpotDrawId: "2026-11-27",
       drawDateIso: "2026-11-27T23:00:00-05:00",
       drawDateLabel: "27/11/2026 23:00 ET"
     },
