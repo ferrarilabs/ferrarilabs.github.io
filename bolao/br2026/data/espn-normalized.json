@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-11-24T02:40:51Z",
-  "sourceUpdatedAt": "2026-11-24T02:40:51Z",
+  "generatedAt": "2026-11-24T23:11:18Z",
+  "sourceUpdatedAt": "2026-11-24T23:11:18Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "119d1e121e41bb05d8f6b974d39436b0eb17841b4038feec12957453a63492c4",
+  "payloadHash": "58443da5533aa333f0dabfbfb30e26e2593b86d14be006119b0bddda76a42751",
   "matches": [
     {
       "id": "401840808",
@@ -61013,26 +61013,160 @@
     {
       "id": "401841335",
       "date": "2026-11-24T21:00Z",
-      "state": "pre",
-      "statusName": "STATUS_SCHEDULED",
-      "statusDescription": "Scheduled",
-      "statusShortDetail": "Scheduled",
-      "statusDetail": "Tue, November 24th at 4:00 PM EST",
-      "completed": false,
+      "state": "post",
+      "statusName": "STATUS_FULL_TIME",
+      "statusDescription": "Full Time",
+      "statusShortDetail": "FT",
+      "statusDetail": "FT",
+      "completed": true,
       "homeTeam": "Chapecoense",
       "awayTeam": "Palmeiras",
       "homeTeamId": "9318",
       "awayTeamId": "2029",
-      "homeScore": 0,
+      "homeScore": 3,
       "awayScore": 0,
-      "homeWinner": false,
+      "homeWinner": true,
       "awayWinner": false,
       "venue": "Arena Condá",
       "city": "Chapecó",
-      "clockSec": 0.0,
-      "clockStr": "0'",
-      "period": null,
-      "details": []
+      "clockSec": 5400.0,
+      "clockStr": "90'+4'",
+      "period": 2,
+      "details": [
+        {
+          "type": {
+            "text": "Goal"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "9318"
+          },
+          "clock": {
+            "value": 275.0,
+            "displayValue": "5'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Camilo",
+              "shortName": "Camilo"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "9318"
+          },
+          "clock": {
+            "value": 888.0,
+            "displayValue": "15'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Camilo",
+              "shortName": "Camilo"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "9318"
+          },
+          "clock": {
+            "value": 1560.0,
+            "displayValue": "26'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Bruno Pacheco",
+              "shortName": "B. Pacheco"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Goal"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "9318"
+          },
+          "clock": {
+            "value": 1910.0,
+            "displayValue": "32'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Max",
+              "shortName": "Max"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "2029"
+          },
+          "clock": {
+            "value": 4607.0,
+            "displayValue": "77'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Miguel Bilong",
+              "shortName": "M. Bilong"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Goal"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "9318"
+          },
+          "clock": {
+            "value": 5395.0,
+            "displayValue": "90'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Miguel Carvalho",
+              "shortName": "M. Carvalho"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "9318"
+          },
+          "clock": {
+            "value": 5400.0,
+            "displayValue": "90'+4'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Miguel Carvalho",
+              "shortName": "M. Carvalho"
+            }
+          ]
+        }
+      ]
     },
     {
       "id": "401841319",
