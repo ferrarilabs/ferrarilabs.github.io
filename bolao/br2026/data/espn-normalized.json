@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-11-26T00:30:35Z",
-  "sourceUpdatedAt": "2026-11-26T00:30:35Z",
+  "generatedAt": "2026-11-26T00:50:34Z",
+  "sourceUpdatedAt": "2026-11-26T00:50:34Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "0b6c901a8a6f92c445ce442baf2b680109de086dcab61236750045796a0c4eb8",
+  "payloadHash": "d2363e5f3ae4aa7cd839308914aaa1698d9a2b7b7808632ca3a022a6424765a0",
   "matches": [
     {
       "id": "401840808",
@@ -61174,21 +61174,21 @@
       "state": "in",
       "statusName": "STATUS_SECOND_HALF",
       "statusDescription": "Second Half",
-      "statusShortDetail": "63'",
-      "statusDetail": "63'",
+      "statusShortDetail": "84'",
+      "statusDetail": "84'",
       "completed": false,
       "homeTeam": "Atlético-MG",
       "awayTeam": "Corinthians",
       "homeTeamId": "7632",
       "awayTeamId": "874",
       "homeScore": 0,
-      "awayScore": 0,
+      "awayScore": 1,
       "homeWinner": false,
       "awayWinner": false,
       "venue": "Arena MRV",
       "city": "Belo Horizonte",
-      "clockSec": 3780.0,
-      "clockStr": "63'",
+      "clockSec": 5040.0,
+      "clockStr": "84'",
       "period": 2,
       "details": [
         {
@@ -61207,6 +61207,82 @@
             {
               "displayName": "Ruan",
               "shortName": "Ruan"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Red Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "7632"
+          },
+          "clock": {
+            "value": 3939.0,
+            "displayValue": "66'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Thiago Borbas",
+              "shortName": "T. Borbas"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Goal - Header"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "874"
+          },
+          "clock": {
+            "value": 4186.0,
+            "displayValue": "70'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Kaio",
+              "shortName": "Kaio"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "7632"
+          },
+          "clock": {
+            "value": 4600.0,
+            "displayValue": "77'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Alexsander",
+              "shortName": "Alexsander"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "7632"
+          },
+          "clock": {
+            "value": 4890.0,
+            "displayValue": "82'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Tomás Pérez",
+              "shortName": "T. Pérez"
             }
           ]
         }
