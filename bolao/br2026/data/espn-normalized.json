@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-11-25T23:30:42Z",
-  "sourceUpdatedAt": "2026-11-25T23:30:42Z",
+  "generatedAt": "2026-11-25T23:50:36Z",
+  "sourceUpdatedAt": "2026-11-25T23:50:36Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "f6df6c53e935821db21e4b900901f28f333533c1131df3425b0b38e39ebdbe32",
+  "payloadHash": "135170c005a542cf07644f405498001f2b9e69a3b1ddb0b4bc31b0dfd8fff3e5",
   "matches": [
     {
       "id": "401840808",
@@ -61174,8 +61174,8 @@
       "state": "in",
       "statusName": "STATUS_FIRST_HALF",
       "statusDescription": "First Half",
-      "statusShortDetail": "26'",
-      "statusDetail": "26'",
+      "statusShortDetail": "45'+1'",
+      "statusDetail": "45'+1'",
       "completed": false,
       "homeTeam": "Atlético-MG",
       "awayTeam": "Corinthians",
@@ -61187,10 +61187,30 @@
       "awayWinner": false,
       "venue": "Arena MRV",
       "city": "Belo Horizonte",
-      "clockSec": 1560.0,
-      "clockStr": "26'",
+      "clockSec": 2700.0,
+      "clockStr": "45'+1'",
       "period": 1,
-      "details": []
+      "details": [
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "7632"
+          },
+          "clock": {
+            "value": 2158.0,
+            "displayValue": "36'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Ruan",
+              "shortName": "Ruan"
+            }
+          ]
+        }
+      ]
     },
     {
       "id": "401841329",
