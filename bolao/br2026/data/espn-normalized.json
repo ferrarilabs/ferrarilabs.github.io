@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-11-26T23:30:36Z",
-  "sourceUpdatedAt": "2026-11-26T23:30:36Z",
+  "generatedAt": "2026-11-26T23:50:35Z",
+  "sourceUpdatedAt": "2026-11-26T23:50:35Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "fbeec52f96c4a0899b42211120a950e2dd375a767a7bfb498972d0d2d91db7f8",
+  "payloadHash": "9045ff9b057f7e38669e1aef704e6a7246997d1343c4d52a5db70dbf4cabad47",
   "matches": [
     {
       "id": "401840808",
@@ -61332,21 +61332,21 @@
       "state": "in",
       "statusName": "STATUS_FIRST_HALF",
       "statusDescription": "First Half",
-      "statusShortDetail": "29'",
-      "statusDetail": "29'",
+      "statusShortDetail": "45'+4'",
+      "statusDetail": "45'+4'",
       "completed": false,
       "homeTeam": "São Paulo",
       "awayTeam": "Remo",
       "homeTeamId": "2026",
       "awayTeamId": "4936",
-      "homeScore": 0,
+      "homeScore": 1,
       "awayScore": 0,
       "homeWinner": false,
       "awayWinner": false,
       "venue": "Estádio Cícero Pompeu de Toledo",
       "city": "Sao Paulo",
-      "clockSec": 1740.0,
-      "clockStr": "29'",
+      "clockSec": 2700.0,
+      "clockStr": "45'+4'",
       "period": 1,
       "details": [
         {
@@ -61365,6 +61365,25 @@
             {
               "displayName": "Antonio Galeano",
               "shortName": "A. Galeano"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Goal"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "2026"
+          },
+          "clock": {
+            "value": 2306.0,
+            "displayValue": "39'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Jonathan Calleri",
+              "shortName": "J. Calleri"
             }
           ]
         }
