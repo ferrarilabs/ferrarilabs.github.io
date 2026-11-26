@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-11-26T23:10:38Z",
-  "sourceUpdatedAt": "2026-11-26T23:10:38Z",
+  "generatedAt": "2026-11-26T23:30:36Z",
+  "sourceUpdatedAt": "2026-11-26T23:30:36Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "869c559d24b26c5586fc921eded1634a32507907c23d24d5e1052d61504d80a5",
+  "payloadHash": "fbeec52f96c4a0899b42211120a950e2dd375a767a7bfb498972d0d2d91db7f8",
   "matches": [
     {
       "id": "401840808",
@@ -61332,8 +61332,8 @@
       "state": "in",
       "statusName": "STATUS_FIRST_HALF",
       "statusDescription": "First Half",
-      "statusShortDetail": "10'",
-      "statusDetail": "10'",
+      "statusShortDetail": "29'",
+      "statusDetail": "29'",
       "completed": false,
       "homeTeam": "São Paulo",
       "awayTeam": "Remo",
@@ -61345,10 +61345,30 @@
       "awayWinner": false,
       "venue": "Estádio Cícero Pompeu de Toledo",
       "city": "Sao Paulo",
-      "clockSec": 600.0,
-      "clockStr": "10'",
+      "clockSec": 1740.0,
+      "clockStr": "29'",
       "period": 1,
-      "details": []
+      "details": [
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "4936"
+          },
+          "clock": {
+            "value": 1224.0,
+            "displayValue": "21'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Antonio Galeano",
+              "shortName": "A. Galeano"
+            }
+          ]
+        }
+      ]
     },
     {
       "id": "401841337",
