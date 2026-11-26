@@ -1665,25 +1665,53 @@ window.POWERBALL_DRAWS = [
 
     // BOLAO ABERTO, ainda sem ninguem. Estado valido: participantes entram progressivamente.
     participants: [
-      { name: "Eduardo Ferrari", cotas: 1, valor: 10, metodo: "Fundo próprio (organizador)", data: "25/11/2026", hora: "7:10:58 AM", status: "organizador", state: "NC" }
+      { name: "Eduardo Ferrari", cotas: 1, valor: 10, metodo: "Fundo próprio (organizador)", data: "25/11/2026", hora: "7:10:58 AM", status: "organizador", state: "NC" },
+      { name: "Gustavo Bossle", cotas: 1, valor: 10, metodo: "Zelle", data: "25/11/2026", hora: "7:15:40 AM", status: "verificado", state: "NC" },
+      { name: "Marcelo Moreira", cotas: 1, valor: 10, metodo: "Zelle", data: "25/11/2026", hora: "7:32:15 AM", status: "verificado", state: "NC" },
+      { name: "Marcelo Minghetti Pereira", cotas: 1, valor: 10, metodo: "Zelle", data: "25/11/2026", hora: "7:46:40 AM", status: "verificado", state: "NC" },
+      { name: "Thiago Locatelli", cotas: 1, valor: 10, metodo: "Zelle", data: "25/11/2026", hora: "8:50:08 AM", status: "verificado", state: "TX" },
+      { name: "Ewerton Gruba Silva", cotas: 1, valor: 10, metodo: "Zelle", data: "25/11/2026", hora: "9:19:53 AM", status: "verificado", state: "NC" },
+      { name: "Camila Ribeiro", cotas: 1, valor: 10, metodo: "Zelle", data: "25/11/2026", hora: "10:55:11 AM", status: "verificado", state: "NC" },
+      { name: "Marcus Steffenon", cotas: 1, valor: 10, metodo: "Zelle", data: "25/11/2026", hora: "11:41:37 AM", status: "verificado", state: "NC" },
+      { name: "Marcelo G de Jesus", cotas: 1, valor: 10, metodo: "Zelle", data: "26/11/2026", hora: "10:13:22 AM", status: "verificado", state: "FL" },
+      { name: "Leandro Augustineli", cotas: 1, valor: 10, metodo: "Zelle", data: "26/11/2026", hora: "11:09:34 AM", status: "verificado", state: "NC" },
+      { name: "Jorge Augusto Junqueira Ferreira", cotas: 1, valor: 10, metodo: "Zelle", data: "26/11/2026", hora: "11:33:41 AM", status: "verificado", state: "FL" }
     ],
 
-    // Sem bilhetes ainda. Os numeros entram depois da compra -- abrir o bolao nunca dependeu
-    // de ja existirem jogos.
     sharedTickets: {
-      compradoPor: null,
-      dataComprovante: null,
-      valorPorTicket: 5,
-      series: []
+      compradoPor: "Eduardo Ferrari (organizador)",
+      dataComprovante: "26/11/2026",
+      valorPorTicket: 5, // multiplicador embutido em cada aposta
+      series: [
+        {
+          serial: "2DD8B896B5EF03A3F", qtd: 20, jogos: "1–20",
+          numeros: [
+            "01-10-45-52-69 — MB 14 — 2X", "01-12-46-51-61 — MB 04 — 2X", "02-13-14-33-67 — MB 08 — 3X",
+            "03-04-34-36-53 — MB 12 — 2X", "03-09-48-49-60 — MB 24 — 2X", "04-22-55-57-64 — MB 10 — 2X",
+            "05-06-43-50-65 — MB 18 — 2X", "07-18-44-49-59 — MB 19 — 2X", "07-20-25-55-56 — MB 11 — 2X",
+            "08-16-25-38-67 — MB 09 — 4X", "09-16-39-44-50 — MB 13 — 2X", "10-31-43-66-68 — MB 20 — 4X",
+            "11-12-24-35-62 — MB 15 — 3X", "11-26-32-51-65 — MB 16 — 3X", "13-27-30-42-46 — MB 03 — 2X",
+            "14-34-37-59-61 — MB 05 — 3X", "15-21-54-64-68 — MB 22 — 5X", "15-23-28-52-60 — MB 23 — 5X",
+            "17-19-26-36-48 — MB 07 — 4X", "17-23-29-66-70 — MB 02 — 2X"
+          ]
+        },
+        {
+          serial: "2AF0D6A994B6FA18A", qtd: 5, jogos: "21–25",
+          numeros: [
+            "18-19-37-42-57 — MB 21 — 10X", "20-28-45-47-58 — MB 17 — 3X", "21-40-41-62-69 — MB 06 — 3X",
+            "29-32-38-40-63 — MB 01 — 3X", "30-31-35-63-70 — MB 11 — 2X"
+          ]
+        }
+      ]
     },
 
     finance: {
-      totalArrecadado: 10, // 1 participante(s), soma das contribuicoes no banco
+      totalArrecadado: 110, // 11 participante(s), soma das contribuicoes no banco
       // Premio do sorteio anterior + o que ficou guardado. Derivado do que esta gravado, nao
       // arbitrado aqui.
       creditoSorteioAnterior: 16,
-      valorUtilizado: 0,
-      valorGuardadoProximoSorteio: 0,
+      valorUtilizado: 125, // 25 x US$5
+      valorGuardadoProximoSorteio: 1, // 110 + 16 - 125
       ajustesPendentes: 0
     },
 
