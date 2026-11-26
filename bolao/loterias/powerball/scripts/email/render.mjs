@@ -324,10 +324,12 @@ ${f.diferencaNaoConciliada !== 0 ? `<tr><td style="font-weight:bold;">Diferença
 // 2026-08-08, pushing a full render to ~160KB) it doesn't, so the full listing
 // gets replaced by a summary + pointer to the attached PDF/CSV instead —
 // Eduardo's explicit call (2026-08-08), the same simplification already
-// applied to the result email's full-ticket-list section. Threshold picked
-// conservatively below where two other draws (14-15 tickets each) still sit,
-// so their emails are unaffected.
-const INLINE_TICKET_LIST_MAX = 25;
+// applied to the result email's full-ticket-list section. Was 25 until 2026-11-26:
+// the Mega Millions draw of 2026-11-27 bought exactly 25 and every send failed
+// with 413 (each Mega Millions row costs ~2.8KB: 14 -> 43.8KB, 15 -> 46.6KB,
+// 16 -> 49.4KB, 25 -> 74.4KB of HTML alone). 14 leaves room for the rest of
+// template_params.
+const INLINE_TICKET_LIST_MAX = 14;
 
 export function renderTicketPublicationHtml(payload, testMode) {
   const f = payload.financialSummary;
