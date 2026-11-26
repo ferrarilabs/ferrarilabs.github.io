@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-11-26T00:50:34Z",
-  "sourceUpdatedAt": "2026-11-26T00:50:34Z",
+  "generatedAt": "2026-11-26T01:10:36Z",
+  "sourceUpdatedAt": "2026-11-26T01:10:36Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "d2363e5f3ae4aa7cd839308914aaa1698d9a2b7b7808632ca3a022a6424765a0",
+  "payloadHash": "3967c284d5668d8efd1dcbff34b13c8c3b2cf24d00385c7b1a508bad75bd2d76",
   "matches": [
     {
       "id": "401840808",
@@ -61171,24 +61171,24 @@
     {
       "id": "401841319",
       "date": "2026-11-25T23:00Z",
-      "state": "in",
-      "statusName": "STATUS_SECOND_HALF",
-      "statusDescription": "Second Half",
-      "statusShortDetail": "84'",
-      "statusDetail": "84'",
-      "completed": false,
+      "state": "post",
+      "statusName": "STATUS_FULL_TIME",
+      "statusDescription": "Full Time",
+      "statusShortDetail": "FT",
+      "statusDetail": "FT",
+      "completed": true,
       "homeTeam": "Atlético-MG",
       "awayTeam": "Corinthians",
       "homeTeamId": "7632",
       "awayTeamId": "874",
-      "homeScore": 0,
+      "homeScore": 1,
       "awayScore": 1,
       "homeWinner": false,
       "awayWinner": false,
       "venue": "Arena MRV",
       "city": "Belo Horizonte",
-      "clockSec": 5040.0,
-      "clockStr": "84'",
+      "clockSec": 5400.0,
+      "clockStr": "90'+8'",
       "period": 2,
       "details": [
         {
@@ -61283,6 +61283,44 @@
             {
               "displayName": "Tomás Pérez",
               "shortName": "T. Pérez"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "874"
+          },
+          "clock": {
+            "value": 5046.0,
+            "displayValue": "85'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Pedro Milans",
+              "shortName": "P. Milans"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Goal"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "7632"
+          },
+          "clock": {
+            "value": 5400.0,
+            "displayValue": "90'+2'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Tomás Cuello",
+              "shortName": "T. Cuello"
             }
           ]
         }
