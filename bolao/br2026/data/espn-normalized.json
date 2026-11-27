@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-11-26T04:10:21Z",
-  "sourceUpdatedAt": "2026-11-26T04:10:21Z",
+  "generatedAt": "2026-11-27T01:10:36Z",
+  "sourceUpdatedAt": "2026-11-27T01:10:36Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "29a408372eabe80ed4d23ea3186a72cf287f40f9ce5470c24be35511a526e79b",
+  "payloadHash": "ced8d9b52e8328ae8d6230858c53215eeb8fe49d855591196960a056dc9e479b",
   "matches": [
     {
       "id": "401840808",
@@ -61329,26 +61329,192 @@
     {
       "id": "401841329",
       "date": "2026-11-26T23:00Z",
-      "state": "pre",
-      "statusName": "STATUS_SCHEDULED",
-      "statusDescription": "Scheduled",
-      "statusShortDetail": "Scheduled",
-      "statusDetail": "Thu, November 26th at 6:00 PM EST",
-      "completed": false,
+      "state": "post",
+      "statusName": "STATUS_FULL_TIME",
+      "statusDescription": "Full Time",
+      "statusShortDetail": "FT",
+      "statusDetail": "FT",
+      "completed": true,
       "homeTeam": "São Paulo",
       "awayTeam": "Remo",
       "homeTeamId": "2026",
       "awayTeamId": "4936",
-      "homeScore": 0,
-      "awayScore": 0,
-      "homeWinner": false,
+      "homeScore": 3,
+      "awayScore": 1,
+      "homeWinner": true,
       "awayWinner": false,
       "venue": "Estádio Cícero Pompeu de Toledo",
       "city": "Sao Paulo",
-      "clockSec": 0.0,
-      "clockStr": "0'",
-      "period": null,
-      "details": []
+      "clockSec": 5400.0,
+      "clockStr": "90'+7'",
+      "period": 2,
+      "details": [
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "4936"
+          },
+          "clock": {
+            "value": 1224.0,
+            "displayValue": "21'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Antonio Galeano",
+              "shortName": "A. Galeano"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Goal"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "2026"
+          },
+          "clock": {
+            "value": 2306.0,
+            "displayValue": "39'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Jonathan Calleri",
+              "shortName": "J. Calleri"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "4936"
+          },
+          "clock": {
+            "value": 3137.0,
+            "displayValue": "53'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Edson Fernando",
+              "shortName": "E. Fernando"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Goal - Header"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "4936"
+          },
+          "clock": {
+            "value": 3280.0,
+            "displayValue": "55'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Gabriel Poveda",
+              "shortName": "G. Poveda"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "4936"
+          },
+          "clock": {
+            "value": 4226.0,
+            "displayValue": "71'"
+          }
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "2026"
+          },
+          "clock": {
+            "value": 5008.0,
+            "displayValue": "84'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Lucca Marques",
+              "shortName": "L. Marques"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Goal"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "2026"
+          },
+          "clock": {
+            "value": 5179.0,
+            "displayValue": "87'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Ryan Francisco",
+              "shortName": "Ryan Francisco"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Goal - Volley"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "2026"
+          },
+          "clock": {
+            "value": 5400.0,
+            "displayValue": "90'+5'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Jonathan Calleri",
+              "shortName": "J. Calleri"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "4936"
+          },
+          "clock": {
+            "value": 5400.0,
+            "displayValue": "90'+6'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Duplexe Tchamba",
+              "shortName": "D. Tchamba"
+            }
+          ]
+        }
+      ]
     },
     {
       "id": "401841337",
