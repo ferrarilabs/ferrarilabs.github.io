@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-11-27T00:30:39Z",
-  "sourceUpdatedAt": "2026-11-27T00:30:39Z",
+  "generatedAt": "2026-11-27T00:50:35Z",
+  "sourceUpdatedAt": "2026-11-27T00:50:35Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "770c8b9c530a3ebc33efb5b6e4b7c18b43499a63235816b792d669a66d15afc6",
+  "payloadHash": "6c4db2ea83e27955e24ef51a7f2156c036fec17028a40281795fc0f5bc6ef855",
   "matches": [
     {
       "id": "401840808",
@@ -61332,8 +61332,8 @@
       "state": "in",
       "statusName": "STATUS_SECOND_HALF",
       "statusDescription": "Second Half",
-      "statusShortDetail": "67'",
-      "statusDetail": "67'",
+      "statusShortDetail": "87'",
+      "statusDetail": "87'",
       "completed": false,
       "homeTeam": "São Paulo",
       "awayTeam": "Remo",
@@ -61345,8 +61345,8 @@
       "awayWinner": false,
       "venue": "Estádio Cícero Pompeu de Toledo",
       "city": "Sao Paulo",
-      "clockSec": 4020.0,
-      "clockStr": "67'",
+      "clockSec": 5220.0,
+      "clockStr": "87'",
       "period": 2,
       "details": [
         {
@@ -61422,6 +61422,38 @@
             {
               "displayName": "Gabriel Poveda",
               "shortName": "G. Poveda"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "4936"
+          },
+          "clock": {
+            "value": 4226.0,
+            "displayValue": "71'"
+          }
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "2026"
+          },
+          "clock": {
+            "value": 5008.0,
+            "displayValue": "84'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Lucca Marques",
+              "shortName": "L. Marques"
             }
           ]
         }
