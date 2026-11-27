@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-11-27T23:10:41Z",
-  "sourceUpdatedAt": "2026-11-27T23:10:41Z",
+  "generatedAt": "2026-11-27T23:30:42Z",
+  "sourceUpdatedAt": "2026-11-27T23:30:42Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "0299051c448664cce2e3f85300485b392e0ae38057e9f3aeca68811358ba5262",
+  "payloadHash": "11b9b2e8b78ab9b2bb69a5a1b54193565f4ecc8e4977b61a17e574736647cb61",
   "matches": [
     {
       "id": "401840808",
@@ -61522,8 +61522,8 @@
       "state": "in",
       "statusName": "STATUS_FIRST_HALF",
       "statusDescription": "First Half",
-      "statusShortDetail": "10'",
-      "statusDetail": "10'",
+      "statusShortDetail": "30'",
+      "statusDetail": "30'",
       "completed": false,
       "homeTeam": "Fluminense",
       "awayTeam": "Cruzeiro",
@@ -61535,8 +61535,8 @@
       "awayWinner": false,
       "venue": "Estadio do Maracana",
       "city": "Rio de Janeiro",
-      "clockSec": 600.0,
-      "clockStr": "10'",
+      "clockSec": 1800.0,
+      "clockStr": "30'",
       "period": 1,
       "details": [
         {
@@ -61555,6 +61555,25 @@
             {
               "displayName": "Kaio Jorge",
               "shortName": "Kaio Jorge"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "2022"
+          },
+          "clock": {
+            "value": 1559.0,
+            "displayValue": "26'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Kauã Moraes Silva",
+              "shortName": "K. Moraes Silva"
             }
           ]
         }
