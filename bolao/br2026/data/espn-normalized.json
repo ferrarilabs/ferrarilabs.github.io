@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-11-27T01:10:36Z",
-  "sourceUpdatedAt": "2026-11-27T01:10:36Z",
+  "generatedAt": "2026-11-27T05:10:25Z",
+  "sourceUpdatedAt": "2026-11-27T05:10:25Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "ced8d9b52e8328ae8d6230858c53215eeb8fe49d855591196960a056dc9e479b",
+  "payloadHash": "b92b9fd3708a82b3d79316166486a77e2c05144aefa047ab5ac069126cfbf46e",
   "matches": [
     {
       "id": "401840808",
@@ -61281,8 +61281,8 @@
           },
           "athletesInvolved": [
             {
-              "displayName": "Tomas Perez",
-              "shortName": "T. Perez"
+              "displayName": "Tomás Pérez",
+              "shortName": "T. Pérez"
             }
           ]
         },
