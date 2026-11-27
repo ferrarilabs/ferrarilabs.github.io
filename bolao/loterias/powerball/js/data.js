@@ -1681,7 +1681,7 @@ window.POWERBALL_DRAWS = [
 
     sharedTickets: {
       compradoPor: "Eduardo Ferrari (organizador)",
-      dataComprovante: "26/11/2026",
+      dataComprovante: "26-27/11/2026",
       valorPorTicket: 5, // multiplicador embutido em cada aposta
       series: [
         {
@@ -1702,6 +1702,12 @@ window.POWERBALL_DRAWS = [
             "18-19-37-42-57 — MB 21 — 10X", "20-28-45-47-58 — MB 17 — 3X", "21-40-41-62-69 — MB 06 — 3X",
             "29-32-38-40-63 — MB 01 — 3X", "30-31-35-63-70 — MB 11 — 2X"
           ]
+        },
+        {
+          serial: "2093F9DCBFF7C4E2C", qtd: 2, jogos: "26–27",
+          numeros: [
+            "08-33-39-41-42 — MB 08 — 3X", "24-27-54-58-61 — MB 10 — 3X"
+          ]
         }
       ]
     },
@@ -1711,8 +1717,8 @@ window.POWERBALL_DRAWS = [
       // Premio do sorteio anterior + o que ficou guardado. Derivado do que esta gravado, nao
       // arbitrado aqui.
       creditoSorteioAnterior: 16,
-      valorUtilizado: 125, // 25 x US$5
-      valorGuardadoProximoSorteio: 1, // 110 + 16 - 125
+      valorUtilizado: 135, // 27 x US$5
+      valorGuardadoProximoSorteio: 1, // 120 + 16 - 135
       ajustesPendentes: 0
     },
 
