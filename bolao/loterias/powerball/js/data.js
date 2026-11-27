@@ -1671,6 +1671,7 @@ window.POWERBALL_DRAWS = [
       { name: "Marcelo Minghetti Pereira", cotas: 1, valor: 10, metodo: "Zelle", data: "25/11/2026", hora: "7:46:40 AM", status: "verificado", state: "NC" },
       { name: "Thiago Locatelli", cotas: 1, valor: 10, metodo: "Zelle", data: "25/11/2026", hora: "8:50:08 AM", status: "verificado", state: "TX" },
       { name: "Ewerton Gruba Silva", cotas: 1, valor: 10, metodo: "Zelle", data: "25/11/2026", hora: "9:19:53 AM", status: "verificado", state: "NC" },
+      { name: "Marcelo Barsotti", cotas: 1, valor: 10, metodo: "Pix", data: "25/11/2026", hora: "9:59:02 AM", status: "verificado", state: "ON" },
       { name: "Camila Ribeiro", cotas: 1, valor: 10, metodo: "Zelle", data: "25/11/2026", hora: "10:55:11 AM", status: "verificado", state: "NC" },
       { name: "Marcus Steffenon", cotas: 1, valor: 10, metodo: "Zelle", data: "25/11/2026", hora: "11:41:37 AM", status: "verificado", state: "NC" },
       { name: "Marcelo G de Jesus", cotas: 1, valor: 10, metodo: "Zelle", data: "26/11/2026", hora: "10:13:22 AM", status: "verificado", state: "FL" },
@@ -1706,7 +1707,7 @@ window.POWERBALL_DRAWS = [
     },
 
     finance: {
-      totalArrecadado: 110, // 11 participante(s), soma das contribuicoes no banco
+      totalArrecadado: 120, // 12 participante(s), soma das contribuicoes no banco
       // Premio do sorteio anterior + o que ficou guardado. Derivado do que esta gravado, nao
       // arbitrado aqui.
       creditoSorteioAnterior: 16,
