@@ -29,6 +29,10 @@ on:
         description: "Enviar de verdade (sem isto e dry-run)"
         type: boolean
         default: false
+      only:
+        description: "So para este participante (nome como no data.js; vazio = todos)"
+        type: string
+        default: ""
 
 permissions:
   contents: read
@@ -91,9 +95,12 @@ jobs:
           DRAW_ID: ${{ inputs.draw_id }}
           VERSION: ${{ inputs.version }}
           SEND: ${{ inputs.send }}
+          # Nome ja publico no data.js; serve para quem entrou depois do envio geral.
+          ONLY: ${{ inputs.only }}
         run: |
           set -euo pipefail
           ARGS=(--draw-id "$DRAW_ID" --version "$VERSION")
+          [ -z "$ONLY" ] || ARGS+=(--only "$ONLY")
           [ "$SEND" = "true" ] || ARGS+=(--dry-run)
           # Endereco nunca vai para o log publico, nem em mensagem de erro do provedor.
           POWERBALL_PRIVATE_PARTICIPANT_DATA="$(cat "$RUNNER_TEMP/contatos.json")" \

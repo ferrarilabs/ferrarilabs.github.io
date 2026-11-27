@@ -1,0 +1,10 @@
+{
+  "declarations": [
+    {
+      "surface_id": "NOTIFICATION_WORKFLOWS",
+      "reason": "Uma cota paga antes da compra (Pix, 25/11) so foi informada depois que o e-mail de bilhetes do sorteio de 2026-11-27 ja tinha saido para os outros 11 participantes. Ela precisa receber o e-mail da nova versao (v2, 27 jogos) sem que os outros 11 recebam de novo; o script ja aceita --only, mas o workflow nao repassava.",
+      "expected_behavior_change": "powerball_ticket_email.yml: input novo opcional `only` (padrao vazio = comportamento atual, todos os participantes). Preenchido, o passo de envio repassa `--only <nome>` ao send_ticket_publication_real.mjs, que restringe o envio a esse participante. O nome ja e publico no data.js. Nenhum gatilho, cron, guard, template, ledger, credencial ou passo de validacao muda; o input so pode reduzir destinatarios, nunca acrescentar.",
+      "tests_required": ["cron-coverage", "email-send-safety", "powerball-workflow-arming"]
+    }
+  ]
+}

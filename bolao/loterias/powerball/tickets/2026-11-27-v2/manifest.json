@@ -1,0 +1,333 @@
+{
+  "poolId": "megamillions",
+  "drawId": "2026-11-27",
+  "publicationVersion": 2,
+  "publishedAtUtc": "2026-11-27T08:19:28.065Z",
+  "tickets": [
+    {
+      "numbers": [
+        1,
+        10,
+        45,
+        52,
+        69
+      ],
+      "special": 14,
+      "multiplier": 2,
+      "serial": "2DD8B896B5EF03A3F"
+    },
+    {
+      "numbers": [
+        1,
+        12,
+        46,
+        51,
+        61
+      ],
+      "special": 4,
+      "multiplier": 2,
+      "serial": "2DD8B896B5EF03A3F"
+    },
+    {
+      "numbers": [
+        2,
+        13,
+        14,
+        33,
+        67
+      ],
+      "special": 8,
+      "multiplier": 3,
+      "serial": "2DD8B896B5EF03A3F"
+    },
+    {
+      "numbers": [
+        3,
+        4,
+        34,
+        36,
+        53
+      ],
+      "special": 12,
+      "multiplier": 2,
+      "serial": "2DD8B896B5EF03A3F"
+    },
+    {
+      "numbers": [
+        3,
+        9,
+        48,
+        49,
+        60
+      ],
+      "special": 24,
+      "multiplier": 2,
+      "serial": "2DD8B896B5EF03A3F"
+    },
+    {
+      "numbers": [
+        4,
+        22,
+        55,
+        57,
+        64
+      ],
+      "special": 10,
+      "multiplier": 2,
+      "serial": "2DD8B896B5EF03A3F"
+    },
+    {
+      "numbers": [
+        5,
+        6,
+        43,
+        50,
+        65
+      ],
+      "special": 18,
+      "multiplier": 2,
+      "serial": "2DD8B896B5EF03A3F"
+    },
+    {
+      "numbers": [
+        7,
+        18,
+        44,
+        49,
+        59
+      ],
+      "special": 19,
+      "multiplier": 2,
+      "serial": "2DD8B896B5EF03A3F"
+    },
+    {
+      "numbers": [
+        7,
+        20,
+        25,
+        55,
+        56
+      ],
+      "special": 11,
+      "multiplier": 2,
+      "serial": "2DD8B896B5EF03A3F"
+    },
+    {
+      "numbers": [
+        8,
+        16,
+        25,
+        38,
+        67
+      ],
+      "special": 9,
+      "multiplier": 4,
+      "serial": "2DD8B896B5EF03A3F"
+    },
+    {
+      "numbers": [
+        9,
+        16,
+        39,
+        44,
+        50
+      ],
+      "special": 13,
+      "multiplier": 2,
+      "serial": "2DD8B896B5EF03A3F"
+    },
+    {
+      "numbers": [
+        10,
+        31,
+        43,
+        66,
+        68
+      ],
+      "special": 20,
+      "multiplier": 4,
+      "serial": "2DD8B896B5EF03A3F"
+    },
+    {
+      "numbers": [
+        11,
+        12,
+        24,
+        35,
+        62
+      ],
+      "special": 15,
+      "multiplier": 3,
+      "serial": "2DD8B896B5EF03A3F"
+    },
+    {
+      "numbers": [
+        11,
+        26,
+        32,
+        51,
+        65
+      ],
+      "special": 16,
+      "multiplier": 3,
+      "serial": "2DD8B896B5EF03A3F"
+    },
+    {
+      "numbers": [
+        13,
+        27,
+        30,
+        42,
+        46
+      ],
+      "special": 3,
+      "multiplier": 2,
+      "serial": "2DD8B896B5EF03A3F"
+    },
+    {
+      "numbers": [
+        14,
+        34,
+        37,
+        59,
+        61
+      ],
+      "special": 5,
+      "multiplier": 3,
+      "serial": "2DD8B896B5EF03A3F"
+    },
+    {
+      "numbers": [
+        15,
+        21,
+        54,
+        64,
+        68
+      ],
+      "special": 22,
+      "multiplier": 5,
+      "serial": "2DD8B896B5EF03A3F"
+    },
+    {
+      "numbers": [
+        15,
+        23,
+        28,
+        52,
+        60
+      ],
+      "special": 23,
+      "multiplier": 5,
+      "serial": "2DD8B896B5EF03A3F"
+    },
+    {
+      "numbers": [
+        17,
+        19,
+        26,
+        36,
+        48
+      ],
+      "special": 7,
+      "multiplier": 4,
+      "serial": "2DD8B896B5EF03A3F"
+    },
+    {
+      "numbers": [
+        17,
+        23,
+        29,
+        66,
+        70
+      ],
+      "special": 2,
+      "multiplier": 2,
+      "serial": "2DD8B896B5EF03A3F"
+    },
+    {
+      "numbers": [
+        18,
+        19,
+        37,
+        42,
+        57
+      ],
+      "special": 21,
+      "multiplier": 10,
+      "serial": "2AF0D6A994B6FA18A"
+    },
+    {
+      "numbers": [
+        20,
+        28,
+        45,
+        47,
+        58
+      ],
+      "special": 17,
+      "multiplier": 3,
+      "serial": "2AF0D6A994B6FA18A"
+    },
+    {
+      "numbers": [
+        21,
+        40,
+        41,
+        62,
+        69
+      ],
+      "special": 6,
+      "multiplier": 3,
+      "serial": "2AF0D6A994B6FA18A"
+    },
+    {
+      "numbers": [
+        29,
+        32,
+        38,
+        40,
+        63
+      ],
+      "special": 1,
+      "multiplier": 3,
+      "serial": "2AF0D6A994B6FA18A"
+    },
+    {
+      "numbers": [
+        30,
+        31,
+        35,
+        63,
+        70
+      ],
+      "special": 11,
+      "multiplier": 2,
+      "serial": "2AF0D6A994B6FA18A"
+    },
+    {
+      "numbers": [
+        8,
+        33,
+        39,
+        41,
+        42
+      ],
+      "special": 8,
+      "multiplier": 3,
+      "serial": "2093F9DCBFF7C4E2C"
+    },
+    {
+      "numbers": [
+        24,
+        27,
+        54,
+        58,
+        61
+      ],
+      "special": 10,
+      "multiplier": 3,
+      "serial": "2093F9DCBFF7C4E2C"
+    }
+  ],
+  "sha256": "46c6cd85f2d6316711684bb2ac986ab5b22a519e5c2e87c8e038f7cdab629574"
+}
