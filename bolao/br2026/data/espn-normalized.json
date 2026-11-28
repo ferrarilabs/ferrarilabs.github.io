@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-11-28T00:10:48Z",
-  "sourceUpdatedAt": "2026-11-28T00:10:48Z",
+  "generatedAt": "2026-11-28T00:30:43Z",
+  "sourceUpdatedAt": "2026-11-28T00:30:43Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "20d2a737c45284ed4cab323b976a564cd35821ec6ecd477acdfbad510c881ba6",
+  "payloadHash": "44677e056a3956daeced4f78fe2fa3ada73d60f2eaaf52e801b39fa708109d03",
   "matches": [
     {
       "id": "401840808",
@@ -61522,8 +61522,8 @@
       "state": "in",
       "statusName": "STATUS_SECOND_HALF",
       "statusDescription": "Second Half",
-      "statusShortDetail": "51'",
-      "statusDetail": "51'",
+      "statusShortDetail": "71'",
+      "statusDetail": "71'",
       "completed": false,
       "homeTeam": "Fluminense",
       "awayTeam": "Cruzeiro",
@@ -61535,8 +61535,8 @@
       "awayWinner": false,
       "venue": "Estadio do Maracana",
       "city": "Rio de Janeiro",
-      "clockSec": 3060.0,
-      "clockStr": "51'",
+      "clockSec": 4260.0,
+      "clockStr": "71'",
       "period": 2,
       "details": [
         {
@@ -61574,6 +61574,63 @@
             {
               "displayName": "Kauã Moraes Silva",
               "shortName": "K. Moraes Silva"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "3445"
+          },
+          "clock": {
+            "value": 3059.0,
+            "displayValue": "51'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Luciano Acosta",
+              "shortName": "L. Acosta"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "2022"
+          },
+          "clock": {
+            "value": 3465.0,
+            "displayValue": "58'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Jonathan Jesus",
+              "shortName": "J. Jesus"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "3445"
+          },
+          "clock": {
+            "value": 3759.0,
+            "displayValue": "63'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Rodrigo Castillo",
+              "shortName": "R. Castillo"
             }
           ]
         }
