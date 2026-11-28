@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-11-28T00:30:43Z",
-  "sourceUpdatedAt": "2026-11-28T00:30:43Z",
+  "generatedAt": "2026-11-28T00:50:50Z",
+  "sourceUpdatedAt": "2026-11-28T00:50:50Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "44677e056a3956daeced4f78fe2fa3ada73d60f2eaaf52e801b39fa708109d03",
+  "payloadHash": "b0b466a6d259b3938793234d750d1a269e07c2e7b429d494a303fa6d0593201f",
   "matches": [
     {
       "id": "401840808",
@@ -61522,8 +61522,8 @@
       "state": "in",
       "statusName": "STATUS_SECOND_HALF",
       "statusDescription": "Second Half",
-      "statusShortDetail": "71'",
-      "statusDetail": "71'",
+      "statusShortDetail": "90'+1'",
+      "statusDetail": "90'+1'",
       "completed": false,
       "homeTeam": "Fluminense",
       "awayTeam": "Cruzeiro",
@@ -61535,8 +61535,8 @@
       "awayWinner": false,
       "venue": "Estadio do Maracana",
       "city": "Rio de Janeiro",
-      "clockSec": 4260.0,
-      "clockStr": "71'",
+      "clockSec": 5400.0,
+      "clockStr": "90'+1'",
       "period": 2,
       "details": [
         {
@@ -61631,6 +61631,82 @@
             {
               "displayName": "Rodrigo Castillo",
               "shortName": "R. Castillo"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Red Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "2022"
+          },
+          "clock": {
+            "value": 4289.0,
+            "displayValue": "72'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Jonathan Jesus",
+              "shortName": "J. Jesus"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "2022"
+          },
+          "clock": {
+            "value": 4555.0,
+            "displayValue": "76'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Otávio Costa",
+              "shortName": "O. Costa"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "3445"
+          },
+          "clock": {
+            "value": 5381.0,
+            "displayValue": "90'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Riquelme",
+              "shortName": "Riquelme"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "3445"
+          },
+          "clock": {
+            "value": 5398.0,
+            "displayValue": "90'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Samuel Xavier",
+              "shortName": "Samuel Xavier"
             }
           ]
         }
