@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-11-28T00:50:50Z",
-  "sourceUpdatedAt": "2026-11-28T00:50:50Z",
+  "generatedAt": "2026-11-28T01:10:40Z",
+  "sourceUpdatedAt": "2026-11-28T01:10:40Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "b0b466a6d259b3938793234d750d1a269e07c2e7b429d494a303fa6d0593201f",
+  "payloadHash": "c480e020e7388cf50b629d98e14e5a7ee7a3948adb06c1bf1208d821b4085575",
   "matches": [
     {
       "id": "401840808",
@@ -61519,12 +61519,12 @@
     {
       "id": "401841337",
       "date": "2026-11-27T23:00Z",
-      "state": "in",
-      "statusName": "STATUS_SECOND_HALF",
-      "statusDescription": "Second Half",
-      "statusShortDetail": "90'+1'",
-      "statusDetail": "90'+1'",
-      "completed": false,
+      "state": "post",
+      "statusName": "STATUS_FULL_TIME",
+      "statusDescription": "Full Time",
+      "statusShortDetail": "FT",
+      "statusDetail": "FT",
+      "completed": true,
       "homeTeam": "Fluminense",
       "awayTeam": "Cruzeiro",
       "homeTeamId": "3445",
@@ -61532,11 +61532,11 @@
       "homeScore": 0,
       "awayScore": 1,
       "homeWinner": false,
-      "awayWinner": false,
+      "awayWinner": true,
       "venue": "Estadio do Maracana",
       "city": "Rio de Janeiro",
       "clockSec": 5400.0,
-      "clockStr": "90'+1'",
+      "clockStr": "90'+7'",
       "period": 2,
       "details": [
         {
@@ -61693,6 +61693,25 @@
         },
         {
           "type": {
+            "text": "Red Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "3445"
+          },
+          "clock": {
+            "value": 5395.0,
+            "displayValue": "90'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Samuel Xavier",
+              "shortName": "Samuel Xavier"
+            }
+          ]
+        },
+        {
+          "type": {
             "text": "Yellow Card"
           },
           "scoringPlay": false,
@@ -61700,7 +61719,7 @@
             "id": "3445"
           },
           "clock": {
-            "value": 5398.0,
+            "value": 5394.0,
             "displayValue": "90'"
           },
           "athletesInvolved": [
