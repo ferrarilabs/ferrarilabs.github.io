@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-25T04:11:26Z",
+  "generatedAt": "2026-11-28T04:30:40Z",
   "threshold": {
     "minJackpotCents": 50000000000,
     "comparison": "strictly_greater",
@@ -10,14 +10,14 @@
     "powerball": {
       "game": "powerball",
       "label": "Powerball",
-      "advertisedAnnuityCents": 3100000000,
-      "cashValueCents": 1300000000,
-      "nextDrawDate": "2026-11-25",
-      "nextDrawAt": "2026-11-26T03:59:00Z",
+      "advertisedAnnuityCents": 4800000000,
+      "cashValueCents": 2050000000,
+      "nextDrawDate": "2026-11-28",
+      "nextDrawAt": "2026-11-29T03:59:00Z",
       "source": "https://www.powerball.com/",
       "verificationState": "PRIMARY_CONFIRMED",
-      "fetchedAt": "2026-11-25T04:11:26Z",
-      "sourceHash": "1eac594249318d6f",
+      "fetchedAt": "2026-11-28T04:30:40Z",
+      "sourceHash": "caf02cd6c12479fc",
       "eligible": false,
       "state": "BELOW_THRESHOLD",
       "error": null
@@ -25,14 +25,14 @@
     "megamillions": {
       "game": "megamillions",
       "label": "Mega Millions",
-      "advertisedAnnuityCents": 67300000000,
-      "cashValueCents": 28260000000,
-      "nextDrawDate": "2026-11-27",
-      "nextDrawAt": "2026-11-28T04:00:00Z",
+      "advertisedAnnuityCents": 70000000000,
+      "cashValueCents": 29680000000,
+      "nextDrawDate": "2026-12-01",
+      "nextDrawAt": "2026-12-02T04:00:00Z",
       "source": "https://www.megamillions.com/cmspages/utilservice.asmx/GetLatestDrawData",
       "verificationState": "PRIMARY_CONFIRMED",
-      "fetchedAt": "2026-11-25T04:11:26Z",
-      "sourceHash": "cae2727ee68a1d14",
+      "fetchedAt": "2026-11-28T04:30:40Z",
+      "sourceHash": "0645f03a3056e734",
       "eligible": true,
       "state": "ELIGIBLE",
       "error": null
@@ -41,13 +41,13 @@
   "nextPool": {
     "game": "megamillions",
     "label": "Mega Millions",
-    "jackpotCents": 67300000000,
-    "drawDate": "2026-11-27"
+    "jackpotCents": 70000000000,
+    "drawDate": "2026-12-01"
   },
   "funds": {
-    "lastDrawWinningsCents": 1500,
-    "lastDrawId": "2026-11-24",
-    "carryoverAvailableCents": 1600,
+    "lastDrawWinningsCents": 1400,
+    "lastDrawId": "2026-11-27",
+    "carryoverAvailableCents": 1500,
     "reserves": [
       {
         "id": "ganhadores-2026-11-02",
@@ -57,28 +57,28 @@
         "cents": 3300
       }
     ],
-    "ledgerEntries": 55
+    "ledgerEntries": 60
   },
   "currentDraw": {
-    "id": "2026-11-24",
+    "id": "2026-11-27",
     "game": "megamillions",
     "lifecycleState": "SETTLED",
     "reason": "resultado oficial gravado e prêmio creditado",
     "result": {
       "numbers": [
-        38,
-        42,
-        44,
-        45,
-        62
+        8,
+        16,
+        18,
+        33,
+        48
       ],
-      "special": 16,
+      "special": 19,
       "multiplier": 1,
-      "checkedAt": "25/11/2026 04:11 ET",
-      "premiosGanhos": 15,
+      "checkedAt": "28/11/2026 04:30 ET",
+      "premiosGanhos": 14,
       "jackpotHit": false,
       "breakdown": [
-        "1x Mega Ball"
+        "1x 1 + Mega Ball"
       ]
     }
   },
