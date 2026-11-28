@@ -9,6 +9,12 @@
       "amount": 10,
       "method": "Fundo próprio (organizador)",
       "paid_at": "2026-11-28T07:11:16-05:00"
+    },
+    {
+      "name": "Thiago Locatelli",
+      "amount": 10,
+      "method": "Zelle",
+      "paid_at": "2026-11-25T10:45:52-05:00"
     }
   ]
 }
