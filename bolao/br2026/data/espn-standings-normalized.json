@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-11-27T01:10:35Z",
-  "sourceUpdatedAt": "2026-11-27T01:10:35Z",
+  "generatedAt": "2026-11-28T01:10:39Z",
+  "sourceUpdatedAt": "2026-11-28T01:10:39Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "2d60addf1dac81bc70bc4dd5ad35cc3b163ef48804e96431157bab205d055443",
+  "payloadHash": "9326630f123116ddf56ddb4cd8df2ccd7e3142f6f793f8d05360f17732fce533",
   "matches": [
     {
       "name": "Flamengo",
@@ -41,14 +41,14 @@
       "abbr": "CRU",
       "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/2022.png",
       "rank": 3.0,
-      "points": 66.0,
-      "played": 36.0,
-      "wins": 20.0,
+      "points": 69.0,
+      "played": 37.0,
+      "wins": 21.0,
       "draws": 6.0,
       "losses": 10.0,
-      "gf": 59.0,
+      "gf": 60.0,
       "ga": 50.0,
-      "gd": 9.0
+      "gd": 10.0
     },
     {
       "name": "Fluminense",
@@ -56,13 +56,13 @@
       "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/3445.png",
       "rank": 4.0,
       "points": 63.0,
-      "played": 36.0,
+      "played": 37.0,
       "wins": 18.0,
       "draws": 9.0,
-      "losses": 9.0,
+      "losses": 10.0,
       "gf": 57.0,
-      "ga": 42.0,
-      "gd": 15.0
+      "ga": 43.0,
+      "gd": 14.0
     },
     {
       "name": "Athletico Paranaense",
