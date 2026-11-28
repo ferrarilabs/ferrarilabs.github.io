@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-11-28T01:10:40Z",
-  "sourceUpdatedAt": "2026-11-28T01:10:40Z",
+  "generatedAt": "2026-11-28T08:40:28Z",
+  "sourceUpdatedAt": "2026-11-28T08:40:28Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "c480e020e7388cf50b629d98e14e5a7ee7a3948adb06c1bf1208d821b4085575",
+  "payloadHash": "4c083bdc3bb326d90e0c70731d23dab26bc1d7342f8bfae334f82132aed6695f",
   "matches": [
     {
       "id": "401840808",
@@ -61693,14 +61693,14 @@
         },
         {
           "type": {
-            "text": "Red Card"
+            "text": "Yellow Card"
           },
           "scoringPlay": false,
           "team": {
             "id": "3445"
           },
           "clock": {
-            "value": 5395.0,
+            "value": 5394.0,
             "displayValue": "90'"
           },
           "athletesInvolved": [
@@ -61712,14 +61712,14 @@
         },
         {
           "type": {
-            "text": "Yellow Card"
+            "text": "Red Card"
           },
           "scoringPlay": false,
           "team": {
             "id": "3445"
           },
           "clock": {
-            "value": 5394.0,
+            "value": 5395.0,
             "displayValue": "90'"
           },
           "athletesInvolved": [
