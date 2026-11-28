@@ -1755,6 +1755,7 @@ window.POWERBALL_DRAWS = [
 
     // BOLAO ABERTO, ainda sem ninguem. Estado valido: participantes entram progressivamente.
     participants: [
+      { name: "Thiago Locatelli", cotas: 1, valor: 10, metodo: "Zelle", data: "25/11/2026", hora: "10:45:52 AM", status: "verificado", state: "TX" },
       { name: "Eduardo Ferrari", cotas: 1, valor: 10, metodo: "Fundo próprio (organizador)", data: "28/11/2026", hora: "7:11:16 AM", status: "organizador", state: "NC" }
     ],
 
@@ -1768,7 +1769,7 @@ window.POWERBALL_DRAWS = [
     },
 
     finance: {
-      totalArrecadado: 10, // 1 participante(s), soma das contribuicoes no banco
+      totalArrecadado: 20, // 2 participante(s), soma das contribuicoes no banco
       // Premio do sorteio anterior + o que ficou guardado. Derivado do que esta gravado, nao
       // arbitrado aqui.
       creditoSorteioAnterior: 15,
