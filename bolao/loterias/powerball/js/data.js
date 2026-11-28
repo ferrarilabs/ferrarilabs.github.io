@@ -1722,7 +1722,15 @@ window.POWERBALL_DRAWS = [
       ajustesPendentes: 0
     },
 
-    result: null,
+    result: {
+      numbers: [8, 16, 18, 33, 48],
+      special: 19,
+      multiplier: 1,
+      checkedAt: "28/11/2026 04:30 ET",
+      premiosGanhos: 14,
+      jackpotHit: false,
+      breakdown: ["1x 1 + Mega Ball"]
+    },
     profit: null
   }
 ];
